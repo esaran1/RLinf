@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .tasks.g1_piston import IsaaclabG1PistonEnv
 from .tasks.stack_cube import IsaaclabStackCubeEnv
 
 REGISTER_ISAACLAB_ENVS = {
     "Isaac-Stack-Cube-Franka-IK-Rel-Visuomotor-Rewarded-v0": IsaaclabStackCubeEnv,
+    # External Unitree G1 + Inspire piston task (unitree_sim_isaaclab + overlay).
+    "Isaac-PickPlace-Piston-G129-Inspire-Joint": IsaaclabG1PistonEnv,
+    "Isaac-PickPlace-Piston-StandTest-G129-Inspire-Joint": IsaaclabG1PistonEnv,
 }
 
 __all__ = [list(REGISTER_ISAACLAB_ENVS.keys())]

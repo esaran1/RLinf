@@ -1,0 +1,53 @@
+# Unitree G1 (29 DOF) + Inspire -- piston pick-place.
+#
+# The simulator is external: it lives in `unitree_sim_isaaclab` with the
+# `g1_redball_eval` overlay registering the piston task IDs. RLinf only adapts it
+# (see rlinf/envs/isaaclab/tasks/g1_piston.py).
+#
+# num_envs is pinned to 1: the upstream termination term `reset_object_estimate`
+# is scalar-valued and raises for batched tensors. Do not raise this without
+# vectorizing that term upstream first.
+
+env_type: isaaclab
+total_num_envs: 1
+auto_reset: False
+ignore_terminations: False
+use_rel_reward: True
+seed: 0
+group_size: 1
+
+reward_coef: 1.0
+use_fixed_reset_state_ids: False
+# 100 Hz control (sim.dt 0.005 * decimation 2). Upstream episode_length_s = 20.0
+# would be 2000 steps; kept short here for smoke testing.
+max_steps_per_rollout_epoch: 256
+max_episode_steps: 256
+
+video_cfg:
+  save_video: False
+  info_on_video: True
+  fps: 20
+  video_base_dir: ${runner.logger.log_path}/video/train
+
+init_params:
+  id: "Isaac-PickPlace-Piston-G129-Inspire-Joint"
+  num_envs: 1
+  max_episode_steps: ${..max_episode_steps}
+  # Path to the external unitree_sim_isaaclab checkout, prepended to sys.path in
+  # the simulator subprocess so its top-level `tasks` package registers the IDs.
+  unitree_sim_path: "/home/jren313/unitree_sim_isaaclab"
+  # TODO(starvla-handoff): the instruction string must match the wording the SFT
+  # checkpoint was trained with. Placeholder until the handoff lands.
+  task_description: "Pick up the piston and place it in the pot."
+  # Upstream default is 480x640 per camera. Downscaled for the 16 GB RTX 4080.
+  # TODO(starvla-handoff): final resolution must match the checkpoint's image
+  # preprocessing contract.
+  front_cam:
+    height: 256
+    width: 256
+  left_wrist_cam:
+    height: 256
+    width: 256
+  right_wrist_cam:
+    height: 256
+    width: 256

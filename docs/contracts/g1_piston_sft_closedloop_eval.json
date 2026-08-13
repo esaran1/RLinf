@@ -1,220 +1,210 @@
 {
-  "_doc": "Closed-loop SFT evaluation of g1-longhorizon-oft-v1 through RLinf/IsaacLab. EVALUATION ONLY - no RL.",
-  "ego_camera": {
-    "WxH": [
-      424,
-      240
-    ],
-    "focal_mm": 14.55,
-    "HFOV_deg": 69.0,
-    "VFOV_deg": 42.5
+  "_doc": "Corrected-scene deterministic SFT evaluation. EVALUATION ONLY - no RL, no optimizer, no exploration.",
+  "scene_provenance": {
+    "commit": "02fddc3 (g1_redball_eval, branch origin/minji/piston-pot)",
+    "restored_by": "g1_redball_eval@eb8cf3a",
+    "camera_fix": "g1_redball_eval@6c1190b",
+    "dataset_author_string": "bir (replay of Minji piston CSVs via replay_piston_csv.py)",
+    "why_lost": "reflog 2026-07-23: rebase started from origin/minji/piston-pot but returned to bcdfbc3, dropping 02fddc3"
   },
-  "articulation_dofs": 53,
+  "scene_validation": {
+    "frame_shape": [
+      240,
+      424,
+      3
+    ],
+    "dofs": 53,
+    "all_defaults_zero": true,
+    "pot_pos": [
+      0.15,
+      0.3,
+      0.8
+    ],
+    "dataset_final_xyz_sim": [
+      0.1505,
+      0.327,
+      1.0091
+    ],
+    "rack_left": true,
+    "plate_right": true,
+    "piston_upright_in_blue_socket": true,
+    "left_hand_grip_via_action": [
+      1.6997,
+      1.6997,
+      1.6999,
+      1.7,
+      0.3443,
+      0.2499
+    ],
+    "left_hand_demo_frame0": [
+      1.698,
+      1.68,
+      1.579,
+      1.571,
+      0.329,
+      0.239
+    ]
+  },
   "episodes": [
     {
       "episode": 0,
-      "policy_actions": 300,
-      "env_steps": 600,
-      "sim_seconds": 6.0,
-      "replans": 10,
+      "policy_actions": 1000,
+      "env_steps": 2000,
+      "sim_seconds": 20.0,
+      "replans": 34,
       "termination": "budget_exhausted",
-      "reward_sum": 0.0,
-      "reward_min": 0.0,
-      "reward_max": 0.0,
-      "reward_final": 0.0,
+      "reward_sum_INHERITED_IGNORE": 0.0,
       "rewards_finite": true,
       "piston_start_xyz": [
         -0.15,
         0.4,
-        0.918
+        0.92
       ],
       "piston_end_xyz": [
         -0.15,
         0.4,
         0.9109
       ],
-      "piston_displacement_m": 0.0071,
-      "piston_height_start_m": 0.918,
-      "piston_height_max_m": 0.918,
-      "piston_lifted": false,
-      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_baseline/sft_ep0.mp4"
+      "piston_max_lift_m": -0.002,
+      "piston_min_dist_to_pot_xy_m": 0.3162,
+      "piston_min_dist_to_tube_m": 0.1431,
+      "right_hand_max_close_rad": 0.6256,
+      "tube_displacement_m": 0.0307,
+      "stages": {
+        "right_hand_closed": true,
+        "piston_moved_gt_1cm": false,
+        "piston_lifted_gt_2cm": false,
+        "piston_approached_tube": false,
+        "piston_reached_pot_xy_lt_5cm": false,
+        "piston_over_pot_and_high": false
+      },
+      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_scene_fixed/sft_full_ep0.mp4"
     },
     {
       "episode": 1,
-      "policy_actions": 300,
-      "env_steps": 600,
-      "sim_seconds": 6.0,
-      "replans": 10,
+      "policy_actions": 1000,
+      "env_steps": 2000,
+      "sim_seconds": 20.0,
+      "replans": 34,
       "termination": "budget_exhausted",
-      "reward_sum": 0.0,
-      "reward_min": 0.0,
-      "reward_max": 0.0,
-      "reward_final": 0.0,
+      "reward_sum_INHERITED_IGNORE": 0.0,
       "rewards_finite": true,
       "piston_start_xyz": [
         -0.15,
         0.4,
-        0.9182
+        0.92
       ],
       "piston_end_xyz": [
         -0.15,
         0.4,
         0.9109
       ],
-      "piston_displacement_m": 0.0074,
-      "piston_height_start_m": 0.9182,
-      "piston_height_max_m": 0.9182,
-      "piston_lifted": false,
-      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_baseline/sft_ep1.mp4"
+      "piston_max_lift_m": -0.0018,
+      "piston_min_dist_to_pot_xy_m": 0.3162,
+      "piston_min_dist_to_tube_m": 0.1481,
+      "right_hand_max_close_rad": 0.0079,
+      "tube_displacement_m": 0.0008,
+      "stages": {
+        "right_hand_closed": false,
+        "piston_moved_gt_1cm": false,
+        "piston_lifted_gt_2cm": false,
+        "piston_approached_tube": false,
+        "piston_reached_pot_xy_lt_5cm": false,
+        "piston_over_pot_and_high": false
+      },
+      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_scene_fixed/sft_full_ep1.mp4"
+    },
+    {
+      "episode": 2,
+      "policy_actions": 1000,
+      "env_steps": 2000,
+      "sim_seconds": 20.0,
+      "replans": 34,
+      "termination": "budget_exhausted",
+      "reward_sum_INHERITED_IGNORE": 0.0,
+      "rewards_finite": true,
+      "piston_start_xyz": [
+        -0.15,
+        0.4,
+        0.92
+      ],
+      "piston_end_xyz": [
+        -0.15,
+        0.4,
+        0.9109
+      ],
+      "piston_max_lift_m": -0.0017,
+      "piston_min_dist_to_pot_xy_m": 0.3162,
+      "piston_min_dist_to_tube_m": 0.1484,
+      "right_hand_max_close_rad": 0.005,
+      "tube_displacement_m": 0.0006,
+      "stages": {
+        "right_hand_closed": false,
+        "piston_moved_gt_1cm": false,
+        "piston_lifted_gt_2cm": false,
+        "piston_approached_tube": false,
+        "piston_reached_pot_xy_lt_5cm": false,
+        "piston_over_pot_and_high": false
+      },
+      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_scene_fixed/sft_full_ep2.mp4"
     }
   ],
-  "controller_tracking": {
-    "commanded_rarm_per_replan": [
-      [
-        -0.6719,
-        -0.0764,
-        -0.1662,
-        -0.3136,
-        -0.105,
-        0.9325,
-        0.2059
-      ],
-      [
-        -0.3827,
-        0.0988,
-        0.1353,
-        -0.1071,
-        -0.0708,
-        0.3213,
-        -0.0792
-      ],
-      [
-        -0.3333,
-        0.1455,
-        0.1884,
-        -0.1407,
-        -0.0986,
-        0.3262,
-        -0.1091
-      ],
-      [
-        -0.2882,
-        0.1661,
-        0.2178,
-        -0.1673,
-        -0.113,
-        0.3318,
-        -0.1158
-      ],
-      [
-        -0.3005,
-        0.1536,
-        0.2065,
-        -0.1521,
-        -0.1022,
-        0.3164,
-        -0.1135
-      ]
+  "peak_vram_mib": 9882,
+  "motion_deficit": {
+    "demo_rarm_ranges_first300": [
+      1.208,
+      0.518,
+      0.33,
+      0.648,
+      0.205,
+      1.585,
+      0.222
     ],
-    "achieved_rarm_per_replan": [
-      [
-        -0.4822,
-        -0.0455,
-        -0.1559,
-        -0.2708,
-        -0.104,
-        0.9298,
-        0.1976
-      ],
-      [
-        -0.2431,
-        0.0856,
-        0.1321,
-        -0.0693,
-        -0.0683,
-        0.3356,
-        -0.0767
-      ],
-      [
-        -0.2005,
-        0.1147,
-        0.1739,
-        -0.0991,
-        -0.0927,
-        0.3383,
-        -0.104
-      ],
-      [
-        -0.1642,
-        0.1307,
-        0.2026,
-        -0.1252,
-        -0.1071,
-        0.3431,
-        -0.1124
-      ],
-      [
-        -0.1746,
-        0.1205,
-        0.1913,
-        -0.1098,
-        -0.096,
-        0.329,
-        -0.1104
-      ]
+    "ours_rarm_ranges_first300": [
+      0.2696,
+      0.1635,
+      0.2179,
+      0.1943,
+      0.1015,
+      0.3261,
+      0.1794
     ],
-    "tracking_err_last_rad": [
-      0.1259,
-      0.0332,
-      0.0151,
-      0.0423,
-      0.0062,
-      0.0126,
-      0.0031
+    "ratio": [
+      0.22,
+      0.32,
+      0.66,
+      0.3,
+      0.5,
+      0.21,
+      0.81
     ],
-    "verdict": "PD controller tracks commands well (0.003-0.13 rad); action plumbing is correct."
+    "demo_rhand_at300": [
+      1.3,
+      1.3,
+      1.3,
+      1.3,
+      0.0,
+      -0.1
+    ],
+    "ours_rhand_max": [
+      0.9555,
+      0.961,
+      0.96,
+      0.9683,
+      0.008,
+      -0.0906
+    ],
+    "ours_rhand_at300": [
+      0.031,
+      0.0274,
+      0.0246,
+      0.0278,
+      -0.0014,
+      -0.1013
+    ],
+    "base_fixed": true,
+    "waist_fixed": true
   },
-  "policy_output": {
-    "chunk_shape": [
-      30,
-      30
-    ],
-    "right_arm_step0": [
-      -0.4853,
-      0.0268,
-      -0.0155,
-      -0.0693,
-      -0.0505,
-      0.4547,
-      0.0202
-    ],
-    "right_arm_step29": [
-      -0.6719,
-      -0.0764,
-      -0.1662,
-      -0.3136,
-      -0.105,
-      0.9325,
-      0.2059
-    ],
-    "per_dim_range_first_chunk": [
-      0.0341,
-      0.0088,
-      0.0466,
-      0.024,
-      0.0059,
-      0.0263,
-      0.0529,
-      0.1866,
-      0.1287,
-      0.1598,
-      0.2444,
-      0.0572,
-      0.4778,
-      0.2024
-    ]
-  },
-  "peak_vram_mib_combined": 9600,
-  "blocking_finding": "SCENE MISMATCH: the piston task scene differs from the training scene. Demo: piston lies horizontally on a stand, tube rack left, hole plate right. Sim: piston stands vertically pre-inserted in a blue block, rack right, no hole plate. Object identities/poses/sides differ, so the ego view is out of distribution despite correct 69deg optics.",
-  "not_evidence_of": "This is NOT evidence about SFT policy quality, and the flat 0.0 reward is NOT evidence of success or failure (it is the inherited cylinder-region predicate)."
+  "verdict": "Scene now matches the demonstrations. The policy produces directionally correct but severely under-scaled motion (21-32% of demo amplitude on the large right-arm joints) and does not sustain the right-hand grasp (peaks 0.96 vs demo 1.3, then reopens to 0.03). No task stage beyond partial right-hand closure is reached.",
+  "inherited_reward_note": "reward_sum is the inherited cylinder-region predicate and is NOT used as a success metric."
 }

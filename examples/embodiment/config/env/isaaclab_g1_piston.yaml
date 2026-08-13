@@ -18,10 +18,14 @@ group_size: 1
 
 reward_coef: 1.0
 use_fixed_reset_state_ids: False
-# 100 Hz control (sim.dt 0.005 * decimation 2). Upstream episode_length_s = 20.0
-# would be 2000 steps; kept short here for smoke testing.
-max_steps_per_rollout_epoch: 256
-max_episode_steps: 256
+# Budgets are in ENV steps, not policy actions: step() increments _elapsed_steps once
+# per env step and truncates on max_episode_steps. The simulator runs at 100 Hz
+# (sim.dt 0.005 * decimation 2) and episode_length_s stays 20.0 -> 2000 env steps
+# = 1000 policy actions at 50 Hz. Demonstrations run 13.1-14.0 s, so this leaves ~6 s
+# of headroom. Do not raise it, and do not halve episode_length_s to compensate for
+# the zero-order hold.
+max_steps_per_rollout_epoch: 2000
+max_episode_steps: 2000
 
 video_cfg:
   save_video: False
@@ -36,18 +40,23 @@ init_params:
   # Path to the external unitree_sim_isaaclab checkout, prepended to sys.path in
   # the simulator subprocess so its top-level `tasks` package registers the IDs.
   unitree_sim_path: "/home/jren313/unitree_sim_isaaclab"
-  # TODO(starvla-handoff): the instruction string must match the wording the SFT
-  # checkpoint was trained with. Placeholder until the handoff lands.
-  task_description: "Pick up the piston and place it in the pot."
-  # Upstream default is 480x640 per camera. Downscaled for the 16 GB RTX 4080.
-  # TODO(starvla-handoff): final resolution must match the checkpoint's image
-  # preprocessing contract.
-  front_cam:
-    height: 256
-    width: 256
-  left_wrist_cam:
-    height: 256
-    width: 256
-  right_wrist_cam:
-    height: 256
-    width: 256
+  # VERBATIM from the SFT handoff (RLINF_INTERFACE.json task_string), verified against
+  # sha256 23c5ab23b8e8f7a903580bb14b32706c438100989ed45293e2415d87238e8062. Lowercase
+  # 'pick', trailing period. Any rewording is out of distribution -- do not edit.
+  task_description: "pick up the piston with the right hand, inject it into the tube held by the left hand, then move it over the hole plate."
+  # NOTE: camera resolution/optics are deliberately NOT overridden here. The piston
+  # scene cfg in unitree_sim_isaaclab now configures front_camera as the D435 color
+  # stream (424x240, focal 14.55 mm -> 69.0 deg HFOV) to match the training data.
+  # Overriding height/width here would silently change the vertical FOV, because
+  # VFOV depends on the aspect ratio. Leave these unset.
+  #
+  # The policy consumes exactly one image (ego_view == front_camera). The wrist
+  # cameras are not used by the policy, the reward, or any termination, so they are
+  # disabled during evaluation to save simulator VRAM.
+  enable_wrist_cameras: false
+  # Fail fast if the ego camera's optics drift from the dataset's D435 (69 deg HFOV).
+  verify_ego_optics: true
+  # Zero-order hold: the policy runs at 50 Hz, the simulator at 100 Hz, so each of the
+  # 30 predicted actions is applied for 2 consecutive env steps. This is a boundary
+  # rate conversion only -- action_horizon stays 30 and num_action_chunks stays 30.
+  action_hold_steps: 2

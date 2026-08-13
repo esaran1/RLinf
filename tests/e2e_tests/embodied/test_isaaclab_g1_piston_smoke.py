@@ -68,9 +68,11 @@ def _make_cfg():
                 "num_envs": 1,
                 "task_description": "Pick up the piston and place it in the pot.",
                 "unitree_sim_path": UNITREE_SIM_PATH,
-                "front_cam": {"height": 256, "width": 256},
-                "left_wrist_cam": {"height": 256, "width": 256},
-                "right_wrist_cam": {"height": 256, "width": 256},
+                # Camera optics come from the piston scene cfg (D435, 240x424,
+                # 69 deg HFOV) and are deliberately not overridden here.
+                "enable_wrist_cameras": False,
+                "verify_ego_optics": True,
+                "action_hold_steps": 2,
             },
         }
     )
@@ -100,10 +102,11 @@ def _check_obs(obs):
     assert obs["robot_inspire_state"].shape == (1, 12)
     assert obs["body_joint_pos"].shape == (1, 29)
 
-    for key in ("front_camera", "left_wrist_camera", "right_wrist_camera"):
-        assert key in obs, f"camera {key} missing from observation"
-        frame = obs[key]
-        assert frame.shape == (1, 256, 256, 3), f"{key} has shape {frame.shape}"
+    # The ego camera reproduces the dataset's D435 colour stream: 240x424, 69 deg
+    # HFOV. Wrist cameras are disabled for evaluation (the policy never sees them).
+    assert "front_camera" in obs, "ego camera missing from observation"
+    frame = obs["front_camera"]
+    assert frame.shape == (1, 240, 424, 3), f"front_camera has shape {frame.shape}"
 
     for key, value in obs.items():
         if isinstance(value, torch.Tensor):
@@ -115,10 +118,9 @@ def test_reset_returns_valid_observation(env):
     _check_obs(obs)
     # The camera shim would hand back an all-zero frame; a real render should not
     # be uniformly zero across every camera.
-    assert any(
-        obs[k].float().abs().sum() > 0
-        for k in ("front_camera", "left_wrist_camera", "right_wrist_camera")
-    ), "all camera frames are identically zero -- sensors did not render"
+    assert obs["front_camera"].float().abs().sum() > 0, (
+        "ego camera frame is identically zero -- the sensor did not render"
+    )
 
 
 def test_step_with_hold_action(env):

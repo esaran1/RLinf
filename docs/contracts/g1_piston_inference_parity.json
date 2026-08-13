@@ -1,0 +1,58 @@
+{
+  "framework": "QwenOFT",
+  "ckpt_missing_keys": 0,
+  "ckpt_unexpected_keys": 0,
+  "ckpt_missing_sample": [],
+  "ckpt_unexpected_sample": [],
+  "action_horizon": 30,
+  "action_token_id": 146663,
+  "_status": "OK",
+  "frame_idxs": [
+    0,
+    100,
+    300
+  ],
+  "raw_frame_shape": [
+    240,
+    424,
+    3
+  ],
+  "raw_frame_dtype": "uint8",
+  "standalone_norm_shape": [
+    3,
+    30,
+    30
+  ],
+  "train_obs_image_size": [
+    224,
+    224
+  ],
+  "processed_image_size": [
+    224,
+    224
+  ],
+  "processed_image_mode": "RGB",
+  "prompt_suffix_identical": true,
+  "prompt_suffix_repr": " Please predict the next 30 robot actions: <action>\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d\ud83d\udd0d",
+  "tokenized_input_ids_shape": [
+    3,
+    148
+  ],
+  "normalized_max_abs_diff": 0.0,
+  "normalized_mean_abs_diff": 0.0,
+  "denormalized_max_abs_diff": 0.0,
+  "denorm_impl_max_abs_diff_same_input": 0.0,
+  "mapped_shape": [
+    3,
+    30,
+    53
+  ],
+  "mapped_max_abs_diff": 0.0,
+  "gt_vs_pred_first_action_l1": 0.011625023143670888,
+  "gt_action_sample_dim14": 1.7000000476837158,
+  "pred_action_sample_dim14": 1.7000000476837158,
+  "gt_action_sample_dim26": 0.7599999904632568,
+  "pred_action_sample_dim26": 0.7599999904632568,
+  "peak_vram_mib": 4468,
+  "peak_vram_reserved_mib": 4514
+}

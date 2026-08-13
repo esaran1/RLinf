@@ -1,0 +1,220 @@
+{
+  "_doc": "Closed-loop SFT evaluation of g1-longhorizon-oft-v1 through RLinf/IsaacLab. EVALUATION ONLY - no RL.",
+  "ego_camera": {
+    "WxH": [
+      424,
+      240
+    ],
+    "focal_mm": 14.55,
+    "HFOV_deg": 69.0,
+    "VFOV_deg": 42.5
+  },
+  "articulation_dofs": 53,
+  "episodes": [
+    {
+      "episode": 0,
+      "policy_actions": 300,
+      "env_steps": 600,
+      "sim_seconds": 6.0,
+      "replans": 10,
+      "termination": "budget_exhausted",
+      "reward_sum": 0.0,
+      "reward_min": 0.0,
+      "reward_max": 0.0,
+      "reward_final": 0.0,
+      "rewards_finite": true,
+      "piston_start_xyz": [
+        -0.15,
+        0.4,
+        0.918
+      ],
+      "piston_end_xyz": [
+        -0.15,
+        0.4,
+        0.9109
+      ],
+      "piston_displacement_m": 0.0071,
+      "piston_height_start_m": 0.918,
+      "piston_height_max_m": 0.918,
+      "piston_lifted": false,
+      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_baseline/sft_ep0.mp4"
+    },
+    {
+      "episode": 1,
+      "policy_actions": 300,
+      "env_steps": 600,
+      "sim_seconds": 6.0,
+      "replans": 10,
+      "termination": "budget_exhausted",
+      "reward_sum": 0.0,
+      "reward_min": 0.0,
+      "reward_max": 0.0,
+      "reward_final": 0.0,
+      "rewards_finite": true,
+      "piston_start_xyz": [
+        -0.15,
+        0.4,
+        0.9182
+      ],
+      "piston_end_xyz": [
+        -0.15,
+        0.4,
+        0.9109
+      ],
+      "piston_displacement_m": 0.0074,
+      "piston_height_start_m": 0.9182,
+      "piston_height_max_m": 0.9182,
+      "piston_lifted": false,
+      "video": "/home/jren313/research/starvla_rl/eval_videos/sft_baseline/sft_ep1.mp4"
+    }
+  ],
+  "controller_tracking": {
+    "commanded_rarm_per_replan": [
+      [
+        -0.6719,
+        -0.0764,
+        -0.1662,
+        -0.3136,
+        -0.105,
+        0.9325,
+        0.2059
+      ],
+      [
+        -0.3827,
+        0.0988,
+        0.1353,
+        -0.1071,
+        -0.0708,
+        0.3213,
+        -0.0792
+      ],
+      [
+        -0.3333,
+        0.1455,
+        0.1884,
+        -0.1407,
+        -0.0986,
+        0.3262,
+        -0.1091
+      ],
+      [
+        -0.2882,
+        0.1661,
+        0.2178,
+        -0.1673,
+        -0.113,
+        0.3318,
+        -0.1158
+      ],
+      [
+        -0.3005,
+        0.1536,
+        0.2065,
+        -0.1521,
+        -0.1022,
+        0.3164,
+        -0.1135
+      ]
+    ],
+    "achieved_rarm_per_replan": [
+      [
+        -0.4822,
+        -0.0455,
+        -0.1559,
+        -0.2708,
+        -0.104,
+        0.9298,
+        0.1976
+      ],
+      [
+        -0.2431,
+        0.0856,
+        0.1321,
+        -0.0693,
+        -0.0683,
+        0.3356,
+        -0.0767
+      ],
+      [
+        -0.2005,
+        0.1147,
+        0.1739,
+        -0.0991,
+        -0.0927,
+        0.3383,
+        -0.104
+      ],
+      [
+        -0.1642,
+        0.1307,
+        0.2026,
+        -0.1252,
+        -0.1071,
+        0.3431,
+        -0.1124
+      ],
+      [
+        -0.1746,
+        0.1205,
+        0.1913,
+        -0.1098,
+        -0.096,
+        0.329,
+        -0.1104
+      ]
+    ],
+    "tracking_err_last_rad": [
+      0.1259,
+      0.0332,
+      0.0151,
+      0.0423,
+      0.0062,
+      0.0126,
+      0.0031
+    ],
+    "verdict": "PD controller tracks commands well (0.003-0.13 rad); action plumbing is correct."
+  },
+  "policy_output": {
+    "chunk_shape": [
+      30,
+      30
+    ],
+    "right_arm_step0": [
+      -0.4853,
+      0.0268,
+      -0.0155,
+      -0.0693,
+      -0.0505,
+      0.4547,
+      0.0202
+    ],
+    "right_arm_step29": [
+      -0.6719,
+      -0.0764,
+      -0.1662,
+      -0.3136,
+      -0.105,
+      0.9325,
+      0.2059
+    ],
+    "per_dim_range_first_chunk": [
+      0.0341,
+      0.0088,
+      0.0466,
+      0.024,
+      0.0059,
+      0.0263,
+      0.0529,
+      0.1866,
+      0.1287,
+      0.1598,
+      0.2444,
+      0.0572,
+      0.4778,
+      0.2024
+    ]
+  },
+  "peak_vram_mib_combined": 9600,
+  "blocking_finding": "SCENE MISMATCH: the piston task scene differs from the training scene. Demo: piston lies horizontally on a stand, tube rack left, hole plate right. Sim: piston stands vertically pre-inserted in a blue block, rack right, no hole plate. Object identities/poses/sides differ, so the ego view is out of distribution despite correct 69deg optics.",
+  "not_evidence_of": "This is NOT evidence about SFT policy quality, and the flat 0.0 reward is NOT evidence of success or failure (it is the inherited cylinder-region predicate)."
+}

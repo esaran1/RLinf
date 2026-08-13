@@ -121,6 +121,67 @@ NUM_INSPIRE_JOINTS = 12
 #: *environment's* order and is NOT asserted to be StarVLA's expected input order.
 CAMERA_SCENE_KEYS = ("front_camera", "left_wrist_camera", "right_wrist_camera")
 
+#: The ego camera the SFT policy consumes. Per the handoff, the dataset's
+#: ``observation.images.ego_view`` is this camera: same mount prim, D435 colour stream.
+EGO_CAMERA_KEY = "front_camera"
+
+#: Dataset ego-camera intrinsics (RealSense D435 colour). The piston scene cfg in
+#: unitree_sim_isaaclab is configured to reproduce these; RLinf asserts rather than
+#: mutates, because FOV is baked into the render and cannot be fixed by a later resize.
+EGO_NATIVE_HW = (240, 424)
+EGO_FOCAL_MM = 14.55
+EGO_H_APERTURE_MM = 20.0
+EGO_HFOV_DEG = 69.0
+EGO_VFOV_DEG = 42.5
+
+#: Resolution the policy was trained at, reached by a non-aspect-preserving squash of
+#: the native 240x424 frame. Applied by StarVLA's own ``resize_images``, not here.
+POLICY_INPUT_HW = (224, 224)
+
+
+def compute_fov_deg(focal_mm: float, aperture_mm: float, width: int, height: int):
+    """Return (HFOV, VFOV) in degrees for a pinhole camera.
+
+    ``HFOV = 2*atan(aperture / (2*focal))``; the vertical aperture is the horizontal
+    one scaled by the aspect ratio, so VFOV depends on resolution even though HFOV
+    does not.
+    """
+    import math
+
+    hfov = 2 * math.degrees(math.atan(aperture_mm / (2 * focal_mm)))
+    vfov = 2 * math.degrees(
+        math.atan((aperture_mm * height / width) / (2 * focal_mm))
+    )
+    return hfov, vfov
+
+
+def _assert_ego_camera_matches_dataset(cam_cfg, tol_deg: float = 0.5) -> None:
+    """Fail fast if the ego camera would render out-of-distribution imagery.
+
+    The SFT policy was trained on 69 deg HFOV frames. The stock piston preset renders
+    105.5 deg. That difference is baked into the render: no downstream resize or crop
+    can recover it, so a mismatch must stop evaluation rather than silently degrade it.
+    """
+    height, width = int(cam_cfg.height), int(cam_cfg.width)
+    focal = float(cam_cfg.spawn.focal_length)
+    aperture = float(cam_cfg.spawn.horizontal_aperture)
+    hfov, vfov = compute_fov_deg(focal, aperture, width, height)
+
+    if (height, width) != EGO_NATIVE_HW:
+        raise ValueError(
+            f"Ego camera renders {height}x{width}, but the dataset's ego_view is "
+            f"{EGO_NATIVE_HW[0]}x{EGO_NATIVE_HW[1]}. Fix the piston scene cfg in "
+            "unitree_sim_isaaclab; do not override the resolution from RLinf."
+        )
+    if abs(hfov - EGO_HFOV_DEG) > tol_deg or abs(vfov - EGO_VFOV_DEG) > tol_deg:
+        raise ValueError(
+            f"Ego camera FOV is {hfov:.1f} deg H / {vfov:.1f} deg V, but the training "
+            f"data is {EGO_HFOV_DEG} deg H / {EGO_VFOV_DEG} deg V (focal "
+            f"{EGO_FOCAL_MM} mm, aperture {EGO_H_APERTURE_MM} mm). The policy would "
+            "receive out-of-distribution imagery. FOV is baked into the render and "
+            "cannot be corrected by resizing downstream."
+        )
+
 
 class _CameraInjectingEnv:
     """Copies rendered camera frames into the observation dict, in-process.
@@ -183,6 +244,107 @@ class IsaaclabG1PistonEnv(IsaaclabBaseEnv):
         )
         super().__init__(cfg, num_envs, seed_offset, total_num_processes, worker_info)
 
+        # 50 Hz policy vs 100 Hz simulator -> hold each action for 2 env steps.
+        self.action_hold_steps = int(cfg.init_params.get("action_hold_steps", 2))
+        if self.action_hold_steps < 1:
+            raise ValueError(
+                f"action_hold_steps must be >= 1, got {self.action_hold_steps}"
+            )
+
+    def chunk_step(self, chunk_actions):
+        """Zero-order hold: execute each policy action for ``action_hold_steps``.
+
+        The SFT policy runs at 50 Hz; the piston task steps at 100 Hz (sim.dt 0.005,
+        decimation 2). Each of the 30 policy actions is therefore applied to 2
+        consecutive env steps, giving 60 env steps per chunk while the *policy's*
+        action horizon stays 30. The rate conversion lives here, at the env boundary,
+        precisely so the learned representation is untouched: we do not emit 60
+        actions, duplicate rows in the model output, or inflate num_action_chunks.
+
+        Bookkeeping semantics:
+
+        * Reward is **summed** across the held steps, so a chunk's return is the true
+          environment return over the interval the action was in force.
+        * Termination/truncation are **OR-ed** across the held steps: if the episode
+          ends on the first of the two, the flag survives into the chunk record.
+        * Only the *last* held step's observation is kept, since that is the state
+          the policy sees when it next re-plans.
+
+        The returned per-chunk tensors keep length ``chunk_size`` (one entry per
+        policy action, not per env step), so downstream chunk accounting is unchanged.
+        """
+        hold = self.action_hold_steps
+        if hold == 1:
+            return super().chunk_step(chunk_actions)
+
+        chunk_size = chunk_actions.shape[1]
+        obs_list = []
+        infos_list = []
+        chunk_rewards = []
+        raw_chunk_terminations = []
+        raw_chunk_truncations = []
+
+        for i in range(chunk_size):
+            actions = chunk_actions[:, i]
+
+            held_reward = None
+            held_term = None
+            held_trunc = None
+            extracted_obs = None
+            infos = {}
+
+            for _ in range(hold):
+                extracted_obs, step_reward, terminations, truncations, infos = (
+                    self.step(actions, auto_reset=False)
+                )
+                held_reward = (
+                    step_reward if held_reward is None else held_reward + step_reward
+                )
+                held_term = (
+                    terminations if held_term is None else held_term | terminations
+                )
+                held_trunc = (
+                    truncations if held_trunc is None else held_trunc | truncations
+                )
+
+            obs_list.append(extracted_obs)
+            infos_list.append(infos)
+            chunk_rewards.append(held_reward)
+            raw_chunk_terminations.append(held_term)
+            raw_chunk_truncations.append(held_trunc)
+
+        chunk_rewards = torch.stack(chunk_rewards, dim=1)
+        raw_chunk_terminations = torch.stack(raw_chunk_terminations, dim=1)
+        raw_chunk_truncations = torch.stack(raw_chunk_truncations, dim=1)
+
+        past_terminations = raw_chunk_terminations.any(dim=1)
+        past_truncations = raw_chunk_truncations.any(dim=1)
+        past_dones = torch.logical_or(past_terminations, past_truncations)
+
+        if past_dones.any() and self.auto_reset:
+            obs_list[-1], infos_list[-1] = self._handle_auto_reset(
+                past_dones, obs_list[-1], infos_list[-1]
+            )
+
+        if self.auto_reset or self.ignore_terminations:
+            chunk_terminations = torch.zeros_like(raw_chunk_terminations).to(
+                self.device
+            )
+            chunk_terminations[:, -1] = past_terminations
+            chunk_truncations = torch.zeros_like(raw_chunk_truncations).to(self.device)
+            chunk_truncations[:, -1] = past_truncations
+        else:
+            chunk_terminations = raw_chunk_terminations.clone()
+            chunk_truncations = raw_chunk_truncations.clone()
+
+        return (
+            obs_list,
+            chunk_rewards,
+            chunk_terminations,
+            chunk_truncations,
+            infos_list,
+        )
+
     def _make_env_function(self):
         """Build the callable that boots Isaac Sim inside the subprocess worker."""
         init_params = self.cfg.init_params
@@ -190,6 +352,8 @@ class IsaaclabG1PistonEnv(IsaaclabBaseEnv):
         seed = self.seed
         num_envs = init_params.num_envs
         unitree_sim_path = init_params.get("unitree_sim_path", None)
+        enable_wrist_cameras = bool(init_params.get("enable_wrist_cameras", False))
+        verify_ego_optics = bool(init_params.get("verify_ego_optics", True))
 
         def make_env_isaaclab():
             import os
@@ -224,21 +388,22 @@ class IsaaclabG1PistonEnv(IsaaclabBaseEnv):
             isaac_env_cfg.seed = seed
             isaac_env_cfg.scene.num_envs = num_envs
 
-            # Camera resolution is configurable; the upstream default is 480x640 per
-            # camera, which is heavy. Only override when the config asks.
-            for cam_key, cfg_key in (
-                ("front_camera", "front_cam"),
-                ("left_wrist_camera", "left_wrist_cam"),
-                ("right_wrist_camera", "right_wrist_cam"),
-            ):
-                cam_cfg = init_params.get(cfg_key, None)
-                if cam_cfg is None:
-                    continue
-                scene_cam = getattr(isaac_env_cfg.scene, cam_key, None)
-                if scene_cam is None:
-                    continue
-                scene_cam.height = cam_cfg.height
-                scene_cam.width = cam_cfg.width
+            # The ego camera's resolution is deliberately NOT overridden from RLinf.
+            # Its optics are set in the piston scene cfg to match the dataset's D435
+            # colour stream, and HFOV/VFOV are a function of focal length and aspect
+            # ratio -- rewriting height/width here would silently re-break the FOV
+            # that the scene cfg exists to fix. Assert instead of mutate.
+            if verify_ego_optics:
+                _assert_ego_camera_matches_dataset(isaac_env_cfg.scene.front_camera)
+
+            # The long-horizon policy consumes exactly one image (ego_view ==
+            # front_camera). The wrist cameras feed no reward, termination, or task
+            # logic -- only the guarded 'camera_image' shim -- so they can be removed
+            # to save simulator VRAM during evaluation.
+            if not enable_wrist_cameras:
+                for cam_key in ("left_wrist_camera", "right_wrist_camera"):
+                    if getattr(isaac_env_cfg.scene, cam_key, None) is not None:
+                        setattr(isaac_env_cfg.scene, cam_key, None)
 
             env = gym.make(
                 env_id, cfg=isaac_env_cfg, render_mode="rgb_array"

@@ -1,0 +1,41 @@
+{
+  "_doc": "PHASE 16 GATE FAILURE: replaying a known-successful demonstration in the current scene does not reproduce the demonstrated outcome. Reward calibration and all downstream RL are blocked.",
+  "test": "Replay dataset episode actions through the validated 30->53 mapper and 2x zero-order hold; log piston/tube/pot/fingertip state.",
+  "episodes_replayed": [
+    0,
+    33
+  ],
+  "result": {
+    "piston_start_barrel_xyz": [
+      -0.15,
+      0.4,
+      0.8891
+    ],
+    "piston_end_barrel_xyz": [
+      -0.1475,
+      0.3987,
+      0.8899
+    ],
+    "dataset_final_xyz_sim": [
+      0.1523,
+      0.3286,
+      1.0096
+    ],
+    "required_displacement_m": 0.333,
+    "observed_displacement_m": 0.003,
+    "closest_right_fingertip_to_barrel_m": 0.051,
+    "piston_joint_range": [
+      0.00105,
+      0.00826
+    ]
+  },
+  "controller_is_not_at_fault": {
+    "max_right_arm_tracking_err_rad": 0.3009,
+    "max_right_hand_tracking_err_rad": 0.5535,
+    "typical_hand_tracking_err_rad": 0.001,
+    "note": "Commanded right hand 1.3 rad is achieved as 1.2994. The arm reaches the commanded pose. The actions execute correctly; the hand simply closes where the piston is not."
+  },
+  "interpretation": "The demonstrated action trajectory and the current scene geometry are inconsistent. The right fingertips never get closer than 51 mm to the barrel, so no grasp is possible, and the piston is never displaced. Either the piston/stand pose or the robot base-to-table relative transform still differs from the generating scene.",
+  "why_this_blocks_RL": "PHASE 16 requires that a successful demonstration replay scores as success before training. It scores as total failure. Any reward calibrated here would be calibrated against a scene where the demonstrated behaviour is impossible, and RLPD demo transitions would carry observations that do not match their actions.",
+  "not_blocked": "The algorithm-side work (SAC/RLPD infrastructure audit, decision-interval semantics, actor-space definition, active-action mask) does not depend on this and is complete or in progress."
+}

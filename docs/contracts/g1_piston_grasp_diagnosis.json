@@ -1,0 +1,56 @@
+{
+  "_doc": "PHASE 2 kinematic diagnostic. Geometry is CORRECT; the blocker is right-hand grasp closure (Inspire thumb opposition), not a coordinate-frame mismatch.",
+  "geometry_verdict": "NOT a transform mismatch. Driving the robot to the dataset ACHIEVED joint states puts the right fingertips within 0.0305 m of the barrel centre (0.0179 m of the rod), and the fingertip trajectory ends at (0.162,0.345,1.022) vs the dataset final piston position (0.152,0.329,1.010). The demonstrated arm trajectory DOES reach the current piston.",
+  "earlier_false_lead": "A first FK pass used the DDS body-joint gather order for observation.state and appeared to show a 0.29 m reach shortfall. That was wrong: observation.state[0:26] uses the SAME layout as the 30-D action (per-dim correlation 0.97-0.999 against the action column), matching RLINF_INTERFACE.json state_slices. Re-running by joint NAME gave the 0.0305 m result above.",
+  "root_cause": "Right-hand grasp does not close on the barrel. At the grasp moment (t=140-160) the four finger INTERMEDIATE links reach radial_xy 0.018 m, i.e. INSIDE the 0.020 m barrel radius (penetrating), while the thumb sits at radial_xy 0.084 m -- ~4x too far to oppose. The proximal links stay at 0.043 m. Fingers curl through the barrel with no opposing thumb, so no stable grasp forms and the piston is never carried.",
+  "demo_thumb_motion": {
+    "dim24_pitch_range_rad": 0.28,
+    "dim25_yaw_range_rad": 0.35,
+    "note": "the demonstration barely actuates the thumb; the 4 fingers do the work"
+  },
+  "coupling_sweep": [
+    {
+      "ratio": 0.0,
+      "final_barrel": [
+        -0.1475,
+        0.3987,
+        0.8899
+      ],
+      "disp_m": 0.0028,
+      "err_to_dataset_final_m": 0.3303,
+      "max_lift_m": 0.0006
+    },
+    {
+      "ratio": 0.6,
+      "final_barrel": [
+        -0.1523,
+        0.3947,
+        0.8904
+      ],
+      "disp_m": 0.0097,
+      "err_to_dataset_final_m": 0.3337,
+      "max_lift_m": 0.0
+    },
+    {
+      "ratio": 1.0,
+      "final_barrel": [
+        -0.1439,
+        0.3935,
+        0.8908
+      ],
+      "disp_m": 0.0116,
+      "err_to_dataset_final_m": 0.3257,
+      "max_lift_m": 0.0
+    }
+  ],
+  "coupling_verdict": "Applying 6->12 Inspire coupling (intermediate = ratio * proximal) at ratios 0.0/0.6/1.0 does NOT fix it: piston displacement stays 0.003-0.012 m vs the required 0.333 m. Coupling curls the fingers further but does not bring the thumb into opposition.",
+  "what_this_means": "The recorded 6-DoF hand command is not sufficient, in this USD hand model, to produce the grasp the demonstration achieved. The generating setup must have differed in the hand: either a different 6->12 expansion that also drives thumb pitch/yaw, a different thumb rest pose, or attachment/grasp assistance. That mapper (inspire6_to_urdf12) is absent from this machine and from the HF dataset repo.",
+  "evidence_search_exhausted": [
+    "g1_redball_eval all branches/tags/reflog/stashes/fsck",
+    "unitree_sim_isaaclab",
+    "HF dataset repo file listing (meta/ only, no generation scripts)",
+    "HF author other datasets",
+    "no GR00T-WBC-Bridge clone on this machine"
+  ],
+  "blocks": "HARD GATE A (demonstration replay). Reward validation and RLPD demo conversion remain blocked; an RLPD demo buffer built from these episodes would pair observations with actions that do not achieve the recorded outcome in this simulator."
+}

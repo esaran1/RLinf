@@ -1,0 +1,34 @@
+{
+  "registered_before_results": true,
+  "date": "2026-08-17",
+  "purpose": "Pre-register the RLPD-vs-SAC prediction and its mechanism BEFORE any training curve exists, so the comparison cannot be rationalised after the fact.",
+  "mechanism": {
+    "reward_is_sparse_and_spiky": "per-transition reward in the demo buffer: median -0.030 (step cost), max 28.72; stage bonuses fire in single transitions",
+    "high_reward_transition_share": "79 of 467 demo transitions (16.9%) carry reward > 1.0",
+    "rlpd_batch_composition": "batch 8 at DEMO_FRAC 0.5 -> 4 demo samples per update",
+    "probability_of_signal_per_update": 0.524,
+    "interpretation": "~52% of RLPD updates contain at least one high-reward demo transition; SAC only sees such signal when its own exploration produces it"
+  },
+  "predictions": {
+    "primary": "RLPD reaches the lift stage at fewer online environment interactions than SAC",
+    "secondary": "RLPD full-success rate exceeds SAC at a matched online interaction budget",
+    "sft_reference": "SFT reaches reach/grasp but not lift, on the held-out suite",
+    "falsifier": "if SAC matches RLPD interactions-to-first-lift, the demonstration prior confers no sample-efficiency advantage on this task",
+    "also_interesting": "SAC catching up at a larger budget would be a meaningful negative result for the prior, not a failed experiment"
+  },
+  "what_would_invalidate_the_comparison": [
+    "either arm oscillating rather than learning (the failure mode of both earlier pilots)",
+    "alpha collapsing monotonically (now guarded: target -8.4 is inside the achievable range)",
+    "evaluation on the canonical single reset instead of the 50-condition held-out suite"
+  ],
+  "fixed_and_not_to_be_tuned_per_arm": [
+    "SFT initialisation",
+    "train reset distribution",
+    "reward",
+    "20-D action mask",
+    "held-out evaluation suite",
+    "interaction budget",
+    "all hyperparameters",
+    "the 22-episode demonstration prior (selected by replayability, never by RL outcome)"
+  ]
+}

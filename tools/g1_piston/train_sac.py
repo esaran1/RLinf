@@ -548,6 +548,16 @@ try:
     # ---------------- training loop ----------------
     env_steps = 0; grad_updates = 0; episode = 0
     n_online_samples = 0; n_demo_samples = 0
+    # NOTE (deliberate, do not "fix" mid-experiment): ``next_eval`` starts at 0, so the
+    # first training episode trips the periodic branch immediately (env_steps 1380 >= 0)
+    # and runs one extra 25-condition sweep before settling onto the intended schedule
+    # (138000, 276000, ...). That costs ~24 min per arm and yields a harmless extra
+    # early data point.
+    #
+    # It is left as-is for the SAC/RLPD comparison because the running SAC arm loaded
+    # this file at startup: changing it now would give RLPD a different evaluation
+    # cadence than SAC, and matched conditions matter more than 24 minutes. Set this to
+    # EVAL_EVERY once both arms of the current comparison have finished.
     next_eval = 0
 
     evaluate("init", 0, save_video=True)   # step-0 behavior, same suite

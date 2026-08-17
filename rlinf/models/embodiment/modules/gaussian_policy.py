@@ -103,9 +103,14 @@ class SquashedNormal(torch.distributions.TransformedDistribution):
                     return (y - self.shift) / self.scale
 
                 def log_abs_det_jacobian(self, x, y):
-                    # Constant scaling: log det = log(scale), summed over event dims
+                    # Constant scaling: log det = log(scale), summed over event dims.
+                    # scale may be a Python float (low/high passed as scalars), so build
+                    # the constant tensor first rather than calling torch.abs on a float.
+                    scale = torch.as_tensor(
+                        self.scale, dtype=x.dtype, device=x.device
+                    )
                     return torch.sum(
-                        torch.log(torch.abs(self.scale) * torch.ones_like(x)),
+                        torch.log(scale.abs().expand_as(x)),
                         dim=-1,
                     )
 

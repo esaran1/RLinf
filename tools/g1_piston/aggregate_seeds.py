@@ -117,7 +117,7 @@ def interactions_to(runs_by_seed, metric, thresh):
     return out
 
 
-def plots(out_dir, agg, sft):
+def plots(out_dir, agg, sft, dual=None, eff=None):
     try:
         import matplotlib
         matplotlib.use("Agg")
@@ -167,6 +167,48 @@ def plots(out_dir, agg, sft):
     draw(ax3[0], "mean_disp_m", "mean piston displacement (m)")
     draw(ax3[1], "mean_max_lift_m", "mean max lift (m)")
     f3.tight_layout(); f3.savefig(os.path.join(out_dir, "plot3_physical.png"), dpi=130)
+
+    # Plot 4: deterministic vs stochastic execution (from eval_checkpoint.py outputs)
+    if dual:
+        f4, ax4 = plt.subplots(1, 2, figsize=(11, 4))
+        metrics = ["grasp_rate", "lift_rate", "full_success_rate"]
+        labels = ["grasp", "lift", "success"]
+        width = 0.35
+        for ax, (algo, dd) in zip(ax4, sorted(dual.items())):
+            xs = range(len(metrics))
+            det = [dd["modes"]["deterministic"][m] for m in metrics]
+            sto = [dd["modes"]["stochastic"][m] for m in metrics]
+            ax.bar([x - width / 2 for x in xs], det, width, label="deterministic")
+            ax.bar([x + width / 2 for x in xs], sto, width, label="stochastic")
+            ax.set_xticks(list(xs)); ax.set_xticklabels(labels)
+            ax.set_title(f"{algo}: execution mode (std={dd.get('action_std_active_mean', 0):.3f})")
+            ax.set_ylim(0, 1.05); ax.grid(alpha=0.3, axis="y"); ax.legend(fontsize=8)
+        f4.suptitle("Deterministic vs stochastic execution on identical conditions")
+        f4.tight_layout()
+        f4.savefig(os.path.join(out_dir, "plot4_exec_mode.png"), dpi=130)
+
+    # Plot 5: RLPD sample-efficiency gain over SAC
+    if agg.get("SAC") and agg.get("RLPD"):
+        f5, a5 = plt.subplots(figsize=(7, 4.5))
+        names, gains = [], []
+        for name, metric, th in THRESHOLDS:
+            s = [v for v in eff[name]["SAC"].values() if v is not None]
+            r = [v for v in eff[name]["RLPD"].values() if v is not None]
+            if not s or not r:
+                continue
+            names.append(name)
+            # positive => RLPD needed FEWER interactions
+            gains.append((sum(s) / len(s) - sum(r) / len(r)) / 1000.0)
+        if names:
+            colors_b = ["tab:orange" if g > 0 else "tab:blue" for g in gains]
+            a5.barh(names, gains, color=colors_b)
+            a5.axvline(0, color="black", lw=1)
+            a5.set_xlabel("thousand interactions SAC needed minus RLPD\n"
+                          "(positive = RLPD reached the threshold earlier)")
+            a5.set_title("Sample-efficiency gain from the demonstration prior")
+            a5.grid(alpha=0.3, axis="x")
+        f5.tight_layout()
+        f5.savefig(os.path.join(out_dir, "plot5_sample_efficiency.png"), dpi=130)
     return True
 
 
@@ -180,6 +222,17 @@ def main():
         if s.get("evals"):
             sft = s["evals"][0]
 
+    dual = {}
+    for dp in sorted(glob.glob(os.path.join(runs_dir, "dualmode_*.json"))):
+        try:
+            with open(dp) as f:
+                dd = json.load(f)
+        except Exception:
+            continue
+        if dd.get("modes", {}).get("stochastic"):
+            algo = os.path.basename(dp)[len("dualmode_"):].split("_")[0].upper()
+            dual[algo] = dd
+
     runs = load_runs(runs_dir)
     agg = {algo: across_seeds(by_seed) for algo, by_seed in runs.items()}
 
@@ -192,6 +245,11 @@ def main():
                          if sft else None),
         "curves": {a: {str(k): {m: mean_sd(v) for m, v in b.items()}
                        for k, b in sorted(x.items())} for a, x in agg.items()},
+        "dual_mode": {a: {"gap": d.get("gap"),
+                          "action_std_active_mean": d.get("action_std_active_mean"),
+                          "deterministic": {k: d["modes"]["deterministic"][k] for k in STAGES},
+                          "stochastic": {k: d["modes"]["stochastic"][k] for k in STAGES}}
+                      for a, d in dual.items()},
         "sample_efficiency": {
             name: {algo: interactions_to(runs[algo], metric, th)
                    for algo in ("SAC", "RLPD")}
@@ -217,7 +275,8 @@ def main():
     for name, _m, _t in THRESHOLDS:
         print(f"  {name:<20} SAC {report['sample_efficiency'][name]['SAC']}"
               f"  RLPD {report['sample_efficiency'][name]['RLPD']}")
-    print("\nplots:", "written" if plots(out_dir, agg, sft) else "matplotlib unavailable")
+    print("\nplots:", "written" if plots(out_dir, agg, sft, dual, report["sample_efficiency"])
+          else "matplotlib unavailable")
 
 
 if __name__ == "__main__":

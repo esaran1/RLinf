@@ -1,0 +1,28 @@
+{
+  "question": "Is the 25-condition periodic suite exactly contained in the frozen 50-condition suite?",
+  "answer": "YES -- verified against STORED per-condition hashes, not just regenerated ones.",
+  "evidence": {
+    "sac_seed1_n25_equals_frozen_prefix": true,
+    "sac_seed1_n50_equals_frozen_suite": true,
+    "rlpd_seed1_n25_equals_frozen_prefix": true,
+    "sac_n25_is_exact_prefix_of_sac_n50": true,
+    "sac_n25_hashes_equal_rlpd_n25_hashes": true,
+    "first_three_hashes": [
+      "b24c153a44ef5670",
+      "651be2dd518a2f7c",
+      "7eed1627f719d14d"
+    ],
+    "condition_25_hash": "eb6bd206393418ee"
+  },
+  "reconstruction_parameters": {
+    "CRITICAL": "build_reset_suite(n_train=400, n_eval=50, seed=20260817)",
+    "why": "train and eval conditions are drawn SEQUENTIALLY from one generator, so the eval conditions depend on n_train. Rebuilding with the function default n_train=200 yields a DIFFERENT eval suite and produces spurious hash mismatches. The trainer uses n_train=400.",
+    "self_correction": "an initial check of mine reported False for every arm; that was my own reconstruction error (default n_train), not a data problem. The stored suites were always correct and identical across SAC and RLPD."
+  },
+  "analysis_protocol": {
+    "learning_curves": "frozen 25-condition suite = EVAL_CONDITIONS[:25]. All three training seeds can be scored on it at checkpoint level, giving directly comparable replicated curves.",
+    "final_performance": "frozen 50-condition suite, for the final checkpoint of all six arms",
+    "no_mixing": "n=25 and n=50 results are never combined within one curve"
+  },
+  "x_axis": "online environment interactions is the primary efficiency axis, not wall-clock: RLPD seed 1 carries extra stochastic-evaluation overhead that does not affect its training"
+}

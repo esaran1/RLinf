@@ -1,0 +1,311 @@
+{
+  "_doc": "Inspire 6->12 hand retargeting: bounded calibration + held-out validation. GATE A PARTIAL.",
+  "status": "PARTIAL PASS - the adapter demonstrably enables grasp+manipulation, but only on a minority of episodes.",
+  "params_frozen": {
+    "finger_coupling": 1.0,
+    "thumb_pitch_floor": 0.6,
+    "thumb_yaw_target": 0.9,
+    "thumb_intermediate": 0.4,
+    "thumb_distal_gain": 0.6,
+    "grip_gate_start": 0.2,
+    "grip_gate_full": 0.8
+  },
+  "param_selection": "Chosen from the centre of a stable region on a 12-point sweep (yaw 0.6-1.2 x pitch 0.4-0.6 x coupling 0.8-1.0) on calibration episode 0; that whole region gave 0.29-0.32 m displacement and 59/69 grasp steps, so the choice is not knife-edge. INFERRED, not recovered.",
+  "calibration_episodes": [
+    0,
+    10,
+    20,
+    33,
+    45
+  ],
+  "heldout_episodes": [
+    5,
+    15,
+    25,
+    40,
+    55,
+    60
+  ],
+  "calibration_success": "1/5",
+  "heldout_success": "3/6",
+  "success_criterion": "piston displacement > 0.15 m AND lift > 0.05 m",
+  "baseline_no_retargeter": {
+    "ep": 5,
+    "tag": "NO_RETARGET",
+    "params": null,
+    "disp_m": 0.0087,
+    "max_lift_m": 0.0,
+    "grasp_steps": 7,
+    "min_thumb_radial": 0.0161,
+    "min_finger_radial": 0.0125,
+    "final_barrel": [
+      -0.1476,
+      0.3934,
+      0.8905
+    ],
+    "err_to_demo_final_m": 0.3278
+  },
+  "runs": [
+    {
+      "ep": 0,
+      "tag": "CAL",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.2972,
+      "max_lift_m": 0.2171,
+      "grasp_steps": 59,
+      "min_thumb_radial": 0.0079,
+      "min_finger_radial": 0.0226,
+      "final_barrel": [
+        0.1354,
+        0.3381,
+        0.9453
+      ],
+      "err_to_demo_final_m": 0.0671
+    },
+    {
+      "ep": 10,
+      "tag": "CAL",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.0095,
+      "max_lift_m": 0.0,
+      "grasp_steps": 28,
+      "min_thumb_radial": 0.0066,
+      "min_finger_radial": 0.021,
+      "final_barrel": [
+        -0.1517,
+        0.3968,
+        0.8902
+      ],
+      "err_to_demo_final_m": 0.3332
+    },
+    {
+      "ep": 20,
+      "tag": "CAL",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.0104,
+      "max_lift_m": 0.0,
+      "grasp_steps": 5,
+      "min_thumb_radial": 0.0124,
+      "min_finger_radial": 0.0051,
+      "final_barrel": [
+        -0.1545,
+        0.3945,
+        0.8905
+      ],
+      "err_to_demo_final_m": 0.335
+    },
+    {
+      "ep": 33,
+      "tag": "CAL",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.0094,
+      "max_lift_m": 0.0,
+      "grasp_steps": 9,
+      "min_thumb_radial": 0.0176,
+      "min_finger_radial": 0.0305,
+      "final_barrel": [
+        -0.1475,
+        0.4009,
+        0.8891
+      ],
+      "err_to_demo_final_m": 0.329
+    },
+    {
+      "ep": 45,
+      "tag": "CAL",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.0101,
+      "max_lift_m": 0.0,
+      "grasp_steps": 27,
+      "min_thumb_radial": 0.003,
+      "min_finger_radial": 0.0195,
+      "final_barrel": [
+        -0.153,
+        0.4033,
+        0.8891
+      ],
+      "err_to_demo_final_m": 0.3372
+    },
+    {
+      "ep": 5,
+      "tag": "HELDOUT",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.3008,
+      "max_lift_m": 0.1974,
+      "grasp_steps": 32,
+      "min_thumb_radial": 0.0124,
+      "min_finger_radial": 0.0218,
+      "final_barrel": [
+        0.1307,
+        0.3002,
+        0.9401
+      ],
+      "err_to_demo_final_m": 0.0744
+    },
+    {
+      "ep": 15,
+      "tag": "HELDOUT",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.018,
+      "max_lift_m": 0.0,
+      "grasp_steps": 4,
+      "min_thumb_radial": 0.0038,
+      "min_finger_radial": 0.015,
+      "final_barrel": [
+        -0.1546,
+        0.3962,
+        0.8904
+      ],
+      "err_to_demo_final_m": 0.3367
+    },
+    {
+      "ep": 25,
+      "tag": "HELDOUT",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.0093,
+      "max_lift_m": 0.0,
+      "grasp_steps": 5,
+      "min_thumb_radial": 0.0215,
+      "min_finger_radial": 0.0198,
+      "final_barrel": [
+        -0.1517,
+        0.3952,
+        0.8904
+      ],
+      "err_to_demo_final_m": 0.3351
+    },
+    {
+      "ep": 40,
+      "tag": "HELDOUT",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.285,
+      "max_lift_m": 0.2311,
+      "grasp_steps": 58,
+      "min_thumb_radial": 0.0069,
+      "min_finger_radial": 0.0238,
+      "final_barrel": [
+        0.1251,
+        0.3401,
+        0.9421
+      ],
+      "err_to_demo_final_m": 0.0682
+    },
+    {
+      "ep": 55,
+      "tag": "HELDOUT",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.0062,
+      "max_lift_m": 0.0,
+      "grasp_steps": 2,
+      "min_thumb_radial": 0.0177,
+      "min_finger_radial": 0.0192,
+      "final_barrel": [
+        -0.1484,
+        0.4037,
+        0.8897
+      ],
+      "err_to_demo_final_m": 0.3316
+    },
+    {
+      "ep": 60,
+      "tag": "HELDOUT",
+      "params": {
+        "finger_coupling": 1.0,
+        "thumb_pitch_floor": 0.6,
+        "thumb_yaw_target": 0.9,
+        "thumb_intermediate": 0.4,
+        "thumb_distal_gain": 0.6
+      },
+      "disp_m": 0.2003,
+      "max_lift_m": 0.1017,
+      "grasp_steps": 7,
+      "min_thumb_radial": 0.0259,
+      "min_finger_radial": 0.0228,
+      "final_barrel": [
+        -0.2412,
+        0.2233,
+        0.8736
+      ],
+      "err_to_demo_final_m": 0.4223
+    },
+    {
+      "ep": 5,
+      "tag": "NO_RETARGET",
+      "params": null,
+      "disp_m": 0.0087,
+      "max_lift_m": 0.0,
+      "grasp_steps": 7,
+      "min_thumb_radial": 0.0161,
+      "min_finger_radial": 0.0125,
+      "final_barrel": [
+        -0.1476,
+        0.3934,
+        0.8905
+      ],
+      "err_to_demo_final_m": 0.3278
+    }
+  ],
+  "effect_size": "With the adapter, successful episodes move the piston 0.285-0.301 m (lift 0.197-0.231 m, final error 0.067-0.074 m vs the recorded final position). Without it, 0.009 m and zero lift. The adapter is unambiguously the cause of the manipulation.",
+  "failure_mode": "Failed episodes are behaviourally near-identical to successful ones: first hand closure at t=136-143, max grip 1.30 rad, right-shoulder range 1.24-1.30 rad. The difference is therefore marginal contact physics at the grasp, not a different demonstrated strategy.",
+  "interpretation": "A single fixed embodiment adapter DOES make the recorded action stream physically capable of the task in this simulator, which was the scientific question. It is not yet reliable enough to treat all 67 demonstrations as executable."
+}

@@ -113,10 +113,18 @@ def test_masked_sum_excludes_frozen_dims():
     assert torch.allclose(masked_sum(per_dim, mask), torch.full((8,), float(NUM_ACTIVE_DIMS)))
 
 
-def test_target_entropy_uses_active_dims_only():
-    """Alpha tuning must not chase entropy in dims that cannot move."""
-    assert default_target_entropy() == -20.0
+def test_target_entropy_is_reachable_and_ignores_frozen_dims():
+    """Alpha tuning must not chase entropy in dims that cannot move, and the target
+    must be attainable by the bounded (tanh-squashed) action distribution.
+
+    ``-dim(A)`` is NOT used here: the squashed distribution's log-density is bounded
+    below (-13.68), so -20 would be unsatisfiable and would drive alpha to zero. See
+    test_g1_piston_entropy_target.py.
+    """
+    from rlinf.envs.isaaclab.tasks.g1_piston_rl_space import MIN_ACHIEVABLE_LOGPROB
+    assert default_target_entropy() > MIN_ACHIEVABLE_LOGPROB
     assert default_target_entropy() != -float(ACTION_DIM)
+    assert default_target_entropy() != -float(NUM_ACTIVE_DIMS)
 
 
 def test_apply_mask_rejects_wrong_dim():

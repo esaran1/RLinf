@@ -12,92 +12,121 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The SAC entropy target must live on the same scale as the log-prob it is compared to.
+"""The SAC entropy target must be REACHABLE by the bounded action distribution.
 
-Regression guard for a measured training collapse: the alpha loss consumed a log-prob
-summed over all 30 chunk steps while the target was the single-action convention
-(-20.0). Actor loss fell monotonically 1.94 -> -4.27 while behaviour collapsed from
-reach 1.0 / grasp 0.8 to zero. See
+The usual ``-dim(A)`` heuristic assumes an unbounded Gaussian, whose log-density is
+unbounded below. This action space is tanh-squashed and rescaled to ``[-2.2, 2.2]``, so
+its log-density is bounded **below** (measured floor -13.68 at std ~ 0.40, rising again
+for both smaller and larger std as the tanh Jacobian dominates).
+
+``-dim(A) = -20`` therefore lies below the floor. With the standard alpha loss
+``-alpha * (logp + target)``, an unreachable target makes the gradient positive for every
+attainable policy, so alpha is driven monotonically to zero, the entropy regulariser
+vanishes, and the actor drifts unregularised. Both SAC pilots did exactly this: alpha
+0.049 -> 0.039 while behaviour oscillated between 0 and 1.0. See
 ``docs/contracts/g1_piston_sac_pilot_v1_collapse.json``.
-
-This module covers the **summed** convention -- log-prob summed over all 30 x 20 = 600
-stochastic scalars, which then requires the scaled target -600. The trainer itself uses
-the equivalent **mean-over-horizon** convention (per control action, target -20);
-``test_g1_piston_sac_decision_variable.py`` pins that one and proves the two are the
-same objective up to alpha rescaling. Either is valid; mixing them is the bug.
 """
 
+import pytest
 import torch
 
 from rlinf.envs.isaaclab.tasks.g1_piston_rl_space import (
+    MIN_ACHIEVABLE_LOGPROB,
     NUM_ACTIVE_DIMS,
+    TARGET_ENTROPY_STD,
+    build_active_mask,
     default_target_entropy,
 )
+from rlinf.models.embodiment.modules.gaussian_policy import SquashedNormal
 
-#: Action chunk length of the StarVLA QwenOFT checkpoint.
-ACTION_HORIZON = 30
-
-
-def chunk_target_entropy(horizon: int = ACTION_HORIZON) -> float:
-    """The target the trainer must use for a chunk-summed log-prob."""
-    return default_target_entropy() * horizon
+ACTION_DIM = 30
+ACTION_LOW, ACTION_HIGH = -2.2, 2.2
 
 
-def test_single_action_target_is_negative_active_dims():
-    assert default_target_entropy() == -float(NUM_ACTIVE_DIMS)
+def measured_logprob(std, n=4096, seed=0):
+    """Mean per-control-action log-prob of the bounded policy at a given std."""
+    torch.manual_seed(seed)
+    mask = build_active_mask()
+    mean = torch.zeros(n, ACTION_DIM)
+    scale = torch.full((n, ACTION_DIM), float(std))
+    dist = SquashedNormal(mean, scale, low=ACTION_LOW, high=ACTION_HIGH)
+    x = dist.rsample()
+    base = dist.base_dist.base_dist
+    parts = []
+    for t in dist.transforms:
+        parts.extend(getattr(t, "parts", [t]))
+    y = x
+    for t in reversed(parts):
+        y = t.inv(y)
+    per_dim = base.log_prob(y)
+    z = y
+    for t in parts:
+        z2 = t(z)
+        if type(t).__name__ == "TanhTransform":
+            per_dim = per_dim - torch.log(1 - z2.pow(2) + 1e-7)
+        else:
+            s = torch.as_tensor(t.scale, dtype=y.dtype)
+            per_dim = per_dim - torch.log(s.abs()).expand_as(y)
+        z = z2
+    return float((per_dim * mask).sum(dim=-1).mean())
 
 
-def test_chunk_target_scales_with_horizon():
-    """A log-prob summed over H steps needs a target scaled by H."""
-    assert chunk_target_entropy() == -600.0
-    assert chunk_target_entropy(1) == default_target_entropy()
+def alpha_gradient(logp, target):
+    """d/d(alpha) of ``-alpha * (logp + target)``. Positive => alpha is pushed DOWN."""
+    return -(logp + target)
 
 
-def test_alpha_gradient_direction_at_the_entropy_target():
-    """At log-prob == target the alpha gradient must vanish, and flip sign around it.
+def test_target_is_reachable():
+    assert default_target_entropy() > MIN_ACHIEVABLE_LOGPROB
 
-    alpha_loss = -alpha * (logp + target); d/d(alpha) = -(logp + target). So a log-prob
-    ABOVE the target (too little entropy) must push alpha UP.
+
+def test_dim_heuristic_would_be_unreachable():
+    """The bug: -dim(A) sits below the floor of the squashed distribution."""
+    assert -float(NUM_ACTIVE_DIMS) < MIN_ACHIEVABLE_LOGPROB
+
+
+def test_measured_floor_matches_the_recorded_constant():
+    best = min(measured_logprob(s) for s in (0.3, 0.35, 0.4, 0.45, 0.5))
+    assert best == pytest.approx(MIN_ACHIEVABLE_LOGPROB, abs=0.6), best
+
+
+def test_logprob_is_bounded_below_and_non_monotonic_in_std():
+    """Small AND large std both raise log-prob; the minimum is interior."""
+    low, mid, high = (measured_logprob(s) for s in (0.05, 0.40, 2.0))
+    assert mid < low and mid < high
+    assert mid >= MIN_ACHIEVABLE_LOGPROB - 0.6
+
+
+def test_unreachable_target_collapses_alpha_over_the_operating_range():
+    """With target -20 alpha is pushed DOWN everywhere a real policy lives.
+
+    The -20 target is below the log-density floor, so no policy can ever satisfy it by
+    adding entropy in the useful regime. (Very diffuse policies, std >~ 1.5, do push the
+    log-prob back up above -20 via the tanh Jacobian, but that regime is far outside the
+    q99 action range the SFT policy occupies and is never reached from initialisation --
+    exploration collapses long before.)
     """
-    target = chunk_target_entropy()
-
-    at_target = -(torch.tensor(-target) + target)
-    assert torch.isclose(at_target, torch.tensor(0.0))
-
-    too_little_entropy = -(torch.tensor(-target + 50.0) + target)
-    assert too_little_entropy < 0  # gradient descent raises alpha
-
-    too_much_entropy = -(torch.tensor(-target - 50.0) + target)
-    assert too_much_entropy > 0  # gradient descent lowers alpha
+    wrong = -float(NUM_ACTIVE_DIMS)
+    for std in (0.05, 0.1, 0.2, 0.37, 0.6, 1.0):
+        assert alpha_gradient(measured_logprob(std), wrong) > 0, std
+    # The floor itself -- the most entropic reachable policy -- still reads as "too
+    # stochastic" against -20, which is what makes the target unsatisfiable.
+    assert alpha_gradient(MIN_ACHIEVABLE_LOGPROB, wrong) > 0
 
 
-def test_mis_scaled_target_understates_the_entropy_floor():
-    """The single-action target against a chunk-summed log-prob understates the floor.
-
-    Uses log-probs measured during the collapsed run. Both targets happen to push alpha
-    in the same direction at these values -- the mis-scaling is not what flipped the
-    sign -- but the wrong target sets the equilibrium 580 nats too high, so the policy
-    is allowed to drift far more stochastic before alpha reacts at all.
-    """
-    measured_chunk_logprobs = [-139.2, -256.9, -293.1]
-    wrong_target = default_target_entropy()      # -20.0
-    right_target = chunk_target_entropy()        # -600.0
-
-    assert right_target - wrong_target == -580.0
-
-    # The equilibrium the alpha loss drives toward is logp == -target.
-    assert -wrong_target == 20.0        # a near-deterministic 30-step chunk
-    assert -right_target == 600.0       # the correct floor for 30 x 20 active dims
-
-    # At the measured log-probs both targets read "too stochastic" and lower alpha, so
-    # the mis-scaling alone does not explain the collapse.
-    for lp in measured_chunk_logprobs:
-        assert -(lp + wrong_target) > 0
-        assert -(lp + right_target) > 0
+def test_reachable_target_lets_alpha_correct_in_both_directions():
+    target = default_target_entropy()
+    # Too little entropy (tight policy) -> alpha must rise.
+    assert alpha_gradient(measured_logprob(0.05), target) < 0
+    # Too much entropy (near the floor) -> alpha must fall.
+    assert alpha_gradient(measured_logprob(0.40), target) > 0
 
 
-def test_entropy_floor_is_per_active_dim_not_per_action_dim():
-    """The floor must count only RL-controllable dims, over the whole chunk."""
-    assert chunk_target_entropy() == -float(NUM_ACTIVE_DIMS) * ACTION_HORIZON
-    # 30 total dims would over-count the 10 frozen, deterministic dims.
-    assert chunk_target_entropy() != -30.0 * ACTION_HORIZON
+def test_target_corresponds_to_the_declared_std():
+    assert measured_logprob(TARGET_ENTROPY_STD) == pytest.approx(
+        default_target_entropy(), abs=1.0)
+
+
+def test_target_std_keeps_exploration_near_the_sft_policy():
+    """Meaningful exploration without leaving the action range the SFT policy uses."""
+    assert 0.1 < TARGET_ENTROPY_STD < 0.5

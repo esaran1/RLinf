@@ -22,12 +22,14 @@ This module pins that invariant, and pins the entropy reduction convention:
 
     logp_step[h] = sum over the 20 active dims
     logp_chunk   = mean over the 30 horizon steps
-    target       = -20  (per control action)
+    target       = default_target_entropy()   (per control action)
 
 The mean-over-horizon convention keeps entropy regularisation on a per-control-action
-scale instead of letting it grow with the prediction horizon. See
+scale instead of letting it grow with the prediction horizon. The target's *value* is
+set by what the bounded action distribution can reach, not by ``-dim(A)`` -- see
+``test_g1_piston_entropy_target.py``. Runs that motivated both:
 ``docs/contracts/g1_piston_sac_pilot_v1_collapse.json`` and
-``docs/contracts/g1_piston_eval_suite_defect.json`` for the runs that motivated it.
+``docs/contracts/g1_piston_eval_suite_defect.json``.
 """
 
 import pytest
@@ -157,9 +159,13 @@ def test_mean_convention_is_per_control_action_scale():
 
 
 def test_target_entropy_matches_the_mean_convention():
-    """With mean-over-horizon, the per-control-action target -20 is the consistent one."""
-    assert default_target_entropy() == -float(NUM_ACTIVE_DIMS)
-    assert default_target_entropy() == -20.0
+    """The target describes ONE control action, like the mean-reduced log-prob.
+
+    Its value is set by what the bounded action distribution can actually reach, not by
+    the -dim(A) heuristic; see test_g1_piston_entropy_target.py.
+    """
+    from rlinf.envs.isaaclab.tasks.g1_piston_rl_space import MIN_ACHIEVABLE_LOGPROB
+    assert MIN_ACHIEVABLE_LOGPROB < default_target_entropy() < 0
 
 
 def test_summed_convention_requires_a_scaled_target():
@@ -170,7 +176,7 @@ def test_summed_convention_requires_a_scaled_target():
     """
     per_step_target = default_target_entropy()
     summed_target = per_step_target * ACTION_HORIZON
-    assert summed_target == -600.0
+    assert summed_target == pytest.approx(per_step_target * 30)
     assert summed_target != per_step_target
 
 

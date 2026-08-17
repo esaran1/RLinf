@@ -67,5 +67,14 @@
   "positive_signal": "before the collapse SAC improved over the SFT baseline: reach 0.2->1.0, grasp 0.0->0.8, mean return -0.44->2.21 at 6900 env steps; training episode 0 reached the lift stage with 0.215 m displacement",
   "fix": "TARGET_ENTROPY = default_target_entropy() * action_horizon (-600.0); ALPHA_INIT 0.01 -> 0.05; ALPHA_LR 3e-4 -> 1e-3; ACTOR_LR 1e-5 -> 3e-6",
   "scope": "trainer only; retargeter, reward, scene, camera, normalization, action mask, SFT init and eval suite all unchanged",
-  "correction_to_first_diagnosis": "An initial reading attributed the collapse to the alpha gradient being mis-signed by the scale error. That is wrong and was caught by the regression test: at the measured log-probs BOTH targets push alpha in the same direction (down). The scale error raises the entropy equilibrium but did not flip the sign; the operative cause is alpha magnitude, not sign."
+  "correction_to_first_diagnosis": "An initial reading attributed the collapse to the alpha gradient being mis-signed by the scale error. That is wrong and was caught by the regression test: at the measured log-probs BOTH targets push alpha in the same direction (down). The scale error raises the entropy equilibrium but did not flip the sign; the operative cause is alpha magnitude, not sign.",
+  "ROOT_CAUSE_FINAL": {
+    "finding": "The SAC entropy target was UNREACHABLE by the bounded action distribution.",
+    "measurement": "log-prob of the tanh-squashed, +/-2.2-rescaled 20-active-dim action is bounded BELOW at -13.68 (minimum interior, at std ~0.40; the tanh Jacobian raises log-prob at both smaller and larger std). The -dim(A) = -20 heuristic assumes an UNBOUNDED Gaussian and lies below that floor.",
+    "mechanism": "alpha_loss = -alpha*(logp+target) has gradient -(logp+target), which is positive across the entire operating range when target < floor. So alpha falls monotonically, the entropy regulariser vanishes, and the actor is left unregularised.",
+    "evidence": "both pilots: alpha 0.049 -> 0.039 monotonically while behaviour oscillated 0 <-> 1.0",
+    "fix": "default_target_entropy() = -8.4 (reachable, std ~0.20); actor_logstd initialised to log(0.20) so training starts at the alpha equilibrium",
+    "verified": "stand-in gradient check: alpha now RISES when the policy is too tight (0.0500 -> 0.0519)",
+    "supersedes": "earlier entries in this file attributing the collapse to a -600 scale mismatch or to alpha magnitude alone; the scale error was real but secondary, and the sign was never flipped -- the target was simply unsatisfiable"
+  }
 }

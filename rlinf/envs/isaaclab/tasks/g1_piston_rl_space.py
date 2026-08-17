@@ -159,6 +159,34 @@ def masked_sum(per_dim: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     return (per_dim * m).sum(dim=-1)
 
 
+#: Log-density floor of the bounded (tanh-squashed, rescaled to +/-2.2) 20-dim action
+#: distribution, measured by sampling: log-prob is minimised at std ~= 0.40 and rises
+#: again for both smaller and larger std, because the tanh Jacobian correction dominates
+#: once the pre-squash mass runs into the saturation region.
+MIN_ACHIEVABLE_LOGPROB = -13.68
+
+#: Exploration std the target corresponds to (log-prob ~= -8.4). Chosen inside the
+#: achievable range with headroom on both sides so alpha can push entropy up *or* down.
+TARGET_ENTROPY_STD = 0.20
+
+
 def default_target_entropy() -> float:
-    """SAC's usual ``-dim`` heuristic, over the *active* dims only."""
-    return -float(NUM_ACTIVE_DIMS)
+    """Target log-density per control action, for the SQUASHED 20-dim action space.
+
+    **Not** the usual ``-dim(A)`` heuristic. That heuristic assumes an unbounded
+    Gaussian, where log-density is unbounded below; here the action distribution is
+    tanh-squashed and rescaled to ``[-2.2, 2.2]``, so its log-density is bounded below
+    by ``MIN_ACHIEVABLE_LOGPROB`` (-13.68, measured).
+
+    ``-dim(A) = -20`` is therefore **unreachable**: ``logp + target`` is negative for
+    every attainable policy, so the alpha loss ``-alpha * (logp + target)`` has a
+    positive gradient always and drives alpha monotonically to zero. The entropy
+    regulariser dies, the actor becomes unregularised, and the policy drifts -- which is
+    what both SAC pilots did (alpha 0.049 -> 0.039 while behaviour oscillated; see
+    ``docs/contracts/g1_piston_sac_pilot_v1_collapse.json``).
+
+    -8.4 corresponds to an exploration std of ~0.20: enough to explore, close enough to
+    the SFT policy to stay on-distribution, and comfortably inside the achievable range
+    so alpha can correct in either direction.
+    """
+    return -8.4

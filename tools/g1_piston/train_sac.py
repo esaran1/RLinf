@@ -13,7 +13,7 @@ Everything else is identical between the two by construction: same SFT init, sam
 distribution, same reward, same 20-D action mask, same eval seeds, same interaction
 budget. Nothing task-side is tuned per algorithm.
 """
-import os, sys, json, time, traceback, random
+import os, sys, json, math, time, traceback, random
 from collections import deque
 import numpy as np
 
@@ -138,28 +138,34 @@ try:
         model.action_model.named_parameters())[:5]}
 
     # exploration log-std (per active dim), learned
-    actor_logstd = torch.nn.Parameter(torch.full((30,), -1.0, device=DEV))
+    # Initialise exploration AT the entropy target's std (0.20 -> log-prob ~ -8.4), so
+    # training starts at the alpha equilibrium instead of driving toward it from one
+    # side. RLSP.TARGET_ENTROPY_STD and default_target_entropy() are two views of the
+    # same operating point.
+    INIT_LOGSTD = float(os.environ.get("INIT_LOGSTD", math.log(RLSP.TARGET_ENTROPY_STD)))
+    actor_logstd = torch.nn.Parameter(torch.full((30,), INIT_LOGSTD, device=DEV))
 
     critic = MultiQHead(HID, 30 * H, [256, 256], num_q_heads=2).to(DEV)
     target = MultiQHead(HID, 30 * H, [256, 256], num_q_heads=2).to(DEV)
     target.load_state_dict(critic.state_dict())
     for p in target.parameters(): p.requires_grad_(False)
 
-    # Two changes after the first pilot collapsed. See
-    # docs/contracts/g1_piston_sac_pilot_v1_collapse.json.
+    # Why both SAC pilots failed, corrected after measuring the action distribution.
+    # See docs/contracts/g1_piston_sac_pilot_v1_collapse.json.
     #
-    # 1. ``default_target_entropy()`` is -20.0, the -dim(A) convention for ONE
-    #    20-active-dim action, but the alpha loss consumes a log-prob summed over all H
-    #    chunk steps. The floor must describe the same object (-600), or the equilibrium
-    #    sits 580 nats too high.
+    # ROOT CAUSE: the entropy target was UNREACHABLE. ``-dim(A) = -20`` assumes an
+    # unbounded Gaussian, but this action space is tanh-squashed and rescaled to
+    # +/-2.2, so its log-density is bounded BELOW at -13.68 (measured; the minimum is
+    # interior, at std ~ 0.40, because the tanh Jacobian dominates at both extremes).
+    # With ``alpha_loss = -alpha * (logp + target)``, a target below the floor makes the
+    # gradient positive across the whole operating range, so alpha falls monotonically,
+    # the entropy regulariser dies, and the actor drifts unregularised. That is exactly
+    # what both pilots showed: alpha 0.049 -> 0.039 while behaviour oscillated between
+    # reach/grasp 1.0 and 0, with actor loss improving throughout.
     #
-    # 2. The measured collapse was driven by alpha being far too WEAK, not mis-signed:
-    #    alpha sat at ~0.010 while Q was ~1.4, so the entropy term was ~1% of the actor
-    #    objective and the policy was effectively unregularised. Log-prob drifted
-    #    +57 -> -293 (progressively more stochastic, off-distribution) while actor loss
-    #    fell monotonically 1.94 -> -4.27 and behaviour collapsed from reach 1.0 /
-    #    grasp 0.8 to zero -- optimizer statistics improving while the policy was
-    #    destroyed. A larger initial alpha and faster alpha LR let it actually bind.
+    # ``default_target_entropy()`` now returns -8.4, inside the achievable range, and
+    # exploration is initialised at the matching std (0.20) so training starts at the
+    # alpha equilibrium rather than driving toward it from one side.
     ALPHA_INIT = float(os.environ.get("ALPHA_INIT", "0.05"))
     ALPHA_LR = float(os.environ.get("ALPHA_LR", "1e-3"))
     ACTOR_LR = float(os.environ.get("ACTOR_LR", "3e-6"))

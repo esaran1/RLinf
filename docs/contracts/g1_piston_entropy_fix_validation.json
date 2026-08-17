@@ -1,0 +1,68 @@
+{
+  "purpose": "Validate the corrected entropy configuration against the REAL 42.1M-param OFT action head before committing an 11-hour SAC run.",
+  "method": "Loads only the MLP action head from the checkpoint (not the 2B VLM) and runs 30 actor/alpha updates on CPU, since the GPU was busy with the SFT baseline.",
+  "oft_head_params": 42106910,
+  "target_entropy": -8.4,
+  "init_logstd": -1.6094,
+  "trajectory": [
+    {
+      "step": 0,
+      "logp": 33.34,
+      "alpha": 0.05,
+      "q": -0.079,
+      "ent_term": 1.667,
+      "ratio": 21.23,
+      "head_grad": 29002.1,
+      "frozen_dev": 0.0,
+      "all_finite": true
+    },
+    {
+      "step": 10,
+      "logp": 22.43,
+      "alpha": 0.05048,
+      "q": 0.113,
+      "ent_term": 1.132,
+      "ratio": 9.99,
+      "head_grad": 26258.7,
+      "frozen_dev": 0.0,
+      "all_finite": true
+    },
+    {
+      "step": 20,
+      "logp": 14.86,
+      "alpha": 0.0509,
+      "q": 0.232,
+      "ent_term": 0.756,
+      "ratio": 3.25,
+      "head_grad": 25277.7,
+      "frozen_dev": 0.0,
+      "all_finite": true
+    },
+    {
+      "step": 29,
+      "logp": 8.95,
+      "alpha": 0.05118,
+      "q": 0.289,
+      "ent_term": 0.458,
+      "ratio": 1.59,
+      "head_grad": 23266.4,
+      "frozen_dev": 0.0,
+      "all_finite": true
+    }
+  ],
+  "result": {
+    "alpha_direction": "RISING (0.05000 -> 0.05118) -- correcting, because the SFT policy is too tight",
+    "logprob_descends_toward_target": "33.1 -> 22.5 -> 14.8 -> 8.8, heading to -8.4",
+    "entropy_term_shrinks_to_q_scale": "1.67 -> 0.45",
+    "frozen_dims_exact_zero": true,
+    "all_losses_finite": true,
+    "gradient_reaches_head": true
+  },
+  "settling": {
+    "logprob_descent_per_update": 0.84,
+    "updates_to_reach_target": "~50",
+    "updates_available_in_sac_arm": 5750,
+    "verdict": "settling is not a constraint"
+  },
+  "contrast_with_failed_pilots": "both pilots had alpha FALLING monotonically (0.049 -> 0.039) with log-prob diverging; here alpha rises and log-prob converges"
+}

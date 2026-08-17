@@ -22,9 +22,15 @@ ALGO = os.environ.get("ALGO", "sac").lower()          # sac | rlpd | sft_eval
 RUN_DIR = os.environ["RUN_DIR"]
 MAX_ENV_STEPS = int(os.environ.get("MAX_ENV_STEPS", "60000"))   # online env steps
 EVAL_EVERY = int(os.environ.get("EVAL_EVERY", "6000"))          # env steps between evals
-#: Number of held-out initial conditions to evaluate on. The task has ONE deterministic
-#: reset, so evaluation varies the initial state explicitly (g1_piston_reset).
+#: Held-out initial conditions. The task has ONE deterministic reset, so evaluation
+#: varies the initial state explicitly (g1_piston_reset).
+#:
+#: An episode costs ~58 s, so a 50-condition sweep is ~49 min. Periodic evals use the
+#: first N_EVAL_PERIODIC conditions (a prefix of the same fixed, hashed suite, so the
+#: curve is self-consistent) and the FINAL eval uses all 50. That keeps evaluation from
+#: consuming a third of the compute budget while leaving every reported rate at n >= 25.
 N_EVAL_CONDITIONS = int(os.environ.get("N_EVAL_CONDITIONS", "50"))
+N_EVAL_PERIODIC = int(os.environ.get("N_EVAL_PERIODIC", "25"))
 RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817"))
 UTD = float(os.environ.get("UTD", "0.5"))             # gradient updates per env decision
 BATCH = int(os.environ.get("BATCH", "8"))
@@ -37,7 +43,8 @@ os.makedirs(RUN_DIR, exist_ok=True)
 res = {
     "algo": ALGO, "seed": SEED, "config": {
         "max_env_steps": MAX_ENV_STEPS, "eval_every": EVAL_EVERY,
-        "n_eval_conditions": N_EVAL_CONDITIONS, "reset_suite_seed": RESET_SUITE_SEED,
+        "n_eval_conditions": N_EVAL_CONDITIONS,
+        "n_eval_periodic": N_EVAL_PERIODIC, "reset_suite_seed": RESET_SUITE_SEED,
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -334,16 +341,21 @@ try:
             "stages": {k: bool(v) for k, v in stages.items()},
         }, frames
 
-    def evaluate(tag, env_steps, save_video=False):
-        """Deterministic policy over the held-out initial-condition suite."""
+    def evaluate(tag, env_steps, save_video=False, full=False):
+        """Deterministic policy over the held-out initial-condition suite.
+
+        ``full`` uses all 50 conditions (final comparison); otherwise the first
+        ``N_EVAL_PERIODIC`` of the same fixed suite.
+        """
+        conds = EVAL_CONDITIONS if full else EVAL_CONDITIONS[:N_EVAL_PERIODIC]
         rows = []
-        for i, cond in enumerate(EVAL_CONDITIONS):
+        for i, cond in enumerate(conds):
             row, frames = _rollout(cond, save_frames=(save_video and i == 0))
             rows.append(row)
-            # A 50-condition eval takes ~30 min; publish progress so a long run is
+            # An eval sweep takes 25-50 min; publish progress so a long run is
             # observable rather than silent until the whole sweep finishes.
             res["eval_progress"] = {"tag": tag, "env_steps": env_steps,
-                                    "done": len(rows), "of": len(EVAL_CONDITIONS)}
+                                    "done": len(rows), "of": len(conds)}
             emit()
             if frames:
                 try:
@@ -400,7 +412,7 @@ try:
 
     # ---------------- SFT baseline: evaluate once, no training ----------------
     if ALGO == "sft_eval":
-        evaluate("sft_baseline", 0, save_video=True)
+        evaluate("sft_baseline", 0, save_video=True, full=True)
         evaluate_canonical("sft_baseline", 0)
         res["wall_clock_s"] = round(time.time() - t_start, 1)
         emit("OK"); os._exit(0)
@@ -605,7 +617,7 @@ try:
                     not torch.equal(oft_ref[n].cpu(), oft_now[n].detach().cpu()) for n in oft_ref)
             emit()
 
-    evaluate("final", env_steps, save_video=True)
+    evaluate("final", env_steps, save_video=True, full=True)
     evaluate_canonical("final", env_steps)
     res["totals"] = {
         "env_steps": env_steps, "grad_updates": grad_updates, "episodes": episode,

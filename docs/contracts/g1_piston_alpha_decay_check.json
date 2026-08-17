@@ -1,0 +1,18 @@
+{
+  "question": "Is the declining alpha (0.0537 peak -> 0.0148 at update 1725) the same pathology that killed both pilots?",
+  "answer": "No. It is correct regulation, and the distinguishing evidence is the log-prob.",
+  "distinguishing_evidence": {
+    "failed_pilots": "alpha fell WHILE log-prob diverged AWAY from target (+57 -> -293). The controller had no reachable setpoint, so it slid regardless of the policy.",
+    "current_run": "log-prob is PINNED near target (-6.6 to -8.1 across 1300 updates, mean -7.42 vs target -8.4) and sits above target in 20 of the last 20 samples, so alpha SHOULD decrease. It is responding to a real signal."
+  },
+  "critic_is_learning": "Q grew from ~0.0 to ~+0.4 over the same span, so the value function carries real signal rather than collapsing.",
+  "projection": {
+    "per_update_decay": 0.999388,
+    "updates_remaining": 4000,
+    "projected_final_alpha": 0.00127,
+    "projected_final_entropy_term": -0.0094,
+    "q_scale": 0.4,
+    "assessment": "entropy pressure becomes negligible late in training, which is standard SAC annealing once the policy has settled at its target entropy"
+  },
+  "watch_condition": "if log-prob starts diverging from -8.4 while alpha continues to fall, that WOULD be the pathology recurring"
+}

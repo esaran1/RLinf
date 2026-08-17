@@ -1,0 +1,75 @@
+{
+  "correction": "An earlier reading called SAC converged to a grasp-only local optimum after lift went 0.08 -> 0.00 at 276k steps. That was PREMATURE: it was a plateau, not convergence.",
+  "new_result": {
+    "env_steps": 414660,
+    "lift_rate": 0.4,
+    "ci95_lift": [
+      0.234,
+      0.593
+    ],
+    "mean_return": 5.935,
+    "mean_disp_m": 0.0881,
+    "max_disp_m": 0.3515,
+    "max_lift_m": 0.1283,
+    "full_success_rate": 0.04
+  },
+  "why_it_is_real": {
+    "breadth": "10 of 25 conditions improved by >1.0 return, each with genuine lift (0.026-0.128 m); only 2 regressed",
+    "not_an_outlier": "unlike the single 138k success, this is a distributed shift -- mean displacement 0.0111 -> 0.0881 m",
+    "interval_excludes_zero": "lift CI [0.234, 0.593]",
+    "one_full_success": "condition 22 reached return 35.557 with 0.35 m displacement"
+  },
+  "curve": [
+    {
+      "env_steps": 0,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.2,
+      "grasp_rate": 0.04,
+      "lift_rate": 0.0,
+      "mean_return": -0.369,
+      "mean_disp_m": 0.0088
+    },
+    {
+      "env_steps": 1380,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.64,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "mean_return": -0.01,
+      "mean_disp_m": 0.0093
+    },
+    {
+      "env_steps": 138660,
+      "full_success_rate": 0.04,
+      "reach_rate": 1.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.08,
+      "mean_return": 3.871,
+      "mean_disp_m": 0.0276
+    },
+    {
+      "env_steps": 276660,
+      "full_success_rate": 0.0,
+      "reach_rate": 1.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "mean_return": 2.331,
+      "mean_disp_m": 0.0111
+    },
+    {
+      "env_steps": 414660,
+      "full_success_rate": 0.04,
+      "reach_rate": 0.96,
+      "grasp_rate": 0.92,
+      "lift_rate": 0.4,
+      "mean_return": 5.935,
+      "mean_disp_m": 0.0881
+    }
+  ],
+  "training_vs_eval_gap": {
+    "observation": "training blocks show 0-1 lifts per 20 episodes while deterministic eval shows 40%",
+    "explanation": "training samples stochastically at the learned entropy; evaluation uses the deterministic mean. Lifting needs a sustained precise grasp across 23 chunks, and injected noise at every chunk usually drops the piston. The deterministic policy HAS learned to lift; the behaviour policy mostly cannot execute it.",
+    "prediction": "as alpha continues annealing, training-time lifts should begin to appear"
+  },
+  "lesson": "do not call a plateau a local optimum; late-stage skills emerged between 276k and 414k steps"
+}

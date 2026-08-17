@@ -79,7 +79,9 @@ try:
     for p in model.parameters(): p.requires_grad_(False)
     for p in model.action_model.parameters(): p.requires_grad_(True)
 
-    actor_logstd = torch.nn.Parameter(torch.full((30,), -1.0, device=DEV))
+    # Start exploration at the entropy target's std, as the trainer does.
+    actor_logstd = torch.nn.Parameter(
+        torch.full((30,), float(np.log(RLSP.TARGET_ENTROPY_STD)), device=DEV))
     critic = MultiQHead(HID, 30 * H, [256, 256], num_q_heads=2).to(DEV)
     target = MultiQHead(HID, 30 * H, [256, 256], num_q_heads=2).to(DEV)
     target.load_state_dict(critic.state_dict())
@@ -193,13 +195,15 @@ try:
         mean_b = head_mean(aqs).float()
         a, lp = sample_action(mean_b, actor_logstd)
         qpi = critic(feats, a.reshape(B, -1)).min(dim=1, keepdim=True)[0]
-        aloss = (ent.compute_alpha().detach() * lp.sum(-1, keepdim=True) - qpi).mean()
+        # Mean over the horizon: per-control-action scale, matching TARGET_ENTROPY.
+        logp_chunk = lp.mean(-1, keepdim=True)
+        aloss = (ent.compute_alpha().detach() * logp_chunk - qpi).mean()
         opt_actor.zero_grad(); aloss.backward()
         gnorm = sum(p.grad.abs().sum().item() for p in model.action_model.parameters()
                     if p.grad is not None)
         opt_actor.step()
         av = ent.compute_alpha()
-        alloss = -av * (lp.sum(-1).mean().detach() + TARGET_ENTROPY)
+        alloss = -av * (logp_chunk.mean().detach() + TARGET_ENTROPY)
         opt_alpha.zero_grad(); alloss.backward(); opt_alpha.step()
         with torch.no_grad():
             for tp, op in zip(target.parameters(), critic.parameters()):
@@ -216,6 +220,14 @@ try:
     chk("actor_loss_finite", bool(torch.isfinite(aloss)), {"value": float(aloss)})
     chk("alpha_loss_finite", bool(torch.isfinite(alloss)), {"value": float(alloss)})
     chk("alpha_finite_positive", bool(torch.isfinite(av) and av > 0), {"alpha": float(av)})
+
+    # The entropy target must be REACHABLE by the bounded action distribution, or alpha
+    # is driven monotonically to zero and the actor ends up unregularised. This is the
+    # invariant both SAC pilots violated; see
+    # docs/contracts/g1_piston_sac_pilot_v1_collapse.json.
+    chk("entropy_target_is_reachable",
+        TARGET_ENTROPY > RLSP.MIN_ACHIEVABLE_LOGPROB,
+        {"target": TARGET_ENTROPY, "floor": RLSP.MIN_ACHIEVABLE_LOGPROB})
     chk("target_q_finite", bool(torch.isfinite(tq).all()), {"mean": float(tq.mean())})
     chk("actor_grad_reaches_oft_head", gnorm > 0, {"grad_abs_sum": round(gnorm, 4)})
 
@@ -224,8 +236,18 @@ try:
     dev = float((sampled[..., fz] - FROZEN_V[fz]).abs().max())
     chk("frozen_dims_exact", dev == 0.0, {"max_abs_deviation": dev})
 
+    alpha_first = float(av)
     for _ in range(9):
         closs, aloss, alloss, av, tq, gnorm, _ = update(random.sample(buf, B))
+
+    # Alpha must move in the CORRECTING direction, not collapse regardless of the
+    # policy. Exploration starts at the target std, so the sign of (logp - target)
+    # decides which way it should go; a monotone slide toward zero is the pathology.
+    alpha_last = float(av)
+    chk("alpha_moves_in_the_correcting_direction",
+        alpha_last > 0.5 * alpha_first,
+        {"alpha_first": round(alpha_first, 5), "alpha_last": round(alpha_last, 5),
+         "note": "both pilots slid 0.049 -> 0.039 monotonically toward zero"})
 
     vlm_after = [p.detach().clone() for p in list(model.qwen_vl_interface.parameters())[:6]]
     oft_after = [p.detach().clone() for p in list(model.action_model.parameters())[:6]]

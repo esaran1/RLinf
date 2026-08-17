@@ -40,7 +40,7 @@ policy would therefore not have helped even if the scene had cloned.
 
 ## Correctness (`smoke_sac.py`)
 
-Sixteen checks, all of which must pass before a long run. The load-bearing ones:
+Eighteen checks, all of which must pass before a long run. The load-bearing ones:
 
 * `split_forward_matches_predict_action` — the differentiable path used for the actor
   gradient is numerically **identical** (max abs diff 0.0) to the frozen
@@ -51,6 +51,10 @@ Sixteen checks, all of which must pass before a long run. The load-bearing ones:
 * `frozen_dims_exact` — the 10 degenerate action dims receive exactly 0.0 exploration.
 * `old_transitions_reused` — transitions collected before any gradient update are
   consumed by 15 later updates with finite losses. This is the off-policy milestone.
+* `entropy_target_is_reachable` / `alpha_moves_in_the_correcting_direction` — the two
+  checks that would have caught the pilots' failure: an entropy target below the
+  squashed distribution's log-density floor makes alpha slide monotonically to zero and
+  leaves the actor unregularised.
 
 Recorded in `docs/contracts/g1_piston_sac_smoke.json`.
 

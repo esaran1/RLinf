@@ -130,8 +130,10 @@ class PistonTaskReward:
 
         grasped = (finger_r < GRASP_RADIUS) and (thumb_r < GRASP_RADIUS)
 
-        # --- transport progress, only credited while the piston is actually held ---
-        if grasped and lift > LIFT_H:
+        # --- transport progress, credited once the piston has been picked up ---
+        # Same rationale as ``lift`` below: gate on the grasp having occurred plus the
+        # piston being off its rest height, not on an instantaneous contact predicate.
+        if self._stages["grasp"] and lift > LIFT_H:
             if self._best_transport is None:
                 self._best_transport = d_pot_xy
             if d_pot_xy < self._best_transport:
@@ -147,7 +149,13 @@ class PistonTaskReward:
 
         fire("reach", finger_r < GRASP_RADIUS)
         fire("grasp", grasped)
-        fire("lift", grasped and lift > LIFT_H)
+        # ``lift`` must not require grasp and height in the *same* step. The gripper
+        # momentarily loses the contact predicate during a carry (measured: screen
+        # episode 54 displaced the piston 0.200 m and lifted 0.129 m, yet never fired
+        # ``lift`` under the conjunctive test, so it scored 2.96 -- below several
+        # non-manipulating episodes). Requiring the grasp to have *happened* keeps the
+        # ordering meaningful while tolerating transient contact loss.
+        fire("lift", self._stages["grasp"] and lift > LIFT_H)
         fire("tube", self._stages["lift"] and d_tube < TUBE_NEAR)
         fire("plate", self._stages["lift"] and d_pot_xy < PLATE_NEAR)
 

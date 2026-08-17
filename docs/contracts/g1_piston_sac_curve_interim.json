@@ -1,0 +1,59 @@
+{
+  "finding": "SAC converges to a reliable GRASP-ONLY policy; late stages do not consolidate.",
+  "curve": [
+    {
+      "env_steps": 0,
+      "n_eval_episodes": 25,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.2,
+      "grasp_rate": 0.04,
+      "lift_rate": 0.0,
+      "plate_rate": 0.0,
+      "mean_return": -0.369,
+      "mean_disp_m": 0.0088
+    },
+    {
+      "env_steps": 1380,
+      "n_eval_episodes": 25,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.64,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "plate_rate": 0.0,
+      "mean_return": -0.01,
+      "mean_disp_m": 0.0093
+    },
+    {
+      "env_steps": 138660,
+      "n_eval_episodes": 25,
+      "full_success_rate": 0.04,
+      "reach_rate": 1.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.08,
+      "plate_rate": 0.04,
+      "mean_return": 3.871,
+      "mean_disp_m": 0.0276
+    },
+    {
+      "env_steps": 276660,
+      "n_eval_episodes": 25,
+      "full_success_rate": 0.0,
+      "reach_rate": 1.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "plate_rate": 0.0,
+      "mean_return": 2.331,
+      "mean_disp_m": 0.0111
+    }
+  ],
+  "durable_gain": "reach and grasp both 1.00 [0.867,1.000] at two consecutive checkpoints, vs SFT 0.14 / 0.02",
+  "non_durable": {
+    "lift": "0.08 -> 0.00",
+    "success": "0.04 -> 0.00",
+    "explanation": "only 2 of 25 conditions changed by >1.0 return between checkpoints. Medians are nearly identical (2.344 -> 2.333). The entire mean drop is condition 12 losing its single success (35.4 -> 2.3) and condition 19 losing its lift. The 138k lift/success rested on 2 and 1 conditions with CIs including zero, so this is regression to the mean, not a collapse.",
+    "max_displacement": "0.3115 m -> 0.0236 m: the earlier success was an outlier the policy never consolidated"
+  },
+  "policy_is_not_degrading": "grasp holds at 25/25 held-out and 10/10 in every recent training block, with stable returns. This is unlike both pilots, which fell to zero stages and negative return.",
+  "interpretation": "SAC found and locked onto the grasp sub-goal, which the shaped reward pays reliably, and does not discover the much rarer lift->transport->place sequence from online experience alone within this budget. That is precisely the gap the RLPD demonstration prior is meant to close.",
+  "bearing_on_prediction": "the pre-registered primary prediction -- RLPD reaches lift at fewer online interactions than SAC -- is now sharply testable: SAC has ~0 lift rate at 276k steps"
+}

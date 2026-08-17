@@ -84,10 +84,31 @@ are recorded in `docs/contracts/g1_piston_sac_pilot_v1_collapse.json` and guarde
 
 ### Evaluation suite
 
-Fixed at creation and reused throughout: deterministic policy (no exploration) on seeds
-0-4, scored on full-success / reach / grasp / lift / plate rates, mean return, piston
-displacement, and max lift. Optimizer statistics are logged for debugging but are never
-the selection criterion.
+The upstream task has **one** initial state: `reset(seed=s)` is bit-identical for every
+seed, so a seed-indexed suite has an effective sample size of 1 no matter how many seeds
+it names (`docs/contracts/g1_piston_eval_suite_defect.json`). All variation therefore
+comes from `rlinf/envs/isaaclab/tasks/g1_piston_reset.py`.
+
+The 67 demonstrations are effectively identical at reset too — max std 0.021 rad across
+all 63 state dims, and only on the left-hand fingers already gripping the tube — so
+there is no empirical range to inherit and the perturbation is introduced deliberately:
+
+* **Robot joint configuration** is the variable that actually changes the task: right
+  arm ±0.05 rad, waist ±0.02 rad. Measured 52 mm of fingertip spread against a 45 mm
+  grasp radius.
+* **Piston xy** is nearly pinned. Four kinematic socket walls leave **2 mm** of radial
+  clearance (that is why upstream zeroed the inherited ±0.05 m randomisation, which
+  jammed the barrel into a socket corner), so jitter is capped at ±1 mm.
+
+400 train / 50 eval conditions, disjoint by construction, reproducible from
+`RESET_SUITE_SEED`, and hashed so every SFT/SAC/RLPD checkpoint is scored on identical
+conditions. Verified in-simulator: `docs/contracts/g1_piston_reset_suite_verification.json`.
+
+Stage rates carry 95% Wilson intervals and report `n_eval_episodes`. The original single
+fixed reset is retained as a **canonical diagnostic**, stored separately from the suite
+so its binary outcome can never be reported as a success rate.
+
+Optimizer statistics are logged for debugging but are never the selection criterion.
 
 ## Environment note
 

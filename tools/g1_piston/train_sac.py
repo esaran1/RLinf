@@ -445,23 +445,38 @@ try:
             if idx not in demo_feat_cache:
                 aq, f = vlm_encode(img)
                 naq, nf = vlm_encode(nimg)
-                demo_feat_cache[idx] = (f.squeeze(0).cpu(), aq.squeeze(0).cpu(),
-                                        nf.squeeze(0).cpu(), naq.squeeze(0).cpu())
-            f, aq, nf, naq = demo_feat_cache[idx]
-            a = torch.tensor(act, dtype=torch.float32)
-            out.append((f, aq, a, r, nf, naq, d))
+                demo_feat_cache[idx] = store(
+                    f, aq, torch.tensor(act, dtype=torch.float32), r, nf, naq, d)
+            out.append(demo_feat_cache[idx])
         return out
 
     def collate(items):
-        """items: (pooled, action_queries, action, reward, next_pooled, next_aq, done)"""
-        feats = torch.stack([x[0] for x in items]).to(DEV)
-        aqs = torch.stack([x[1] for x in items]).to(DEV)
-        acts = torch.stack([x[2] for x in items]).to(DEV)
+        """items: (pooled, action_queries, action, reward, next_pooled, next_aq, done)
+
+        Buffer entries are stored in float16 (see ``store``) and restored to float32
+        here, which is where every consumer expects them.
+        """
+        def cat(i):
+            return torch.stack([x[i] for x in items]).to(DEV, dtype=torch.float32)
+        feats, aqs, acts = cat(0), cat(1), cat(2)
         rews = torch.tensor([x[3] for x in items], dtype=torch.float32, device=DEV).unsqueeze(-1)
-        nfeats = torch.stack([x[4] for x in items]).to(DEV)
-        naqs = torch.stack([x[5] for x in items]).to(DEV)
+        nfeats, naqs = cat(4), cat(5)
         dones = torch.tensor([x[6] for x in items], dtype=torch.bool, device=DEV).unsqueeze(-1)
         return feats, aqs, acts, rews, nfeats, naqs, dones
+
+    def store(feat, aq, action, reward, nfeat, naq, done):
+        """Build one replay entry, holding the big tensors in float16 on CPU.
+
+        The action queries dominate the footprint (H x HID = 30 x 2048 per state, twice
+        per transition): at float32 a 500-episode run would hold ~5.5 GB of CPU RAM
+        alongside a resident Isaac Sim. They are a deterministic function of the FROZEN
+        VLM, so half precision costs nothing that training can observe.
+        """
+        h = torch.float16
+        return (feat.squeeze(0).to("cpu", dtype=h), aq.squeeze(0).to("cpu", dtype=h),
+                action.detach().to("cpu", dtype=h), float(reward),
+                nfeat.squeeze(0).to("cpu", dtype=h), naq.squeeze(0).to("cpu", dtype=h),
+                bool(done))
 
     # ---------------- gradient update ----------------
     def sac_update(batch_items):
@@ -549,9 +564,7 @@ try:
             env_steps += H * 2
             nimg = get_img()
             nfeat, nmean, naq = vlm_feature_and_mean(nimg)
-            online.append((feat.squeeze(0).cpu(), aq.squeeze(0).cpu(),
-                           a[0].detach().cpu(), float(r),
-                           nfeat.squeeze(0).cpu(), naq.squeeze(0).cpu(), bool(done)))
+            online.append(store(feat, aq, a[0], r, nfeat, naq, done))
             ep_ret += r
             for k, v in info.get("stages", {}).items():
                 ep_stages[k] = ep_stages.get(k, False) or v

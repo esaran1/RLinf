@@ -1,0 +1,68 @@
+{
+  "run": "sft_baseline_v2",
+  "status": "OK",
+  "wall_clock_s": 2733.2,
+  "evaluation": "50 held-out initial conditions, deterministic policy, no training",
+  "n_eval_episodes": 50,
+  "rates": {
+    "full_success_rate": 0.0,
+    "reach_rate": 0.14,
+    "grasp_rate": 0.02,
+    "lift_rate": 0.0,
+    "tube_rate": 0.0,
+    "plate_rate": 0.0
+  },
+  "ci95": {
+    "success": [
+      0.0,
+      0.071
+    ],
+    "reach": [
+      0.07,
+      0.262
+    ],
+    "grasp": [
+      0.004,
+      0.105
+    ],
+    "lift": [
+      0.0,
+      0.071
+    ],
+    "plate": [
+      0.0,
+      0.071
+    ],
+    "tube": [
+      0.0,
+      0.071
+    ]
+  },
+  "mean_return": -0.486,
+  "mean_disp_m": 0.0091,
+  "mean_max_lift_m": 0.0,
+  "return_spread": {
+    "min": -0.69,
+    "max": 2.379,
+    "n_distinct": 32
+  },
+  "canonical_diagnostic": {
+    "tag": "sft_baseline",
+    "env_steps": 0,
+    "condition": -1,
+    "hash": "927d84ae986fa85e",
+    "return": -0.69,
+    "disp_m": 0.0091,
+    "max_lift_m": 0.0,
+    "stages": {
+      "reach": false,
+      "grasp": false,
+      "lift": false,
+      "tube": false,
+      "plate": false,
+      "success": false
+    }
+  },
+  "supersedes": "the earlier SFT numbers (reach 0.40 / grasp 0.20) came from the broken n=1 suite where five seeds gave one initial condition. On genuinely varied conditions the SFT policy is much weaker: reach 0.14, grasp 0.02.",
+  "headroom": "0% success with 0 lifts leaves the full task open for RL to improve; the ceiling is not a concern"
+}

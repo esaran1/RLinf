@@ -65,6 +65,7 @@ run_arm() {
   ALPHA_LR=1e-3 \
   ACTOR_LR=3e-6 \
   DEMO_FRAC=0.5 \
+  EVAL_STOCHASTIC="${EVAL_STOCHASTIC:-0}" \
   "$PY" "$TRAIN" > "$RUNS/${algo}.log" 2>&1
   local rc=$?
   echo "=== $algo: exit $rc ==="

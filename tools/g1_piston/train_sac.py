@@ -32,6 +32,9 @@ EVAL_EVERY = int(os.environ.get("EVAL_EVERY", "6000"))          # env steps betw
 N_EVAL_CONDITIONS = int(os.environ.get("N_EVAL_CONDITIONS", "50"))
 N_EVAL_PERIODIC = int(os.environ.get("N_EVAL_PERIODIC", "25"))
 RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817"))
+#: Run a paired STOCHASTIC evaluation (same conditions, current exploration noise)
+#: alongside each deterministic one. Costs one extra sweep per checkpoint.
+EVAL_STOCHASTIC = os.environ.get("EVAL_STOCHASTIC", "1") == "1"
 UTD = float(os.environ.get("UTD", "0.5"))             # gradient updates per env decision
 BATCH = int(os.environ.get("BATCH", "8"))
 DEMO_FRAC = float(os.environ.get("DEMO_FRAC", "0.5")) # RLPD offline mix
@@ -45,6 +48,7 @@ res = {
         "max_env_steps": MAX_ENV_STEPS, "eval_every": EVAL_EVERY,
         "n_eval_conditions": N_EVAL_CONDITIONS,
         "n_eval_periodic": N_EVAL_PERIODIC, "reset_suite_seed": RESET_SUITE_SEED,
+        "eval_stochastic": EVAL_STOCHASTIC,
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -319,7 +323,7 @@ try:
         return sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()
 
     # ---------------- evaluation suite (FIXED, reused throughout) ----------------
-    def _rollout(cond, save_frames=False):
+    def _rollout(cond, save_frames=False, deterministic=True):
         """One deterministic episode from a given initial condition."""
         env.reset(seed=0)                 # the task reset is deterministic ...
         apply_reset_condition(env, cond)  # ... so the condition supplies the variation
@@ -330,7 +334,7 @@ try:
             img = get_img()
             if save_frames: frames.append(img)
             _, mean, _ = vlm_feature_and_mean(img)
-            a, _ = sample_action(mean, actor_logstd, deterministic=True)
+            a, _ = sample_action(mean, actor_logstd, deterministic=deterministic)
             r, done, info = run_chunk(a[0])
             ret += r
             for k, v in info.get("stages", {}).items():
@@ -347,16 +351,22 @@ try:
             "stages": {k: bool(v) for k, v in stages.items()},
         }, frames
 
-    def evaluate(tag, env_steps, save_video=False, full=False):
-        """Deterministic policy over the held-out initial-condition suite.
+    def evaluate(tag, env_steps, save_video=False, full=False, deterministic=True):
+        """Policy over the held-out initial-condition suite.
 
         ``full`` uses all 50 conditions (final comparison); otherwise the first
         ``N_EVAL_PERIODIC`` of the same fixed suite.
+
+        ``deterministic=False`` re-runs the SAME conditions with the current learned
+        exploration noise, to measure the stochastic-vs-deterministic execution gap on
+        a contact-rich task (the deterministic policy can lift long before the behaviour
+        policy reliably executes the same contact sequence).
         """
         conds = EVAL_CONDITIONS if full else EVAL_CONDITIONS[:N_EVAL_PERIODIC]
         rows = []
         for i, cond in enumerate(conds):
-            row, frames = _rollout(cond, save_frames=(save_video and i == 0))
+            row, frames = _rollout(cond, save_frames=(save_video and i == 0),
+                                   deterministic=deterministic)
             rows.append(row)
             # An eval sweep takes 25-50 min; publish progress so a long run is
             # observable rather than silent until the whole sweep finishes.
@@ -389,8 +399,15 @@ try:
             return [round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)]
         ev = {
             "tag": tag, "env_steps": env_steps,
+            "mode": "deterministic" if deterministic else "stochastic",
             "wall_clock_s": round(time.time() - t_start, 1),
             "n_eval_episodes": n,
+            # Exploration state at evaluation time, so the deterministic/stochastic gap
+            # can be read against the noise that produced it.
+            "alpha": float(ent.compute_alpha().item()),
+            "action_std_mean": float(torch.exp(actor_logstd).mean().item()),
+            "action_std_active_mean": float(
+                torch.exp(actor_logstd)[ACT_MASK].mean().item()),
             "full_success_rate": rate("success"), "reach_rate": rate("reach"),
             "grasp_rate": rate("grasp"), "lift_rate": rate("lift"),
             "plate_rate": rate("plate"), "tube_rate": rate("tube"),
@@ -561,6 +578,8 @@ try:
     next_eval = 0
 
     evaluate("init", 0, save_video=True)   # step-0 behavior, same suite
+    if EVAL_STOCHASTIC:
+        evaluate("init_stochastic", 0, deterministic=False)
 
     while env_steps < MAX_ENV_STEPS:
         # Training initial conditions come from the TRAIN split only; the EVAL split is
@@ -625,6 +644,10 @@ try:
 
         if env_steps >= next_eval:
             evaluate("periodic", env_steps, save_video=True)
+            # Paired stochastic pass over the SAME conditions: tests whether exploration
+            # noise destroys sustained contact while the mean policy has the skill.
+            if EVAL_STOCHASTIC:
+                evaluate("periodic_stochastic", env_steps, deterministic=False)
             evaluate_canonical("periodic", env_steps)
             next_eval += EVAL_EVERY
             ck = {
@@ -635,7 +658,13 @@ try:
                 "env_steps": env_steps, "grad_updates": grad_updates,
             }
             torch.save(ck, f"{RUN_DIR}/{ALGO}_ckpt_latest.pt")
+            # Keep every scheduled checkpoint, not just the latest: intermediate
+            # checkpoints are needed for retrospective analysis and replication.
+            torch.save(ck, f"{RUN_DIR}/{ALGO}_ckpt_step{env_steps}.pt")
             res["last_checkpoint"] = f"{RUN_DIR}/{ALGO}_ckpt_latest.pt"
+            res.setdefault("checkpoints", []).append(
+                {"env_steps": env_steps, "grad_updates": grad_updates,
+                 "path": f"{RUN_DIR}/{ALGO}_ckpt_step{env_steps}.pt"})
             # frozen-ness spot check
             with torch.no_grad():
                 vlm_now = dict(list(model.qwen_vl_interface.named_parameters())[:5])
@@ -647,6 +676,8 @@ try:
             emit()
 
     evaluate("final", env_steps, save_video=True, full=True)
+    if EVAL_STOCHASTIC:
+        evaluate("final_stochastic", env_steps, full=True, deterministic=False)
     evaluate_canonical("final", env_steps)
     res["totals"] = {
         "env_steps": env_steps, "grad_updates": grad_updates, "episodes": episode,

@@ -340,6 +340,11 @@ try:
         for i, cond in enumerate(EVAL_CONDITIONS):
             row, frames = _rollout(cond, save_frames=(save_video and i == 0))
             rows.append(row)
+            # A 50-condition eval takes ~30 min; publish progress so a long run is
+            # observable rather than silent until the whole sweep finishes.
+            res["eval_progress"] = {"tag": tag, "env_steps": env_steps,
+                                    "done": len(rows), "of": len(EVAL_CONDITIONS)}
+            emit()
             if frames:
                 try:
                     import imageio.v2 as imageio

@@ -1,0 +1,71 @@
+{
+  "run": "sac_pilot_v1",
+  "status": "ABORTED_BY_DESIGN_BUG",
+  "env_steps_completed": 12420,
+  "bug": "actor drifted off-distribution under an effectively absent entropy regulariser",
+  "detail": "Two defects. (a) SCALE: default_target_entropy() returns -20.0, the -dim(A) convention for ONE 20-active-dim action, while the alpha loss consumed a log-prob summed over all 30 chunk steps; the correct floor is -20*30 = -600, so the equilibrium sat 580 nats too high. (b) STRENGTH (the operative cause): alpha remained ~0.010 while Q was ~1.4, so the entropy term was ~1%% of the actor objective. The policy was effectively unregularised and the OFT head was driven off-distribution.",
+  "observed_collapse": {
+    "logprob_trajectory": [
+      57.4,
+      -139.2,
+      -256.9,
+      -293.1
+    ],
+    "actor_loss_trajectory": [
+      1.941,
+      -2.214,
+      -3.26,
+      -4.269
+    ],
+    "alpha_trajectory": [
+      0.0101,
+      0.0101,
+      0.01,
+      0.0099
+    ],
+    "note": "actor loss improved monotonically while behaviour was destroyed -- exactly why selection must use behavioural metrics, not optimiser statistics",
+    "interpretation": "log-prob falling +57 -> -293 means the policy became MORE stochastic (drifting off-distribution), not tanh-saturated."
+  },
+  "behaviour": [
+    {
+      "tag": "init",
+      "env_steps": 0,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.2,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "mean_return": -0.441
+    },
+    {
+      "tag": "periodic",
+      "env_steps": 1380,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.4,
+      "grasp_rate": 0.4,
+      "lift_rate": 0.0,
+      "mean_return": 0.691
+    },
+    {
+      "tag": "periodic",
+      "env_steps": 6900,
+      "full_success_rate": 0.0,
+      "reach_rate": 1.0,
+      "grasp_rate": 0.8,
+      "lift_rate": 0.0,
+      "mean_return": 2.205
+    },
+    {
+      "tag": "periodic",
+      "env_steps": 12420,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.0,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "mean_return": -0.678
+    }
+  ],
+  "positive_signal": "before the collapse SAC improved over the SFT baseline: reach 0.2->1.0, grasp 0.0->0.8, mean return -0.44->2.21 at 6900 env steps; training episode 0 reached the lift stage with 0.215 m displacement",
+  "fix": "TARGET_ENTROPY = default_target_entropy() * action_horizon (-600.0); ALPHA_INIT 0.01 -> 0.05; ALPHA_LR 3e-4 -> 1e-3; ACTOR_LR 1e-5 -> 3e-6",
+  "scope": "trainer only; retargeter, reward, scene, camera, normalization, action mask, SFT init and eval suite all unchanged",
+  "correction_to_first_diagnosis": "An initial reading attributed the collapse to the alpha gradient being mis-signed by the scale error. That is wrong and was caught by the regression test: at the measured log-probs BOTH targets push alpha in the same direction (down). The scale error raises the entropy equilibrium but did not flip the sign; the operative cause is alpha magnitude, not sign."
+}

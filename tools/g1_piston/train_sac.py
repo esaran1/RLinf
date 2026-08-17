@@ -128,13 +128,35 @@ try:
     target.load_state_dict(critic.state_dict())
     for p in target.parameters(): p.requires_grad_(False)
 
-    ent = EntropyTemperature(initial_alpha=0.01, alpha_type="softplus", device=DEV).to(DEV)
-    TARGET_ENTROPY = RLSP.default_target_entropy()      # -20.0, active dims only
+    # Two changes after the first pilot collapsed. See
+    # docs/contracts/g1_piston_sac_pilot_v1_collapse.json.
+    #
+    # 1. ``default_target_entropy()`` is -20.0, the -dim(A) convention for ONE
+    #    20-active-dim action, but the alpha loss consumes a log-prob summed over all H
+    #    chunk steps. The floor must describe the same object (-600), or the equilibrium
+    #    sits 580 nats too high.
+    #
+    # 2. The measured collapse was driven by alpha being far too WEAK, not mis-signed:
+    #    alpha sat at ~0.010 while Q was ~1.4, so the entropy term was ~1% of the actor
+    #    objective and the policy was effectively unregularised. Log-prob drifted
+    #    +57 -> -293 (progressively more stochastic, off-distribution) while actor loss
+    #    fell monotonically 1.94 -> -4.27 and behaviour collapsed from reach 1.0 /
+    #    grasp 0.8 to zero -- optimizer statistics improving while the policy was
+    #    destroyed. A larger initial alpha and faster alpha LR let it actually bind.
+    ALPHA_INIT = float(os.environ.get("ALPHA_INIT", "0.05"))
+    ALPHA_LR = float(os.environ.get("ALPHA_LR", "1e-3"))
+    ACTOR_LR = float(os.environ.get("ACTOR_LR", "3e-6"))
+    ent = EntropyTemperature(initial_alpha=ALPHA_INIT, alpha_type="softplus",
+                             device=DEV).to(DEV)
+    TARGET_ENTROPY = RLSP.default_target_entropy() * H  # -600.0 for a 30-step chunk
 
+    # The actor LR is deliberately small: it fine-tunes a converged SFT head, and the
+    # collapsed pilot showed the OFT head can be driven off-distribution quickly
+    # (actor grad-norm reached 110 at lr 1e-5).
     opt_actor = torch.optim.Adam(
-        list(model.action_model.parameters()) + [actor_logstd], lr=1e-5)
+        list(model.action_model.parameters()) + [actor_logstd], lr=ACTOR_LR)
     opt_critic = torch.optim.Adam(critic.parameters(), lr=3e-4)
-    opt_alpha = torch.optim.Adam(ent.parameters(), lr=3e-4)
+    opt_alpha = torch.optim.Adam(ent.parameters(), lr=ALPHA_LR)
 
     GAMMA = 0.99 ** H       # chunk-level discount (one transition = H actions)
     TAU = 0.005

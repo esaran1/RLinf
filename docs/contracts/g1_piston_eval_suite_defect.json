@@ -1,0 +1,128 @@
+{
+  "headline": "The G1 piston task has a FIXED initial state: reset(seed=s) is identical for every seed. The fixed-seed evaluation suite therefore has an effective sample size of 1, not 5.",
+  "evidence": {
+    "probe": "reset(seed=s) for s in [0,1,2,3,4,0]; barrel/pot/tube positions and joint-position sum compared",
+    "barrel_xyz_all_seeds": [
+      -0.15,
+      0.4,
+      0.89
+    ],
+    "pot_xyz_all_seeds": [
+      0.15,
+      0.3,
+      0.8
+    ],
+    "joint_pos_sum_all_seeds": 0.107856,
+    "n_distinct_initial_states": 1,
+    "all_identical": true
+  },
+  "consequence": [
+    "Stage rates (reach/grasp/lift/plate/success) take only the values 0.0 and 1.0 -- they measure one trajectory, replicated.",
+    "Per-seed returns differ only in the 3rd decimal (e.g. 2.399/2.360/2.384/2.478/2.485 at 12420 steps) from nondeterministic GPU reduction order, not from scene variation.",
+    "No statistical claim about success rate can be made from this suite as constructed."
+  ],
+  "caveat_on_earlier_numbers": "All previously reported rates in this project (SFT baseline 0.4 reach / 0.2 grasp, SAC v1 peak 1.0 reach / 0.8 grasp) inherit this limitation. The standalone SFT run showed per-seed spread only because sampling noise crossed a stage threshold on some replicas, not because the scene differed.",
+  "sac_v2_result": {
+    "entropy_fix_applied": {
+      "target_entropy": -600.0,
+      "alpha_init": 0.05,
+      "alpha_lr": 0.001,
+      "actor_lr": 3e-06
+    },
+    "behaviour": [
+      {
+        "env_steps": 0,
+        "full_success_rate": 0.0,
+        "reach_rate": 1.0,
+        "grasp_rate": 0.0,
+        "lift_rate": 0.0,
+        "mean_return": 0.405
+      },
+      {
+        "env_steps": 1380,
+        "full_success_rate": 0.0,
+        "reach_rate": 0.0,
+        "grasp_rate": 0.0,
+        "lift_rate": 0.0,
+        "mean_return": -0.658
+      },
+      {
+        "env_steps": 6900,
+        "full_success_rate": 0.0,
+        "reach_rate": 0.0,
+        "grasp_rate": 0.0,
+        "lift_rate": 0.0,
+        "mean_return": -0.676
+      },
+      {
+        "env_steps": 12420,
+        "full_success_rate": 0.0,
+        "reach_rate": 1.0,
+        "grasp_rate": 1.0,
+        "lift_rate": 0.0,
+        "mean_return": 2.421
+      },
+      {
+        "env_steps": 19320,
+        "full_success_rate": 0.0,
+        "reach_rate": 0.0,
+        "grasp_rate": 0.0,
+        "lift_rate": 0.0,
+        "mean_return": -0.662
+      },
+      {
+        "env_steps": 24840,
+        "full_success_rate": 0.0,
+        "reach_rate": 0.0,
+        "grasp_rate": 0.0,
+        "lift_rate": 0.0,
+        "mean_return": -0.62
+      }
+    ],
+    "verdict": "oscillation persists: reach/grasp 0 -> 1.0 at 12420 -> 0 by 19320. Not a monotone collapse but not stable learning either.",
+    "alpha_trajectory": [
+      0.0489,
+      0.0476,
+      0.0462,
+      0.0448,
+      0.0433,
+      0.0418,
+      0.0404,
+      0.039,
+      0.0378
+    ],
+    "logprob_trajectory": [
+      314.7,
+      336.8,
+      169.7,
+      27.7,
+      -162.8,
+      -265.3,
+      -302.8,
+      -307.5,
+      -331.2
+    ],
+    "q_trajectory": [
+      -3.813,
+      -4.987,
+      -6.023,
+      -2.309,
+      3.267,
+      5.335,
+      6.546,
+      7.229,
+      9.534
+    ],
+    "diagnosis": "alpha DECREASED monotonically 0.049 -> 0.039 across the run while log-prob fell +337 -> -308. The alpha controller is chasing a floor of -600 that the policy is far below, so it keeps reducing alpha, which is the opposite of what the drift requires. The entropy floor is on the right scale but the controller cannot arrest an actor whose Q term (q 3.3 -> 7.2) grows faster than the entropy term."
+  },
+  "what_is_still_valid": [
+    "Throughput benchmark (135 episodes/hour, 98% simulator) -- unaffected.",
+    "Correctness smoke test, all 16 checks including old-transition reuse -- unaffected.",
+    "The off-policy machinery itself: gradients reach the OFT head, VLM stays frozen, frozen dims get exactly 0 exploration, checkpoints round-trip.",
+    "Demo screen and reward validation -- those used demonstration replay, not the eval suite."
+  ],
+  "required_before_any_further_training": [
+    "Evaluation must vary the initial condition. Options: (a) add reset randomisation to the task (touches the frozen scene -- needs authorisation), (b) evaluate over held-out demonstration initial states, (c) report single-condition results honestly as n=1 with no rate claims.",
+    "Independently: the actor/critic balance needs to be fixed so behaviour does not oscillate."
+  ]
+}

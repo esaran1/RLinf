@@ -1,0 +1,104 @@
+{
+  "milestone": "First evidence that off-policy RL improves the StarVLA policy on held-out initial conditions.",
+  "sac_checkpoint": {
+    "env_steps": 138660,
+    "n_eval_episodes": 25,
+    "rates": {
+      "full_success_rate": 0.04,
+      "reach_rate": 1.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.08,
+      "plate_rate": 0.04
+    },
+    "ci95": {
+      "success": [
+        0.007,
+        0.195
+      ],
+      "reach": [
+        0.867,
+        1.0
+      ],
+      "grasp": [
+        0.867,
+        1.0
+      ],
+      "lift": [
+        0.022,
+        0.25
+      ],
+      "plate": [
+        0.007,
+        0.195
+      ],
+      "tube": [
+        0.0,
+        0.133
+      ]
+    },
+    "mean_return": 3.871,
+    "mean_disp_m": 0.0276
+  },
+  "sft_baseline": {
+    "n_eval_episodes": 50,
+    "rates": {
+      "full_success_rate": 0.0,
+      "reach_rate": 0.14,
+      "grasp_rate": 0.02,
+      "lift_rate": 0.0,
+      "plate_rate": 0.0
+    },
+    "ci95": {
+      "success": [
+        0.0,
+        0.071
+      ],
+      "reach": [
+        0.07,
+        0.262
+      ],
+      "grasp": [
+        0.004,
+        0.105
+      ],
+      "lift": [
+        0.0,
+        0.071
+      ],
+      "plate": [
+        0.0,
+        0.071
+      ],
+      "tube": [
+        0.0,
+        0.071
+      ]
+    },
+    "mean_return": -0.486
+  },
+  "headline": "reach 0.14 -> 1.00 and grasp 0.02 -> 1.00 with non-overlapping 95% intervals; first full task success (1/25) and mean return -0.486 -> +3.871",
+  "full_success_detail": {
+    "condition": 12,
+    "return": 35.447,
+    "displacement_m": 0.3115,
+    "max_lift_m": 0.125,
+    "stages": [
+      "reach",
+      "grasp",
+      "lift",
+      "plate",
+      "success"
+    ],
+    "sanity": "return 35.4 sits inside the 15.9-36.2 band of successful demonstration replays, so this is a real completion rather than a reward artifact"
+  },
+  "invariants_verified_mid_run": {
+    "vlm_unchanged": true,
+    "oft_changed": true
+  },
+  "caveats": [
+    "n=25 for periodic evals; the final comparison uses all 50 conditions",
+    "lift 0.08 and success 0.04 have wide intervals ([0.02,0.25] and [0.007,0.195]) -- the late-stage claim is weak at this budget",
+    "reach/grasp are the statistically solid claims at this point"
+  ],
+  "entropy_controller": "converged: log-prob 24.0 -> ~-7.5 against the -8.4 target, alpha regulated both directions"
+}

@@ -56,31 +56,66 @@ Recorded in `docs/contracts/g1_piston_sac_smoke.json`.
 
 ## Training (`train_sac.py`)
 
+Use `run_experiments.sh <scratch_dir>` for the matched SAC/RLPD comparison — it pins
+every shared setting in one place so the arms cannot drift apart. To drive one arm
+directly:
+
 ```bash
 OUTF=<json> ALGO=sac|rlpd|sft_eval RUN_DIR=<dir> \
-MAX_ENV_STEPS=24000 EVAL_EVERY=6000 EVAL_SEEDS=0,1,2,3,4 \
+MAX_ENV_STEPS=690000 EVAL_EVERY=138000 \
+N_EVAL_CONDITIONS=50 N_EVAL_PERIODIC=25 EP_CHUNKS=23 \
 UTD=0.5 BATCH=8 SEED=0 DEMO_FRAC=0.5 \
+ALPHA_INIT=0.05 ALPHA_LR=1e-3 ACTOR_LR=3e-6 \
 MUJOCO_GL=egl PROJECT_ROOT=/home/jren313/unitree_sim_isaaclab \
 ~/miniconda3/envs/env_isaaclab/bin/python train_sac.py
 ```
 
 `sac` uses online replay only. `rlpd` mixes the frozen verified-executable demo buffer
-(22 episodes / 489 transitions / 18 successful) at `DEMO_FRAC`. `sft_eval` runs the
+(22 episodes, 467 usable transitions, 18 successful) at `DEMO_FRAC`. `sft_eval` runs the
 evaluation suite once against the unmodified SFT checkpoint.
 
 Held identical across algorithms by construction: SFT initialization, reset
-distribution, reward, 20-D active action mask, evaluation seeds, and interaction budget.
+distribution, reward, 20-D active action mask, held-out evaluation suite, and interaction budget.
 Online and offline sample counts are logged separately so sample efficiency and compute
 efficiency can be compared independently.
 
-### Entropy regularisation
+### The decision variable, and entropy scaling
 
-`ALPHA_INIT`, `ALPHA_LR` and `ACTOR_LR` are exposed because the first pilot collapsed
-without them. The entropy floor must be `default_target_entropy() * action_horizon`
-(-600), not the single-action -20, since the alpha loss consumes a chunk-summed
-log-prob; and alpha must start large enough to actually bind against the Q scale. Both
-are recorded in `docs/contracts/g1_piston_sac_pilot_v1_collapse.json` and guarded by
-`tests/unit_tests/test_g1_piston_entropy_target.py`.
+One replay transition is one executed StarVLA chunk: 30 action steps × 30 dims, 20 of
+them RL-controllable per step, executed under a 2× zero-order hold. So the SAC action is
+the **whole chunk** — 600 stochastic scalars — and the critic scores
+`Q(s, 900-D flattened chunk)`, matching the stored replay action. A critic fed a single
+30-D action would be regressing a chunk-long reward onto 1/30th of its cause;
+`tests/unit_tests/test_g1_piston_sac_decision_variable.py` asserts that it is not.
+
+The entropy reduction uses one internally consistent convention:
+
+```
+logp_step[h] = sum over the 20 active dims      # per control action
+logp_chunk   = mean over the 30 horizon steps   # per control action
+target       = -20                              # per control action
+```
+
+The earlier pilots summed over all 600 scalars while keeping the per-step −20 target, so
+the entropy term reached ~300 nats against Q ≈ 3–7 and dominated the actor objective
+purely because the policy emits 30 steps at once. Averaging over the horizon keeps
+regularisation on a per-control-action scale that does not grow with the prediction
+horizon. Summing is equally valid *with* a target scaled to −600 — the tests prove the
+two are the same objective up to `alpha_sum = alpha_mean / H` — but mixing them is the
+bug. `ALPHA_INIT`, `ALPHA_LR` and `ACTOR_LR` are exposed because alpha must also start
+large enough to bind against the Q scale. See
+`docs/contracts/g1_piston_sac_pilot_v1_collapse.json`.
+
+The actor logs mean Q, log-prob per control action, alpha, `|alpha·logp|`, the actor Q
+term and the actor entropy term separately, so their relative magnitudes are visible.
+
+### Replay storage
+
+Entries are held in CPU float16. Action queries dominate the footprint (`H × HID` =
+30 × 2048 per state, twice per transition): a 500-episode run would otherwise hold
+~5.5 GB alongside a resident Isaac Sim. They are a deterministic function of the frozen
+VLM, so the ~1.7e-4 relative error is three orders of magnitude below the exploration
+std. Rewards and done flags stay exact — they drive the bootstrap target.
 
 ### Evaluation suite
 

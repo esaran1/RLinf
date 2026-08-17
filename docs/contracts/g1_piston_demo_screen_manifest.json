@@ -19,7 +19,9 @@
     "mean_disp_executable": 0.2965,
     "executable_pct": 32.8,
     "mean_lift_executable": 0.1947,
-    "mean_final_err_executable": 0.0817
+    "mean_final_err_executable": 0.0817,
+    "n_transitions_usable_rlpd": 467,
+    "n_transitions_note": "489 chunks are stored; 467 form usable (s,a,r,s') transitions. Each episode's final chunk has no successor state to bootstrap from, so the loader takes len(actions)-1 per episode (22 episodes -> 22 dropped)."
   },
   "reward_validation": {
     "executable_return_mean": 31.782,

@@ -16,10 +16,15 @@
 
 Regression guard for a measured training collapse: the alpha loss consumed a log-prob
 summed over all 30 chunk steps while the target was the single-action convention
-(-20.0). ``logp + target`` therefore stayed strongly negative, alpha was driven toward
-zero, the entropy regulariser vanished, and the actor saturated tanh to chase Q. Actor
-loss fell monotonically 1.94 -> -4.27 while behaviour collapsed from reach 1.0 / grasp
-0.8 to zero. See ``docs/contracts/g1_piston_sac_pilot_v1_collapse.json``.
+(-20.0). Actor loss fell monotonically 1.94 -> -4.27 while behaviour collapsed from
+reach 1.0 / grasp 0.8 to zero. See
+``docs/contracts/g1_piston_sac_pilot_v1_collapse.json``.
+
+This module covers the **summed** convention -- log-prob summed over all 30 x 20 = 600
+stochastic scalars, which then requires the scaled target -600. The trainer itself uses
+the equivalent **mean-over-horizon** convention (per control action, target -20);
+``test_g1_piston_sac_decision_variable.py`` pins that one and proves the two are the
+same objective up to alpha rescaling. Either is valid; mixing them is the bug.
 """
 
 import torch

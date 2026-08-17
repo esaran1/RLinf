@@ -22,7 +22,10 @@ ALGO = os.environ.get("ALGO", "sac").lower()          # sac | rlpd | sft_eval
 RUN_DIR = os.environ["RUN_DIR"]
 MAX_ENV_STEPS = int(os.environ.get("MAX_ENV_STEPS", "60000"))   # online env steps
 EVAL_EVERY = int(os.environ.get("EVAL_EVERY", "6000"))          # env steps between evals
-EVAL_SEEDS = [int(s) for s in os.environ.get("EVAL_SEEDS", "0,1,2,3,4").split(",")]
+#: Number of held-out initial conditions to evaluate on. The task has ONE deterministic
+#: reset, so evaluation varies the initial state explicitly (g1_piston_reset).
+N_EVAL_CONDITIONS = int(os.environ.get("N_EVAL_CONDITIONS", "50"))
+RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817"))
 UTD = float(os.environ.get("UTD", "0.5"))             # gradient updates per env decision
 BATCH = int(os.environ.get("BATCH", "8"))
 DEMO_FRAC = float(os.environ.get("DEMO_FRAC", "0.5")) # RLPD offline mix
@@ -33,7 +36,8 @@ DEMO_DIR = "/home/jren313/research/starvla_rl/demo_buffer"
 os.makedirs(RUN_DIR, exist_ok=True)
 res = {
     "algo": ALGO, "seed": SEED, "config": {
-        "max_env_steps": MAX_ENV_STEPS, "eval_every": EVAL_EVERY, "eval_seeds": EVAL_SEEDS,
+        "max_env_steps": MAX_ENV_STEPS, "eval_every": EVAL_EVERY,
+        "n_eval_conditions": N_EVAL_CONDITIONS, "reset_suite_seed": RESET_SUITE_SEED,
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -103,6 +107,12 @@ try:
     DEV = "cuda"
 
     sys.path.insert(0, "/home/jren313/research/starvla_rl/RLinf")
+    from rlinf.envs.isaaclab.tasks.g1_piston_reset import (
+        CANONICAL,
+        apply_reset_condition,
+        build_reset_suite,
+        suite_manifest,
+    )
     from rlinf.models.embodiment.modules.q_head import MultiQHead
     from rlinf.models.embodiment.modules.entropy_tunning import EntropyTemperature
     from rlinf.models.embodiment.modules.gaussian_policy import SquashedNormal
@@ -148,7 +158,19 @@ try:
     ACTOR_LR = float(os.environ.get("ACTOR_LR", "3e-6"))
     ent = EntropyTemperature(initial_alpha=ALPHA_INIT, alpha_type="softplus",
                              device=DEV).to(DEV)
-    TARGET_ENTROPY = RLSP.default_target_entropy() * H  # -600.0 for a 30-step chunk
+    # ENTROPY REDUCTION CONVENTION (see tests/unit_tests/
+    # test_g1_piston_sac_decision_variable.py, which pins this):
+    #
+    #   logp_step[h] = sum over the 20 ACTIVE dims          -> per control action
+    #   logp_chunk   = mean over the 30 horizon steps       -> per control action
+    #   target       = -20                                  -> per control action
+    #
+    # All three describe the same object. The earlier pilots summed over all
+    # 30 x 20 = 600 stochastic scalars while keeping the per-step -20 target, so the
+    # entropy term reached ~300 nats against Q ~ 3-7 and dominated the actor objective
+    # purely because the policy emits 30 steps at once. Averaging over the horizon keeps
+    # regularisation on a per-control-action scale that does not grow with the horizon.
+    TARGET_ENTROPY = RLSP.default_target_entropy()  # -20.0, per control action
 
     # The actor LR is deliberately small: it fine-tunes a converged SFT head, and the
     # collapsed pilot showed the OFT head can be driven off-distribution quickly
@@ -160,6 +182,13 @@ try:
 
     GAMMA = 0.99 ** H       # chunk-level discount (one transition = H actions)
     TAU = 0.005
+
+    # Disjoint TRAIN / EVAL initial conditions. The task's own reset is deterministic, so
+    # all variation comes from here; the suite is reproducible from RESET_SUITE_SEED and
+    # every checkpoint of every algorithm sees exactly the same EVAL conditions.
+    TRAIN_CONDITIONS, EVAL_CONDITIONS = build_reset_suite(
+        n_train=400, n_eval=N_EVAL_CONDITIONS, seed=RESET_SUITE_SEED)
+    res["reset_suite"] = suite_manifest(TRAIN_CONDITIONS, EVAL_CONDITIONS)
     res["setup"] = {
         "hidden": HID, "action_horizon": H, "n_active_dims": N_ACTIVE,
         "target_entropy": TARGET_ENTROPY, "gamma_chunk": round(GAMMA, 5),
@@ -277,58 +306,97 @@ try:
         return sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()
 
     # ---------------- evaluation suite (FIXED, reused throughout) ----------------
-    def evaluate(tag, env_steps, save_video=False):
-        """Deterministic policy on the fixed eval seeds. Behavior metrics only."""
-        rows = []
-        for s in EVAL_SEEDS:
-            env.reset(seed=s); reward_fn.reset()
-            bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
-            ret = 0.0; maxlift = 0.0; stages = {}; frames = []
-            for c in range(EP_CHUNKS):
-                img = get_img()
-                if save_video and s == EVAL_SEEDS[0]: frames.append(img)
-                _, mean, _ = vlm_feature_and_mean(img)
-                a, _ = sample_action(mean, actor_logstd, deterministic=True)
-                r, done, info = run_chunk(a[0])
-                ret += r
-                for k, v in info.get("stages", {}).items():
-                    stages[k] = stages.get(k, False) or v
-                bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
-                maxlift = max(maxlift, float(bar[2] - bar0[2]))
-                if done: break
+    def _rollout(cond, save_frames=False):
+        """One deterministic episode from a given initial condition."""
+        env.reset(seed=0)                 # the task reset is deterministic ...
+        apply_reset_condition(env, cond)  # ... so the condition supplies the variation
+        reward_fn.reset()
+        bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
+        ret = 0.0; maxlift = 0.0; stages = {}; frames = []
+        for _ in range(EP_CHUNKS):
+            img = get_img()
+            if save_frames: frames.append(img)
+            _, mean, _ = vlm_feature_and_mean(img)
+            a, _ = sample_action(mean, actor_logstd, deterministic=True)
+            r, done, info = run_chunk(a[0])
+            ret += r
+            for k, v in info.get("stages", {}).items():
+                stages[k] = stages.get(k, False) or v
             bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
-            rows.append({
-                "seed": s, "return": round(float(ret), 3),
-                "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
-                "max_lift_m": round(maxlift, 4),
-                "stages": {k: bool(v) for k, v in stages.items()},
-            })
-            if save_video and s == EVAL_SEEDS[0] and frames:
+            maxlift = max(maxlift, float(bar[2] - bar0[2]))
+            if done: break
+        bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
+        return {
+            "condition": cond.index, "hash": cond.hash(),
+            "return": round(float(ret), 3),
+            "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
+            "max_lift_m": round(maxlift, 4),
+            "stages": {k: bool(v) for k, v in stages.items()},
+        }, frames
+
+    def evaluate(tag, env_steps, save_video=False):
+        """Deterministic policy over the held-out initial-condition suite."""
+        rows = []
+        for i, cond in enumerate(EVAL_CONDITIONS):
+            row, frames = _rollout(cond, save_frames=(save_video and i == 0))
+            rows.append(row)
+            if frames:
                 try:
                     import imageio.v2 as imageio
-                    imageio.mimsave(f"{RUN_DIR}/{ALGO}_step{env_steps}_seed{s}.mp4",
+                    imageio.mimsave(f"{RUN_DIR}/{ALGO}_step{env_steps}_cond{cond.index}.mp4",
                                     frames, fps=8)
                 except Exception:
                     pass
         n = len(rows)
-        def rate(k): return round(sum(1 for r in rows if r["stages"].get(k)) / n, 3)
+
+        def rate(k):
+            return round(sum(1 for r in rows if r["stages"].get(k)) / n, 3)
+
+        def wilson(k):
+            """95% Wilson interval for a stage rate over n evaluation episodes."""
+            import math
+            c = sum(1 for r in rows if r["stages"].get(k))
+            if n == 0:
+                return [0.0, 0.0]
+            z = 1.96
+            p = c / n
+            d = 1 + z * z / n
+            centre = (p + z * z / (2 * n)) / d
+            half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+            return [round(max(0.0, centre - half), 3), round(min(1.0, centre + half), 3)]
         ev = {
             "tag": tag, "env_steps": env_steps,
             "wall_clock_s": round(time.time() - t_start, 1),
+            "n_eval_episodes": n,
             "full_success_rate": rate("success"), "reach_rate": rate("reach"),
             "grasp_rate": rate("grasp"), "lift_rate": rate("lift"),
             "plate_rate": rate("plate"), "tube_rate": rate("tube"),
+            "ci95": {k: wilson(k) for k in
+                     ("success", "reach", "grasp", "lift", "plate", "tube")},
             "mean_return": round(float(np.mean([r["return"] for r in rows])), 3),
             "mean_disp_m": round(float(np.mean([r["disp_m"] for r in rows])), 4),
             "mean_max_lift_m": round(float(np.mean([r["max_lift_m"] for r in rows])), 4),
-            "per_seed": rows,
+            "per_condition": rows,
         }
         res["evals"].append(ev); emit()
         return ev
 
+    def evaluate_canonical(tag, env_steps):
+        """The original single fixed reset, kept as a DIAGNOSTIC.
+
+        One binary observation -- deliberately stored apart from the suite so it can
+        never be reported as a success rate.
+        """
+        row, _ = _rollout(CANONICAL)
+        res.setdefault("canonical_diagnostic", []).append(
+            {"tag": tag, "env_steps": env_steps, **row})
+        emit()
+        return row
+
     # ---------------- SFT baseline: evaluate once, no training ----------------
     if ALGO == "sft_eval":
         evaluate("sft_baseline", 0, save_video=True)
+        evaluate_canonical("sft_baseline", 0)
         res["wall_clock_s"] = round(time.time() - t_start, 1)
         emit("OK"); os._exit(0)
 
@@ -391,7 +459,8 @@ try:
             qn = target(nfeats, na.reshape(B, -1))
             qmin = qn.min(dim=1, keepdim=True)[0]
             alpha = ent.compute_alpha().detach()
-            qmin = qmin - alpha * nlp.sum(dim=-1, keepdim=True)
+            # mean over the horizon: per-control-action entropy scale (see TARGET_ENTROPY)
+            qmin = qmin - alpha * nlp.mean(dim=-1, keepdim=True)
             tq = rews + (~dones) * GAMMA * qmin
         q = critic(feats, acts.reshape(B, -1))
         closs = F.mse_loss(q, tq.expand_as(q))
@@ -404,7 +473,9 @@ try:
         a, lp = sample_action(mean_b, actor_logstd)
         qpi = critic(feats, a.reshape(B, -1)).min(dim=1, keepdim=True)[0]
         alpha = ent.compute_alpha().detach()
-        aloss = (alpha * lp.sum(dim=-1, keepdim=True) - qpi).mean()
+        logp_chunk = lp.mean(dim=-1, keepdim=True)      # per control action
+        entropy_term = alpha * logp_chunk
+        aloss = (entropy_term - qpi).mean()
         opt_actor.zero_grad(); aloss.backward()
         agn = torch.nn.utils.clip_grad_norm_(
             list(model.action_model.parameters()) + [actor_logstd], 10.0)
@@ -412,7 +483,7 @@ try:
 
         # --- alpha ---
         alpha_v = ent.compute_alpha()
-        alloss = -alpha_v * (lp.sum(dim=-1).mean().detach() + TARGET_ENTROPY)
+        alloss = -alpha_v * (logp_chunk.mean().detach() + TARGET_ENTROPY)
         opt_alpha.zero_grad(); alloss.backward(); opt_alpha.step()
 
         # --- target soft update ---
@@ -420,11 +491,19 @@ try:
             for tp, op in zip(target.parameters(), critic.parameters()):
                 tp.data.mul_(1 - TAU).add_(op.data, alpha=TAU)
 
+        # Relative magnitudes are logged explicitly: the entropy term must not dwarf the
+        # learned Q signal simply because the policy emits 30 steps at once.
+        q_term = float(qpi.mean().item())
+        ent_term = float(entropy_term.mean().item())
         return {
             "critic_loss": float(closs.item()), "actor_loss": float(aloss.item()),
             "alpha_loss": float(alloss.item()), "alpha": float(alpha_v.item()),
             "q_mean": float(q.mean().item()), "target_q_mean": float(tq.mean().item()),
-            "logprob": float(lp.sum(dim=-1).mean().item()),
+            "logprob_per_step": float(logp_chunk.mean().item()),
+            "actor_q_term": q_term,
+            "actor_entropy_term": ent_term,
+            "abs_alpha_logprob": abs(ent_term),
+            "entropy_to_q_ratio": round(abs(ent_term) / max(abs(q_term), 1e-6), 4),
             "critic_gn": float(cgn), "actor_gn": float(agn),
         }
 
@@ -436,8 +515,12 @@ try:
     evaluate("init", 0, save_video=True)   # step-0 behavior, same suite
 
     while env_steps < MAX_ENV_STEPS:
-        ep_seed = 1000 + episode          # training resets: distinct from eval seeds
-        env.reset(seed=ep_seed); reward_fn.reset()
+        # Training initial conditions come from the TRAIN split only; the EVAL split is
+        # never seen during training.
+        train_cond = TRAIN_CONDITIONS[episode % len(TRAIN_CONDITIONS)]
+        env.reset(seed=0)
+        apply_reset_condition(env, train_cond)
+        reward_fn.reset()
         bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
         ep_ret = 0.0; ep_stages = {}; maxlift = 0.0
         img = get_img()
@@ -485,7 +568,8 @@ try:
 
         bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
         res["episodes"].append({
-            "episode": episode, "seed": ep_seed, "env_steps": env_steps,
+            "episode": episode, "condition": train_cond.index,
+            "condition_hash": train_cond.hash(), "env_steps": env_steps,
             "return": round(float(ep_ret), 3),
             "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
             "max_lift_m": round(maxlift, 4),
@@ -494,7 +578,8 @@ try:
         episode += 1; emit()
 
         if env_steps >= next_eval:
-            evaluate(f"periodic", env_steps, save_video=True)
+            evaluate("periodic", env_steps, save_video=True)
+            evaluate_canonical("periodic", env_steps)
             next_eval += EVAL_EVERY
             ck = {
                 "action_model": model.action_model.state_dict(),
@@ -516,6 +601,7 @@ try:
             emit()
 
     evaluate("final", env_steps, save_video=True)
+    evaluate_canonical("final", env_steps)
     res["totals"] = {
         "env_steps": env_steps, "grad_updates": grad_updates, "episodes": episode,
         "n_online_samples": n_online_samples, "n_demo_samples": n_demo_samples,

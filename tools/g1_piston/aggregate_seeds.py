@@ -23,15 +23,23 @@ import json
 import os
 import sys
 
-STAGES = ["reach_rate", "grasp_rate", "lift_rate", "plate_rate", "full_success_rate"]
+sys.path.insert(0, "/home/jren313/research/starvla_rl/RLinf")
+from rlinf.envs.isaaclab.tasks.g1_piston_metrics import classify  # noqa: E402
+
+#: Reported at every matched checkpoint. carry/throw are recomputed from the stored
+#: per-condition rows via the FROZEN metric definitions, so older runs (whose json
+#: predates them) are scored identically to newer ones.
+STAGES = ["reach_rate", "grasp_rate", "lift_rate", "carry_rate", "throw_rate",
+          "plate_rate", "full_success_rate"]
 
 #: Thresholds for the sample-efficiency table. "Reliable" grasp is deliberately below
 #: 1.0 so a single unlucky condition does not move the crossing point.
 THRESHOLDS = [
     ("reliable_grasp", "grasp_rate", 0.80),
+    ("first_carry", "carry_rate", 0.001),
+    ("carry_20pct", "carry_rate", 0.20),
+    ("carry_40pct", "carry_rate", 0.40),
     ("first_lift", "lift_rate", 0.001),
-    ("lift_20pct", "lift_rate", 0.20),
-    ("lift_40pct", "lift_rate", 0.40),
     ("first_success", "full_success_rate", 0.001),
     ("sustained_success", "full_success_rate", 0.20),
 ]
@@ -86,9 +94,15 @@ def across_seeds(runs_by_seed):
     for _seed, run in sorted(runs_by_seed.items()):
         for e in deterministic_curve(run):
             b = agg.setdefault(bucket(e["env_steps"]), {})
-            for m in STAGES + ["mean_return", "mean_disp_m", "mean_max_lift_m"]:
-                if m in e:
-                    b.setdefault(m, []).append(e[m])
+            # Recompute from per-condition rows under the frozen definitions rather
+            # than trusting whatever the run happened to log.
+            src = dict(e)
+            if e.get("per_condition"):
+                src.update(classify(e["per_condition"]))
+            for m in STAGES + ["mean_return", "mean_disp_m", "mean_max_lift_m",
+                               "max_lift_m"]:
+                if m in src:
+                    b.setdefault(m, []).append(src[m])
     return agg
 
 
@@ -110,7 +124,10 @@ def interactions_to(runs_by_seed, metric, thresh):
     for seed, run in sorted(runs_by_seed.items()):
         hit = None
         for e in deterministic_curve(run):
-            if e.get(metric, 0.0) > thresh:
+            src = dict(e)
+            if e.get("per_condition"):
+                src.update(classify(e["per_condition"]))
+            if src.get(metric, 0.0) > thresh:
                 hit = e["env_steps"]
                 break
         out[seed] = hit
@@ -168,6 +185,45 @@ def plots(out_dir, agg, sft, dual=None, eff=None):
     draw(ax3[1], "mean_max_lift_m", "mean max lift (m)")
     f3.tight_layout(); f3.savefig(os.path.join(out_dir, "plot3_physical.png"), dpi=130)
 
+    # Plot 3b: is optimising the FROZEN reward still aligned with task progress?
+    # If return keeps climbing while carry/success stall or fall, the reward and the
+    # task have come apart -- which is exactly what the throw exploit does.
+    f3b, ax3b = plt.subplots(1, 2, figsize=(11, 4.5))
+    for ax, metric, title in ((ax3b[0], "carry_rate", "return vs carry rate"),
+                              (ax3b[1], "full_success_rate", "return vs success rate")):
+        for algo, a in agg.items():
+            xs = sorted(a)
+            pts = [(mean_sd(a[x]["mean_return"])["mean"], mean_sd(a[x][metric])["mean"], x)
+                   for x in xs if "mean_return" in a[x] and metric in a[x]]
+            if not pts:
+                continue
+            ax.plot([p[0] for p in pts], [p[1] for p in pts], marker="o",
+                    color=colors.get(algo), label=algo, alpha=0.85)
+            for r, m, step in pts:
+                ax.annotate(f"{step // 1000}k", (r, m), fontsize=7,
+                            xytext=(3, 3), textcoords="offset points")
+        ax.set_xlabel("mean return (frozen reward)")
+        ax.set_ylabel(title.split(" vs ")[1])
+        ax.set_title(title)
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=8)
+    f3b.suptitle("Reward-task alignment: points labelled by online interactions")
+    f3b.tight_layout()
+    f3b.savefig(os.path.join(out_dir, "plot3b_reward_alignment.png"), dpi=130)
+
+    # Plot 3c: the exploit metric alongside the behaviour it displaces
+    f3c, a3c = plt.subplots(figsize=(7, 4.5))
+    draw(a3c, "carry_rate", "")
+    for algo, a in agg.items():
+        xs, ys, sds = series(a, "throw_rate")
+        if xs:
+            a3c.errorbar(xs, ys, yerr=sds, marker="x", ls=":",
+                         color=colors.get(algo), label=f"{algo} throw (exploit)")
+    a3c.set_title("carry (solid) vs throw (dotted) vs online interactions")
+    a3c.legend(fontsize=8)
+    f3c.tight_layout()
+    f3c.savefig(os.path.join(out_dir, "plot3c_carry_vs_throw.png"), dpi=130)
+
     # Plot 4: deterministic vs stochastic execution (from eval_checkpoint.py outputs)
     if dual:
         f4, ax4 = plt.subplots(1, 2, figsize=(11, 4))
@@ -220,7 +276,10 @@ def main():
         with open(sys.argv[sys.argv.index("--sft") + 1]) as f:
             s = json.load(f)
         if s.get("evals"):
-            sft = s["evals"][0]
+            sft = dict(s["evals"][0])
+            # Score the baseline under the same frozen definitions as every RL arm.
+            if sft.get("per_condition"):
+                sft.update(classify(sft["per_condition"]))
 
     dual = {}
     for dp in sorted(glob.glob(os.path.join(runs_dir, "dualmode_*.json"))):
@@ -241,7 +300,7 @@ def main():
         "note": ("stage rates are mean +/- sd ACROSS TRAINING SEEDS; the per-run Wilson "
                  "intervals in each run's own json measure environment-condition "
                  "variability and are a different quantity"),
-        "sft_baseline": ({k: sft[k] for k in STAGES + ["mean_return", "n_eval_episodes"]}
+        "sft_baseline": ({k: sft[k] for k in STAGES + ["mean_return", "n_eval_episodes"] if k in sft}
                          if sft else None),
         "curves": {a: {str(k): {m: mean_sd(v) for m, v in b.items()}
                        for k, b in sorted(x.items())} for a, x in agg.items()},

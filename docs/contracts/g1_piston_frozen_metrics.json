@@ -1,0 +1,68 @@
+{
+  "title": "Frozen behavioural metric definitions for the G1 piston SAC/RLPD comparison",
+  "metrics_version": "v1-frozen-2026-08-17",
+  "frozen_when": "before any RLPD evaluation existed: SAC seed 1 was at episode 450/500 and runs/rlpd.json had not been created",
+  "derivation": "thresholds come only from simulator trajectories and the demonstration reference. They are independent of which method produced a rollout and of comparative performance.",
+  "definitions": {
+    "reach": "task stage predicate: right fingertips within GRASP_RADIUS (0.045 m) of the barrel axis",
+    "grasp": "task stage predicate: fingers AND thumb both within GRASP_RADIUS (opposing contact)",
+    "lift": "task stage predicate: barrel raised LIFT_H (0.05 m) above rest, once grasp has occurred",
+    "carry": "lift fired AND horizontal displacement >= 0.05 m",
+    "throw": "lift fired AND horizontal displacement < 0.05 m",
+    "full_success": "task terminal predicate: over the pot, above plate height, no longer rising"
+  },
+  "threshold_provenance": {
+    "carry_min_displacement_m": 0.05,
+    "demo_displacement_range_m": [
+      0.2,
+      0.322
+    ],
+    "demo_max_lift_range_m": [
+      0.129,
+      0.232
+    ],
+    "demo_lift_disp_ratio_range": [
+      0.5,
+      0.81
+    ],
+    "margin": "0.05 m is 4x below the least-transporting demonstration, so it is deliberately permissive"
+  },
+  "roles": {
+    "PRIMARY": [
+      "full_success_rate",
+      "carry_rate",
+      "mean_return (reward-dependent)"
+    ],
+    "AUXILIARY": [
+      "reach_rate",
+      "grasp_rate",
+      "lift_rate"
+    ],
+    "FAILURE_EXPLOIT": [
+      "throw_rate"
+    ],
+    "note": "lift_rate is explicitly demoted: it counts vertical throws as progress"
+  },
+  "sac_seed1_trajectory_restated": [
+    {
+      "env_steps": 414660,
+      "lift": 0.4,
+      "carry": 0.36,
+      "throw": 0.04
+    },
+    {
+      "env_steps": 552180,
+      "lift": 0.24,
+      "carry": 0.12,
+      "throw": 0.12
+    }
+  ],
+  "precise_reading": "late SAC is NOT simply \"lift declined\". Task-consistent carrying regressed (0.36 -> 0.12) while reward-exploiting throws emerged (0.04 -> 0.12).",
+  "must_not": "these thresholds must not be retuned later in light of SAC/RLPD results",
+  "bookkeeping_489_vs_467": {
+    "stored_chunks": 489,
+    "usable_rlpd_transitions": 467,
+    "difference": 22,
+    "reason": "one per executable episode. A replay transition needs (s, a, r, s'), and each episode's final chunk has no successor observation, so the loader takes len(actions)-1 per episode: 22 episodes -> 22 dropped chunks. The screen manifest counts stored chunks (489); the RLPD buffer counts usable transitions (467). No data was lost or filtered."
+  }
+}

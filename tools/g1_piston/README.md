@@ -73,6 +73,15 @@ distribution, reward, 20-D active action mask, evaluation seeds, and interaction
 Online and offline sample counts are logged separately so sample efficiency and compute
 efficiency can be compared independently.
 
+### Entropy regularisation
+
+`ALPHA_INIT`, `ALPHA_LR` and `ACTOR_LR` are exposed because the first pilot collapsed
+without them. The entropy floor must be `default_target_entropy() * action_horizon`
+(-600), not the single-action -20, since the alpha loss consumes a chunk-summed
+log-prob; and alpha must start large enough to actually bind against the Q scale. Both
+are recorded in `docs/contracts/g1_piston_sac_pilot_v1_collapse.json` and guarded by
+`tests/unit_tests/test_g1_piston_entropy_target.py`.
+
 ### Evaluation suite
 
 Fixed at creation and reused throughout: deterministic policy (no exploration) on seeds

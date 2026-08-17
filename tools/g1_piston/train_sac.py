@@ -183,7 +183,7 @@ try:
     # entropy term reached ~300 nats against Q ~ 3-7 and dominated the actor objective
     # purely because the policy emits 30 steps at once. Averaging over the horizon keeps
     # regularisation on a per-control-action scale that does not grow with the horizon.
-    TARGET_ENTROPY = RLSP.default_target_entropy()  # -20.0, per control action
+    TARGET_ENTROPY = RLSP.default_target_entropy()  # -8.4, per control action
 
     # The actor LR is deliberately small: it fine-tunes a converged SFT head, and the
     # collapsed pilot showed the OFT head can be driven off-distribution quickly

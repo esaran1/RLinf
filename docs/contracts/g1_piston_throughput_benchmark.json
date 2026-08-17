@@ -1,0 +1,35 @@
+{
+  "purpose": "Time-boxed vectorization benchmark: can online collection be batched across IsaacLab envs?",
+  "verdict": "NO for num_envs>1 (upstream scene does not clone); single-env path is fast enough",
+  "time_boxed_minutes": 60,
+  "interpreter": "~/miniconda3/envs/env_isaaclab/bin/python (torch 2.7.0+cu128, transformers 4.57.6, numpy 1.26.0 unchanged)",
+  "num_envs_1": {
+    "status": "OK",
+    "sim_boot_s": 14.0,
+    "model_load_s": 6.8,
+    "mean_chunk_s": 2.336,
+    "mean_infer_s": 0.044,
+    "mean_sim_s": 2.292,
+    "mean_obs_s": 0.0001,
+    "mean_map_s": 0.0004,
+    "env_steps_per_s": 25.7,
+    "decisions_per_s": 12.84,
+    "episodes_per_hour": 135.2,
+    "peak_vram_mib": 4307,
+    "bottleneck": "simulator: 98.1% of chunk wall-clock"
+  },
+  "num_envs_2": {
+    "status": "FAIL",
+    "where": "env.reset -> Camera.reset -> sensor_base._timestamp[env_ids]",
+    "error": "CUDA device-side assert: index out of bounds",
+    "root_cause": "upstream task scene does not clone: Isaac logs \"getAttributeCount called on non-existent path /World/envs/env_1/Robot/torso_link/collisions/...\" -- env_1 assets are incompletely replicated, so camera buffers size to 1 while env_ids spans 2",
+    "also_fails_without_policy": true,
+    "fix_scope": "upstream USD/scene replication surgery in the user IsaacLab/unitree_sim_isaaclab repo -- out of scope and beyond the time box"
+  },
+  "num_envs_4": {
+    "status": "NOT_RUN",
+    "reason": "num_envs=2 already fails at reset; 4 cannot succeed"
+  },
+  "key_correction": "Earlier 60+h projection assumed policy inference dominated (~1.5 s/call, measured pre-warmup). Batched warm inference is 0.044 s -- 1.9%% of a chunk. The simulator is the bottleneck, so batching the POLICY would not have helped anyway.",
+  "implication": "135 episodes/hour single-env is ~4x better than the earlier estimate. A matched SAC/RLPD pilot is feasible overnight without vectorization."
+}

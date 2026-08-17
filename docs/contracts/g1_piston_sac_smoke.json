@@ -1,0 +1,106 @@
+{
+  "checks": {
+    "split_forward_matches_predict_action": {
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0
+      }
+    },
+    "action_shape": {
+      "pass": true,
+      "detail": {
+        "shape": [
+          1,
+          30,
+          30
+        ]
+      }
+    },
+    "demo_buffer_loaded": {
+      "pass": true,
+      "detail": {
+        "transitions": 12
+      }
+    },
+    "critic_loss_finite": {
+      "pass": true,
+      "detail": {
+        "value": 22.141435623168945
+      }
+    },
+    "actor_loss_finite": {
+      "pass": true,
+      "detail": {
+        "value": 4.4319233894348145
+      }
+    },
+    "alpha_loss_finite": {
+      "pass": true,
+      "detail": {
+        "value": -3.384528398513794
+      }
+    },
+    "alpha_finite_positive": {
+      "pass": true,
+      "detail": {
+        "alpha": 0.010000001639127731
+      }
+    },
+    "target_q_finite": {
+      "pass": true,
+      "detail": {
+        "mean": -4.854575157165527
+      }
+    },
+    "actor_grad_reaches_oft_head": {
+      "pass": true,
+      "detail": {
+        "grad_abs_sum": 25141.5761
+      }
+    },
+    "frozen_dims_exact": {
+      "pass": true,
+      "detail": {
+        "max_abs_deviation": 0.0
+      }
+    },
+    "vlm_params_unchanged": {
+      "pass": true,
+      "detail": null
+    },
+    "oft_params_changed": {
+      "pass": true,
+      "detail": null
+    },
+    "target_critic_updated": {
+      "pass": true,
+      "detail": null
+    },
+    "old_transitions_reused": {
+      "pass": true,
+      "detail": {
+        "note": "all transitions predate every gradient update; 15 updates consumed them",
+        "critic_losses": [
+          0.3311,
+          2.5089,
+          4.121,
+          3.2419,
+          3.6982
+        ]
+      }
+    },
+    "checkpoint_saved": {
+      "pass": true,
+      "detail": {
+        "mib": 173.2
+      }
+    },
+    "checkpoint_reloaded_exact": {
+      "pass": true,
+      "detail": null
+    }
+  },
+  "_status": "OK",
+  "peak_vram_mib": 5022,
+  "all_passed": true
+}

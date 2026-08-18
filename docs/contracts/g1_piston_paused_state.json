@@ -1,0 +1,45 @@
+{
+  "state": "PAUSED by user request; GPU released for another project",
+  "gpu_free_mib": 172,
+  "completed_and_safe": {
+    "sac_s1": {
+      "episodes": 509,
+      "env_steps": 691080,
+      "checkpoints_retained": 0,
+      "note": "only final ckpt; predates per-step retention"
+    },
+    "rlpd_s1": {
+      "episodes": 505,
+      "env_steps": 690180,
+      "checkpoints_retained": 6
+    },
+    "sac_s2": {
+      "episodes": 504,
+      "env_steps": 690780,
+      "checkpoints_retained": 6
+    }
+  },
+  "n50_upgrade_evals": {
+    "complete": [
+      "rlpd@277320"
+    ],
+    "removed_incomplete": [
+      "sac_s2@276000 (8/50)"
+    ],
+    "killed_by_my_stale_pid_error": [
+      "rlpd@415140",
+      "sac_s2@414000"
+    ]
+  },
+  "remaining_work_tomorrow": {
+    "priority_1": "n=50 re-eval of the DECISIVE pair: rlpd@415140 and sac_s2@414000 (~1.6 h). At n=25 their carry CIs overlap ([0.20,0.55] vs [0.04,0.30]); n=50 separates them.",
+    "priority_2": "n=50 for sac_s2@276000 and the 552k pair (~2.4 h) to complete a 3-point matched curve",
+    "priority_3": "training arms rlpd_s2, sac_s3, rlpd_s3 (~10.7 h each, ~32 h) for the replicated claim"
+  },
+  "scripts_ready": [
+    "upgrade50.sh (n=50 det-only sweep)",
+    "redo414.sh (decisive pair)",
+    "resume3.sh (3 missing training arms)"
+  ],
+  "lesson": "stop procedures must re-read live PIDs immediately before killing; I killed two evals using PIDs from a stale nvidia-smi listing that the OS had recycled"
+}

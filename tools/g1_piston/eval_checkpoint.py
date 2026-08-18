@@ -32,6 +32,10 @@ N_EVAL = int(os.environ.get("N_EVAL", "25"))
 RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817"))
 EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))
 SEED = int(os.environ.get("SEED", "0"))
+#: "both" (default) runs deterministic+stochastic; "det" runs deterministic only.
+#: The comparison metric is the deterministic policy, so a det-only pass halves cost
+#: when upgrading many saved checkpoints to the larger evaluation suite.
+MODES = os.environ.get("MODES", "both").lower()
 
 os.makedirs(RUN_DIR, exist_ok=True)
 res = {"checkpoint": CKPT_PATH, "n_eval": N_EVAL, "modes": {}}
@@ -246,11 +250,12 @@ try:
 
     res["modes"]["deterministic"] = evaluate(True)
     emit()
-    res["modes"]["stochastic"] = evaluate(False)
-    d, s = res["modes"]["deterministic"], res["modes"]["stochastic"]
-    res["gap"] = {k: round(d[k] - s[k], 3) for k in
-                  ("full_success_rate", "reach_rate", "grasp_rate", "lift_rate",
-                   "mean_return", "mean_disp_m")}
+    if MODES != "det":
+        res["modes"]["stochastic"] = evaluate(False)
+        d, s = res["modes"]["deterministic"], res["modes"]["stochastic"]
+        res["gap"] = {k: round(d[k] - s[k], 3) for k in
+                      ("full_success_rate", "reach_rate", "grasp_rate", "lift_rate",
+                       "mean_return", "mean_disp_m")}
     res["wall_clock_s"] = round(time.time() - t_start, 1)
     emit("OK")
     os._exit(0)

@@ -1,0 +1,104 @@
+{
+  "status": "PARTIAL: 3 of 6 arms complete (SAC s1, SAC s2, RLPD s1). RLPD s2, SAC s3, RLPD s3 relaunched after a launcher bug.",
+  "launcher_bug": {
+    "symptom": "run_replication.sh exited after SAC seed 2 despite exit 0",
+    "cause": "run_arm ended with `[ \"$rc\" -ne 0 ] && {...}`; when rc==0 that test is false and is the function's last command, so run_arm returned 1 and the caller's `|| exit 1` fired on a SUCCESSFUL arm",
+    "fix": "explicit if-block plus `return 0`",
+    "data_impact": "none -- the three completed arms are valid and were not re-run"
+  },
+  "final_n50": {
+    "SFT": {
+      "success": 0.0,
+      "carry": 0.0,
+      "throw": 0.0,
+      "grasp": 0.02,
+      "return": -0.486
+    },
+    "SAC_s1": {
+      "success": 0.0,
+      "carry": 0.06,
+      "throw": 0.04,
+      "grasp": 0.98,
+      "return": 3.0
+    },
+    "SAC_s2": {
+      "success": 0.0,
+      "carry": 0.14,
+      "throw": 0.04,
+      "grasp": 1.0,
+      "return": 3.524
+    },
+    "RLPD_s1": {
+      "success": 0.0,
+      "carry": 0.0,
+      "throw": 0.0,
+      "grasp": 0.72,
+      "return": 1.747
+    }
+  },
+  "best_checkpoint_n25": {
+    "SAC_s1": {
+      "steps": 414660,
+      "carry": 0.36,
+      "throw": 0.04,
+      "success": 0.04
+    },
+    "SAC_s2": {
+      "steps": 690780,
+      "carry": 0.16,
+      "throw": 0.0,
+      "success": 0.0
+    },
+    "RLPD_s1": {
+      "steps": 415140,
+      "carry": 0.12,
+      "throw": 0.0,
+      "success": 0.0
+    }
+  },
+  "normalized_carry_auc": {
+    "method": "trapezoidal over env_steps / 690000 = average carry rate over training",
+    "SAC_s1": 0.1239,
+    "SAC_s2": 0.0241,
+    "RLPD_s1": 0.0239
+  },
+  "sample_efficiency": {
+    "first_carry": {
+      "SAC_s1": 138660,
+      "SAC_s2": 414000,
+      "RLPD_s1": 415140
+    },
+    "carry_20pct": {
+      "SAC_s1": 414660,
+      "SAC_s2": null,
+      "RLPD_s1": null
+    },
+    "carry_40pct": {
+      "SAC_s1": null,
+      "SAC_s2": null,
+      "RLPD_s1": null
+    },
+    "first_success": {
+      "SAC_s1": 138660,
+      "SAC_s2": null,
+      "RLPD_s1": null
+    }
+  },
+  "dual_mode_seed1_final": {
+    "SAC": {
+      "grasp_det": 1.0,
+      "grasp_stoch": 0.92,
+      "return_det": 2.602,
+      "return_stoch": 2.748
+    },
+    "RLPD": {
+      "grasp_det": 0.84,
+      "grasp_stoch": 1.0,
+      "return_det": 2.102,
+      "return_stoch": 2.655
+    },
+    "reading": "no deterministic advantage at the FINAL checkpoint; the earlier seed-1 gap was measured mid-training, not at convergence"
+  },
+  "seed_variance": "SAC carry AUC 0.1239 vs 0.0241 -- a 5x spread across two seeds of the SAME algorithm, larger than the SAC-vs-RLPD difference",
+  "caveat": "RLPD n=1. No RLPD claim is replicated yet."
+}

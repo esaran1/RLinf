@@ -72,7 +72,8 @@ run_arm() {
   "$PY" "$TRAIN" > "$RUNS/${name}.log" 2>&1
   local rc=$?
   echo "=== $name: exit $rc ==="
-  [ "$rc" -ne 0 ] && { echo "=== $name FAILED; aborting ==="; return "$rc"; }
+  if [ "$rc" -ne 0 ]; then echo "=== $name FAILED; aborting ==="; return "$rc"; fi
+  return 0
 }
 
 for s in "${SEEDS[@]}"; do

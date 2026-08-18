@@ -289,6 +289,12 @@ def main():
         except Exception:
             continue
         if dd.get("modes", {}).get("stochastic"):
+            # Score dual-mode outputs under the frozen definitions too: those files
+            # predate carry/throw.
+            for mode in ("deterministic", "stochastic"):
+                rows = dd["modes"][mode].get("per_condition")
+                if rows:
+                    dd["modes"][mode].update(classify(rows))
             algo = os.path.basename(dp)[len("dualmode_"):].split("_")[0].upper()
             dual[algo] = dd
 

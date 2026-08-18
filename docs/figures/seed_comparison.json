@@ -1,0 +1,1524 @@
+{
+  "seeds_per_method": {
+    "SAC": [
+      1,
+      2
+    ],
+    "RLPD": [
+      1
+    ]
+  },
+  "note": "stage rates are mean +/- sd ACROSS TRAINING SEEDS; the per-run Wilson intervals in each run's own json measure environment-condition variability and are a different quantity",
+  "sft_baseline": {
+    "reach_rate": 0.14,
+    "grasp_rate": 0.02,
+    "lift_rate": 0.0,
+    "carry_rate": 0.0,
+    "throw_rate": 0.0,
+    "plate_rate": 0.0,
+    "full_success_rate": 0.0,
+    "mean_return": -0.4863,
+    "n_eval_episodes": 50
+  },
+  "curves": {
+    "SAC": {
+      "0": {
+        "reach_rate": {
+          "mean": 0.16,
+          "sd": 0.0566,
+          "n_seeds": 2,
+          "values": [
+            0.2,
+            0.12
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.02,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.04,
+            0.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": -0.454,
+          "sd": 0.1208,
+          "n_seeds": 2,
+          "values": [
+            -0.3686,
+            -0.5395
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0089,
+          "sd": 0.0002,
+          "n_seeds": 2,
+          "values": [
+            0.0088,
+            0.0091
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0009,
+          "sd": 0.0001,
+          "n_seeds": 2,
+          "values": [
+            0.0008,
+            0.001
+          ]
+        }
+      },
+      "1380": {
+        "reach_rate": {
+          "mean": 0.56,
+          "sd": 0.1131,
+          "n_seeds": 2,
+          "values": [
+            0.64,
+            0.48
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": -0.096,
+          "sd": 0.1222,
+          "n_seeds": 2,
+          "values": [
+            -0.0096,
+            -0.1824
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0094,
+          "sd": 0.0001,
+          "n_seeds": 2,
+          "values": [
+            0.0093,
+            0.0094
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0001,
+          "sd": 0.0001,
+          "n_seeds": 2,
+          "values": [
+            0.0001,
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0008,
+          "sd": 0.0012,
+          "n_seeds": 2,
+          "values": [
+            0.0017,
+            0.0
+          ]
+        }
+      },
+      "138000": {
+        "reach_rate": {
+          "mean": 0.6,
+          "sd": 0.5657,
+          "n_seeds": 2,
+          "values": [
+            1.0,
+            0.2
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.6,
+          "sd": 0.5657,
+          "n_seeds": 2,
+          "values": [
+            1.0,
+            0.2
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.04,
+          "sd": 0.0566,
+          "n_seeds": 2,
+          "values": [
+            0.08,
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.04,
+          "sd": 0.0566,
+          "n_seeds": 2,
+          "values": [
+            0.08,
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.02,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.04,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.02,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.04,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 1.9112,
+          "sd": 2.7713,
+          "n_seeds": 2,
+          "values": [
+            3.8708,
+            -0.0484
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0186,
+          "sd": 0.0127,
+          "n_seeds": 2,
+          "values": [
+            0.0276,
+            0.0096
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0025,
+          "sd": 0.0035,
+          "n_seeds": 2,
+          "values": [
+            0.005,
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0625,
+          "sd": 0.0884,
+          "n_seeds": 2,
+          "values": [
+            0.125,
+            0.0
+          ]
+        }
+      },
+      "276000": {
+        "reach_rate": {
+          "mean": 1.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            1.0,
+            1.0
+          ]
+        },
+        "grasp_rate": {
+          "mean": 1.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            1.0,
+            1.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 2.346,
+          "sd": 0.0211,
+          "n_seeds": 2,
+          "values": [
+            2.331,
+            2.3609
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.011,
+          "sd": 0.0001,
+          "n_seeds": 2,
+          "values": [
+            0.0111,
+            0.0109
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0001,
+          "sd": 0.0001,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0001
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0009,
+          "sd": 0.0009,
+          "n_seeds": 2,
+          "values": [
+            0.0002,
+            0.0015
+          ]
+        }
+      },
+      "414000": {
+        "reach_rate": {
+          "mean": 0.98,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.96,
+            1.0
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.9,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.92,
+            0.88
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.24,
+          "sd": 0.2263,
+          "n_seeds": 2,
+          "values": [
+            0.4,
+            0.08
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.2,
+          "sd": 0.2263,
+          "n_seeds": 2,
+          "values": [
+            0.36,
+            0.04
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.04,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.04,
+            0.04
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.02,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.04,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.02,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.04,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 4.4235,
+          "sd": 2.137,
+          "n_seeds": 2,
+          "values": [
+            5.9346,
+            2.9124
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0505,
+          "sd": 0.0532,
+          "n_seeds": 2,
+          "values": [
+            0.0881,
+            0.0129
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0252,
+          "sd": 0.0186,
+          "n_seeds": 2,
+          "values": [
+            0.0384,
+            0.0121
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.1503,
+          "sd": 0.0311,
+          "n_seeds": 2,
+          "values": [
+            0.1283,
+            0.1723
+          ]
+        }
+      },
+      "552000": {
+        "reach_rate": {
+          "mean": 0.84,
+          "sd": 0.2263,
+          "n_seeds": 2,
+          "values": [
+            1.0,
+            0.68
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.54,
+          "sd": 0.594,
+          "n_seeds": 2,
+          "values": [
+            0.96,
+            0.12
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.12,
+          "sd": 0.1697,
+          "n_seeds": 2,
+          "values": [
+            0.24,
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.06,
+          "sd": 0.0849,
+          "n_seeds": 2,
+          "values": [
+            0.12,
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.06,
+          "sd": 0.0849,
+          "n_seeds": 2,
+          "values": [
+            0.12,
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 2.1784,
+          "sd": 1.9083,
+          "n_seeds": 2,
+          "values": [
+            3.5277,
+            0.829
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0236,
+          "sd": 0.0211,
+          "n_seeds": 2,
+          "values": [
+            0.0385,
+            0.0086
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0263,
+          "sd": 0.0296,
+          "n_seeds": 2,
+          "values": [
+            0.0472,
+            0.0054
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.3156,
+          "sd": 0.2565,
+          "n_seeds": 2,
+          "values": [
+            0.497,
+            0.1343
+          ]
+        }
+      },
+      "690000": {
+        "reach_rate": {
+          "mean": 1.0,
+          "sd": 0.0,
+          "n_seeds": 4,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.995,
+          "sd": 0.01,
+          "n_seeds": 4,
+          "values": [
+            1.0,
+            0.98,
+            1.0,
+            1.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.15,
+          "sd": 0.0346,
+          "n_seeds": 4,
+          "values": [
+            0.16,
+            0.1,
+            0.16,
+            0.18
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.12,
+          "sd": 0.0432,
+          "n_seeds": 4,
+          "values": [
+            0.12,
+            0.06,
+            0.16,
+            0.14
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.03,
+          "sd": 0.02,
+          "n_seeds": 4,
+          "values": [
+            0.04,
+            0.04,
+            0.0,
+            0.04
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 4,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 4,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 3.3171,
+          "sd": 0.2287,
+          "n_seeds": 4,
+          "values": [
+            3.3102,
+            3.0003,
+            3.4335,
+            3.5244
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0305,
+          "sd": 0.0085,
+          "n_seeds": 4,
+          "values": [
+            0.023,
+            0.0266,
+            0.0425,
+            0.03
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0343,
+          "sd": 0.0191,
+          "n_seeds": 4,
+          "values": [
+            0.0605,
+            0.0357,
+            0.0245,
+            0.0167
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.4806,
+          "sd": 0.1903,
+          "n_seeds": 4,
+          "values": [
+            0.6908,
+            0.5889,
+            0.2898,
+            0.3527
+          ]
+        }
+      }
+    },
+    "RLPD": {
+      "0": {
+        "reach_rate": {
+          "mean": 0.08,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.08
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": -0.5836,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            -0.5836
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.009,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.009
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0003,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0003
+          ]
+        }
+      },
+      "1380": {
+        "reach_rate": {
+          "mean": 0.52,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.52
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": -0.156,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            -0.156
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.01,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.01
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0001,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0001
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0019,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0019
+          ]
+        }
+      },
+      "138000": {
+        "reach_rate": {
+          "mean": 1.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            1.0
+          ]
+        },
+        "grasp_rate": {
+          "mean": 1.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            1.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 2.3562,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            2.3562
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0093,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0093
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        }
+      },
+      "276000": {
+        "reach_rate": {
+          "mean": 0.04,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.04
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.04,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.04
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": -0.5066,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            -0.5066
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0096,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0096
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        }
+      },
+      "414000": {
+        "reach_rate": {
+          "mean": 1.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            1.0
+          ]
+        },
+        "grasp_rate": {
+          "mean": 1.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            1.0
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.12,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.12
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.12,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.12
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 2.8899,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            2.8899
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0386,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0386
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0198,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0198
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.1965,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.1965
+          ]
+        }
+      },
+      "552000": {
+        "reach_rate": {
+          "mean": 0.12,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.12
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.12,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.12
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": -0.2801,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            -0.2801
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0099,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0099
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0,
+          "sd": null,
+          "n_seeds": 1,
+          "values": [
+            0.0
+          ]
+        }
+      },
+      "690000": {
+        "reach_rate": {
+          "mean": 0.82,
+          "sd": 0.0283,
+          "n_seeds": 2,
+          "values": [
+            0.8,
+            0.84
+          ]
+        },
+        "grasp_rate": {
+          "mean": 0.66,
+          "sd": 0.0849,
+          "n_seeds": 2,
+          "values": [
+            0.6,
+            0.72
+          ]
+        },
+        "lift_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "carry_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "throw_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "plate_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "full_success_rate": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "mean_return": {
+          "mean": 1.6176,
+          "sd": 0.183,
+          "n_seeds": 2,
+          "values": [
+            1.4882,
+            1.747
+          ]
+        },
+        "mean_disp_m": {
+          "mean": 0.0098,
+          "sd": 0.0001,
+          "n_seeds": 2,
+          "values": [
+            0.0097,
+            0.0099
+          ]
+        },
+        "mean_max_lift_m": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        },
+        "max_lift_m": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "n_seeds": 2,
+          "values": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    }
+  },
+  "dual_mode": {
+    "RLPD": {
+      "gap": {
+        "full_success_rate": 0.0,
+        "reach_rate": -0.04,
+        "grasp_rate": -0.16,
+        "lift_rate": 0.0,
+        "mean_return": -0.553,
+        "mean_disp_m": -0.0
+      },
+      "action_std_active_mean": 0.2017654925584793,
+      "deterministic": {
+        "reach_rate": 0.96,
+        "grasp_rate": 0.84,
+        "lift_rate": 0.0,
+        "carry_rate": 0.0,
+        "throw_rate": 0.0,
+        "plate_rate": 0.0,
+        "full_success_rate": 0.0
+      },
+      "stochastic": {
+        "reach_rate": 1.0,
+        "grasp_rate": 1.0,
+        "lift_rate": 0.0,
+        "carry_rate": 0.0,
+        "throw_rate": 0.0,
+        "plate_rate": 0.0,
+        "full_success_rate": 0.0
+      }
+    },
+    "SAC": {
+      "gap": {
+        "full_success_rate": 0.0,
+        "reach_rate": 0.0,
+        "grasp_rate": 0.08,
+        "lift_rate": -0.04,
+        "mean_return": -0.146,
+        "mean_disp_m": -0.0
+      },
+      "action_std_active_mean": 0.2016969919204712,
+      "deterministic": {
+        "reach_rate": 1.0,
+        "grasp_rate": 1.0,
+        "lift_rate": 0.0,
+        "carry_rate": 0.0,
+        "throw_rate": 0.0,
+        "plate_rate": 0.0,
+        "full_success_rate": 0.0
+      },
+      "stochastic": {
+        "reach_rate": 1.0,
+        "grasp_rate": 0.92,
+        "lift_rate": 0.04,
+        "carry_rate": 0.0,
+        "throw_rate": 0.04,
+        "plate_rate": 0.0,
+        "full_success_rate": 0.0
+      }
+    }
+  },
+  "sample_efficiency": {
+    "reliable_grasp": {
+      "SAC": {
+        "1": 138660,
+        "2": 276000
+      },
+      "RLPD": {
+        "1": 139320
+      }
+    },
+    "first_carry": {
+      "SAC": {
+        "1": 138660,
+        "2": 414000
+      },
+      "RLPD": {
+        "1": 415140
+      }
+    },
+    "carry_20pct": {
+      "SAC": {
+        "1": 414660,
+        "2": null
+      },
+      "RLPD": {
+        "1": null
+      }
+    },
+    "carry_40pct": {
+      "SAC": {
+        "1": null,
+        "2": null
+      },
+      "RLPD": {
+        "1": null
+      }
+    },
+    "first_lift": {
+      "SAC": {
+        "1": 138660,
+        "2": 414000
+      },
+      "RLPD": {
+        "1": 415140
+      }
+    },
+    "first_success": {
+      "SAC": {
+        "1": 138660,
+        "2": null
+      },
+      "RLPD": {
+        "1": null
+      }
+    },
+    "sustained_success": {
+      "SAC": {
+        "1": null,
+        "2": null
+      },
+      "RLPD": {
+        "1": null
+      }
+    }
+  }
+}

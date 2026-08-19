@@ -120,7 +120,15 @@ def _draw(rng, joints):
     return d
 
 
-def build_reset_suite(n_train: int = 200, n_eval: int = 50, seed: int = 20260817):
+#: The n_train the experiment actually uses. build_reset_suite draws TRAIN then EVAL
+#: from one generator, so the eval conditions depend on n_train: rebuilding the suite
+#: with a different n_train silently yields DIFFERENT eval conditions. Every consumer
+#: (trainer and post-hoc evaluators alike) must pass this value.
+EXPERIMENT_N_TRAIN = 400
+
+
+def build_reset_suite(n_train: int = EXPERIMENT_N_TRAIN, n_eval: int = 50,
+                      seed: int = 20260817):
     """Build disjoint TRAIN and EVAL initial-condition sets.
 
     The two splits are drawn from one generator in sequence, so they are disjoint by

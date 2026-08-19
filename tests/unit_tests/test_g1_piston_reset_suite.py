@@ -123,3 +123,27 @@ def test_manifest_records_what_reviewers_need():
 def test_barrel_radius_and_clearance_are_consistent():
     assert BARREL_RADIUS == 0.020
     assert SOCKET_CLEARANCE > 0
+
+
+def test_default_n_train_matches_the_experiment():
+    """The eval suite depends on n_train, so the default must be the experiment's value.
+
+    ``build_reset_suite`` draws TRAIN then EVAL from one generator, so rebuilding with a
+    different ``n_train`` silently yields DIFFERENT eval conditions. A post-hoc evaluator
+    that took the old default (200) scored checkpoints on a suite the trainer never used,
+    producing results that looked valid but were not comparable.
+    """
+    from rlinf.envs.isaaclab.tasks.g1_piston_reset import EXPERIMENT_N_TRAIN
+
+    assert EXPERIMENT_N_TRAIN == 400
+    default_eval = [c.hash() for c in build_reset_suite(n_eval=50)[1]]
+    explicit_eval = [c.hash() for c in
+                     build_reset_suite(n_train=EXPERIMENT_N_TRAIN, n_eval=50)[1]]
+    assert default_eval == explicit_eval
+
+
+def test_a_different_n_train_changes_the_eval_conditions():
+    """Pins the hazard itself, so the coupling can never be assumed away."""
+    a = [c.hash() for c in build_reset_suite(n_train=200, n_eval=50)[1]]
+    b = [c.hash() for c in build_reset_suite(n_train=400, n_eval=50)[1]]
+    assert a != b

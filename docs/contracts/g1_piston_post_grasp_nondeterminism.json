@@ -153,30 +153,43 @@
     "containment": "The single-checkpoint noise range [0.00, 0.36] now CONTAINS the entire algorithmic range [0.12, 0.36] observed across both algorithms and all seeds.",
     "spread_is_still_widening": "0.08 at 2 runs, 0.20 at 3, 0.36 at 4 -- the floor estimate has not converged, so 0.36 is a LOWER BOUND on the true noise range."
   },
-  "five_run_final": {
+  "recommendation": {
+    "do_not": "Resume the three remaining training seeds to completion for a carry-based comparison. That is ~32 GPU-hours to produce three more single-evaluation numbers drawn from a distribution whose spread already covers the entire effect size.",
+    "do": [
+      "Report grasp emergence as the primary result: 0.02 -> ~1.00, perfectly reproducible (spread 0.000, Jaccard 1.0 across five runs).",
+      "Report full success as 0.00 for every RL checkpoint in every run, and the SFT stochastic 0.16 as the only success anywhere.",
+      "Report the noise floor itself as a methodological contribution, with the power table.",
+      "If a carry comparison is still wanted, budget repeats per arm rather than more conditions, and fix the reward exploit first -- 5 of 5 runs show throws, and one run was ALL throws."
+    ]
+  },
+  "FINAL_six_run_result": {
+    "protocol": "rlpd_ckpt_step415140, frozen 25-condition prefix, deterministic, BLEND_STEPS=0, six independent processes",
     "carry_rate": [
       0.12,
       0.2,
       0.0,
       0.36,
+      0.2,
       0.2
-    ],
-    "mean": 0.176,
-    "stdev": 0.131,
-    "spread": 0.36,
-    "standard_error_of_mean_over_5_runs": 0.059,
-    "ci95_on_the_true_carry_rate": [
-      0.061,
-      0.291
     ],
     "lift_rate": [
       0.2,
       0.32,
       0.24,
       0.48,
-      0.24
+      0.24,
+      0.4
+    ],
+    "throw_rate": [
+      0.08,
+      0.12,
+      0.24,
+      0.12,
+      0.04,
+      0.2
     ],
     "grasp_rate": [
+      1.0,
       1.0,
       1.0,
       1.0,
@@ -188,28 +201,29 @@
       0.0,
       0.0,
       0.0,
+      0.0,
       0.0
     ],
+    "carry": {
+      "mean": 0.18,
+      "stdev": 0.118,
+      "spread": 0.36,
+      "ci95_with_6_repeats": [
+        0.086,
+        0.274
+      ]
+    },
+    "convergence": "spread 0.08 (2 runs) -> 0.20 (3) -> 0.36 (4) -> 0.36 (5) -> 0.36 (6). CONVERGED.",
     "per_condition_jaccard": {
       "grasp": 1.0,
-      "lift": 0.133,
-      "carry": 0.049
+      "lift": 0.149,
+      "carry": 0.074
     },
-    "spread_stabilised": "0.08 (2 runs) -> 0.20 (3) -> 0.36 (4) -> 0.36 (5). The estimate is beginning to converge rather than widening without bound.",
-    "power_requirement": {
-      "to_resolve_a_carry_difference_of_0.05": "~27 repeat evaluations PER ARM",
-      "to_resolve_a_carry_difference_of_0.02": "~166 repeat evaluations PER ARM",
-      "note": "repeats, not conditions. The variance is between runs, so a larger single evaluation does not help."
+    "power_table": {
+      "0.10": "~6 repeats per arm",
+      "0.05": "~22 repeats per arm",
+      "0.02": "~134 repeats per arm"
     },
-    "bottom_line": "Even with FIVE repeats, one checkpoint's carry rate is pinned only to +/-0.11. The SAC-vs-RLPD differences under test (0.36 / 0.16 / 0.12) are comparable to that interval, and each arm was measured exactly once."
-  },
-  "recommendation": {
-    "do_not": "Resume the three remaining training seeds to completion for a carry-based comparison. That is ~32 GPU-hours to produce three more single-evaluation numbers drawn from a distribution whose spread already covers the entire effect size.",
-    "do": [
-      "Report grasp emergence as the primary result: 0.02 -> ~1.00, perfectly reproducible (spread 0.000, Jaccard 1.0 across five runs).",
-      "Report full success as 0.00 for every RL checkpoint in every run, and the SFT stochastic 0.16 as the only success anywhere.",
-      "Report the noise floor itself as a methodological contribution, with the power table.",
-      "If a carry comparison is still wanted, budget repeats per arm rather than more conditions, and fix the reward exploit first -- 5 of 5 runs show throws, and one run was ALL throws."
-    ]
+    "the_dissociation": "In the SAME six runs: grasp is spread 0.000 and Jaccard 1.0 (perfectly reproducible, condition for condition) while carry is spread 0.360 and Jaccard 0.074. The instrument is sound; post-grasp outcomes simply carry almost no per-run signal."
   }
 }

@@ -1,0 +1,29 @@
+{
+  "id": "g1_piston_carry_metric_3d_norm",
+  "recorded": "2026-08-19",
+  "severity": "metric-definition-weakness",
+  "metrics_version": "v1-frozen-2026-08-17",
+  "claim": "The frozen carry test uses a 3-D displacement norm, so a predominantly VERTICAL move can be labelled a carry -- the very throw exploit the metric exists to catch.",
+  "detail": {
+    "frozen_definition": "is_carry(row) = row['stages']['lift'] and row['disp_m'] >= 0.05",
+    "disp_m_definition": "np.linalg.norm(bar - bar0) over ALL THREE axes (eval_checkpoint.py, train_sac.py)",
+    "audit_brief_definition": "carry = horizontal transport >= 0.05 m; throw = vertical gain with < 0.05 m horizontal transport",
+    "gap": "the two definitions disagree whenever most of the displacement is vertical"
+  },
+  "affected": {
+    "run": "RLPD s1 @415140, n=50 deterministic, the only checkpoint with any carries",
+    "carries": 6,
+    "worst_case_horizontal_bound": {
+      "cond3":  {"disp3d": 0.0855, "max_lift": 0.0595, "horiz_lower_bound": 0.0614, "carry_survives": true},
+      "cond20": {"disp3d": 0.0558, "max_lift": 0.0533, "horiz_lower_bound": 0.0165, "carry_survives": false},
+      "cond21": {"disp3d": 0.1812, "max_lift": 0.0565, "horiz_lower_bound": 0.1722, "carry_survives": true},
+      "cond31": {"disp3d": 0.0941, "max_lift": 0.0860, "horiz_lower_bound": 0.0382, "carry_survives": false},
+      "cond39": {"disp3d": 0.1489, "max_lift": 0.0658, "horiz_lower_bound": 0.1336, "carry_survives": true},
+      "cond41": {"disp3d": 0.1473, "max_lift": 0.0253, "horiz_lower_bound": 0.1451, "carry_survives": true}
+    },
+    "bound_caveat": "max_lift_m is a RUNNING MAX, not the final height, so these horizontal figures are lower bounds. The rendered rollouts record true per-chunk xyz and resolve it exactly."
+  },
+  "consequence": "Up to 2 of RLPD's 6 carries at 415140 may be predominantly vertical. Under a horizontal-only reading RLPD's carry rate at that checkpoint falls from 0.12 to as low as 0.08.",
+  "action_taken": "verify_rollouts.py now recomputes horizontal displacement from the true final pose and flags any rollout whose carry label depends on the vertical component. The frozen metric is NOT overridden and no result is relabelled; the disagreement is reported.",
+  "deferred": "Any change to the carry definition is a metric change and must wait until the 3-seed comparison is complete, per the standing freeze."
+}

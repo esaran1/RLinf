@@ -60,7 +60,14 @@ def verify(path):
     disp = float(np.linalg.norm(pN - p0))
     lift = max(float(np.array(t["piston_xyz"], dtype=float)[2] - p0[2]) for t in traj)
 
+    # The frozen carry test uses disp_m, a 3-D norm, so a predominantly VERTICAL move
+    # can clear the 0.05 m threshold. Section 8 of the audit brief defines carry as
+    # HORIZONTAL transport, so recompute that separately from the true final pose and
+    # surface any rollout whose carry label depends on the vertical component. This does
+    # not override the frozen metric -- it reports the disagreement.
+    horiz = float(np.linalg.norm((pN - p0)[:2]))
     checks["disp_recomputed"] = round(disp, 4)
+    checks["horizontal_disp_recomputed"] = round(horiz, 4)
     checks["lift_recomputed"] = round(lift, 4)
     if abs(disp - stored["disp_m"]) > TOL:
         fails.append(f"disp mismatch: stored {stored['disp_m']} vs raw {disp:.4f}")
@@ -91,6 +98,13 @@ def verify(path):
     # carry and throw are mutually exclusive by construction; assert it holds here.
     if label["carry"] and label["throw"]:
         fails.append("row classified BOTH carry and throw")
+
+    checks["carry_by_horizontal_only"] = bool(
+        acc.get("lift") and horiz >= M.CARRY_MIN_DISPLACEMENT_M)
+    # A carry that only qualifies via the vertical component is exactly the throw
+    # exploit the metric exists to catch. Flag it loudly; do NOT silently relabel.
+    checks["carry_depends_on_vertical"] = bool(
+        label["carry"] and not checks["carry_by_horizontal_only"])
 
     vid = d["video"]
     checks["video_exists"] = os.path.exists(vid)
@@ -139,10 +153,25 @@ def main(dirs):
         flag = "OK  " if r["verified"] else "FAIL"
         lab = r["checks"].get("recomputed_label", {})
         tags = ",".join(k for k, v in lab.items() if v) or "-"
+        c = r["checks"]
+        note = ""
+        if c.get("carry_depends_on_vertical"):
+            note = (f"   <-- CARRY ONLY VIA VERTICAL "
+                    f"(horiz {c['horizontal_disp_recomputed']:.3f} m "
+                    f"< {M.CARRY_MIN_DISPLACEMENT_M})")
         print(f"  {flag} {r['method']:<10} s{r['seed']} step{r['checkpoint_env_steps']:>7} "
-              f"cond{r['condition_index']:<3} {r['mode'][:4]}  {tags}")
+              f"cond{r['condition_index']:<3} {r['mode'][:4]}  {tags}{note}")
         for f in r["failures"]:
             print(f"        ! {f}")
+
+    susp = [r for r in recs if r["checks"].get("carry_depends_on_vertical")]
+    if susp:
+        print(f"\n{len(susp)} carry-labelled rollout(s) qualify only through the "
+              f"vertical component of the 3-D displacement.")
+        print("The frozen metric counts them as carries; by a horizontal-only reading "
+              "they are throws.")
+        print("Not relabelled here -- the frozen definition stands. Reported for the "
+              "record and for visual adjudication.")
     return 0 if ok == len(recs) else 1
 
 

@@ -38,6 +38,11 @@ CONDS = [int(x) for x in os.environ["CONDS"].split(",") if x.strip() != ""]
 REPEATS = int(os.environ.get("REPEATS", "1"))
 #: Disable frame capture, for isolating its effect on contact physics.
 NO_CAPTURE = os.environ.get("NO_CAPTURE", "0") == "1"
+#: Control steps over which a new chunk ramps in from the previous chunk's last command.
+#: 0 (the default) reproduces the study's execution exactly. Non-zero is a DIFFERENT
+#: EXECUTION MODE and must be reported as its own arm -- see
+#: docs/contracts/g1_piston_chunk_boundary_jitter.json.
+BLEND_STEPS = int(os.environ.get("BLEND_STEPS", "0"))
 CONDS = [c for c in CONDS for _ in range(REPEATS)]
 MODE = os.environ.get("MODE", "deterministic").lower()
 TAG = os.environ.get("TAG", "run")
@@ -92,6 +97,7 @@ try:
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
+    CB = _load("g1cb", RL + "g1_piston_chunk_blend.py")
 
     from isaaclab.app import AppLauncher
     app = AppLauncher(headless=True, enable_cameras=True).app
@@ -192,10 +198,17 @@ try:
         a = torch.where(ACT_MASK, a, FROZEN_V.expand_as(a))
         return a.reshape(b, c, d)
 
-    def run_chunk(norm_action, frames, grab):
-        """Identical to eval_checkpoint.run_chunk, plus frame capture inside the loop."""
+    def run_chunk(norm_action, frames, grab, prev_cmd=None):
+        """Identical to eval_checkpoint.run_chunk, plus frame capture and optional blend.
+
+        Returns the final command issued, so the next chunk can ramp in from it.
+        """
         phys = nrm.denormalize(norm_action.detach().cpu())
         cmd = retarget.apply(mapper.map(phys).to(env.device), phys.to(env.device))
+        if BLEND_STEPS > 0 and prev_cmd is not None:
+            import torch as _t
+            blended = CB.blend_chunk(cmd.cpu().numpy(), prev_cmd, BLEND_STEPS)
+            cmd = _t.as_tensor(blended, dtype=cmd.dtype, device=cmd.device)
         total_r, done, info = 0.0, False, {}
         for t in range(H):
             a = cmd[t].unsqueeze(0)
@@ -217,7 +230,7 @@ try:
                 frames.append(grab())
             if done:
                 break
-        return total_r, done, info
+        return total_r, done, info, cmd[min(t, H - 1)].cpu().numpy().copy()
 
     def grab():
         return sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()[..., :3]
@@ -260,12 +273,13 @@ try:
         frames, per_chunk = [], []
         ret, maxlift, stages = 0.0, 0.0, {}
         deterministic = (MODE == "deterministic")
+        prev_cmd = None
 
         for c in range(EP_CHUNKS):
             img = sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()
             mean = vlm_encode(img)
             a = sample_action(mean, deterministic)
-            r, done, info = run_chunk(a[0], frames, grab)
+            r, done, info, prev_cmd = run_chunk(a[0], frames, grab, prev_cmd)
             ret += r
             for k, v in info.get("stages", {}).items():
                 stages[k] = stages.get(k, False) or v
@@ -340,6 +354,7 @@ try:
             # trainer's episode. Its outcome may legitimately differ; the label written
             # here is always recomputed from THIS rollout's trajectory.
             "stochastic_is_independent_draw": (MODE == "stochastic"),
+            "blend_steps": BLEND_STEPS,
             "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
             "piston_initial_xyz": [round(float(x), 5) for x in bar0],

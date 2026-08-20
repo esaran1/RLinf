@@ -45,7 +45,21 @@ def admit(rows, **meta):
                                           f"(n={len(hs)})"))
         return
     c = M.classify(rows)
-    admitted.append(dict(meta, suite=suite, n=len(rows), **{
+    # Rows written before metrics v1.1 carry no disp_xy_m and no final vertical offset,
+    # so carry/throw fall back to the 3-D norm. Record the fallback count and the honest
+    # interval (see recompute_horizontal.py) rather than presenting a point value that
+    # silently assumes the displacement was horizontal.
+    n_fallback = c.get("disp_3d_fallback_rows", 0)
+    # max(..., 0.0) matters: lift can exceed the 3-D displacement (the piston went up and
+    # came back down), and a negative radicand would otherwise yield a complex number.
+    lo = (sum(1 for r in rows if M.is_carry(r)
+              and max(r["disp_m"] ** 2 - r.get("max_lift_m", 0.0) ** 2, 0.0) ** 0.5
+              >= M.CARRY_MIN_DISPLACEMENT_M) / len(rows)
+          if n_fallback else c["carry_rate"])
+    admitted.append(dict(meta, suite=suite, n=len(rows),
+                         disp_3d_fallback_rows=n_fallback,
+                         carry_rate_horizontal_low=round(lo, 4),
+                         carry_rate_horizontal_high=c["carry_rate"], **{
         k: c[k] for k in ("carry_rate", "throw_rate", "full_success_rate", "grasp_rate",
                           "lift_rate", "reach_rate", "mean_return", "mean_disp_m",
                           "mean_max_lift_m")},
@@ -184,17 +198,21 @@ def main():
 
     # ---- final n=50 table ----
     print("\nFINAL EVALUATION (frozen n=50)")
-    print("%-6s %-4s %8s %-13s %6s %6s %6s %6s %8s  %s" %
+    print("carry is reported as an interval where pre-v1.1 rows lack the geometry to "
+          "separate\nhorizontal from vertical displacement (low = certainly horizontal).")
+    print("%-6s %-4s %8s %-13s %-11s %6s %6s %6s %8s" %
           ("meth", "seed", "steps", "mode", "carry", "throw", "succ", "grasp",
-           "return", "succ CI95"))
+           "return"))
     for a in sorted(admitted, key=lambda a: (a["method"], a["seed"],
                                              a["env_steps"] or 0, a["mode"])):
         if a["suite"] != "n50":
             continue
-        print("%-6s %-4s %8s %-13s %6.2f %6.2f %6.2f %6.2f %8.3f  %s" %
-              (a["method"], a["seed"], a["env_steps"], a["mode"], a["carry_rate"],
+        lo, hi = a["carry_rate_horizontal_low"], a["carry_rate_horizontal_high"]
+        band = f"{lo:.2f}" if abs(lo - hi) < 1e-9 else f"{lo:.2f}-{hi:.2f}"
+        print("%-6s %-4s %8s %-13s %-11s %6.2f %6.2f %6.2f %8.3f" %
+              (a["method"], a["seed"], a["env_steps"], a["mode"], band,
                a["throw_rate"], a["full_success_rate"], a["grasp_rate"],
-               a["mean_return"], a["success_ci95"]))
+               a["mean_return"]))
 
     # ---- the SFT stochastic anomaly ----
     print("\nSTEP-0 SFT POLICY (identical weights, mode is the only difference)")

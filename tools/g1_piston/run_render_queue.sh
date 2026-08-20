@@ -166,6 +166,27 @@ render deterministic_vs_stochastic sac_s2  2 "$S2/sac_ckpt_step690780.pt"  "dete
 # 7. The strongest single carry, rendered at the checkpoint that produced it.
 render rlpd rlpd_s1 1 "$RL/rlpd_ckpt_step415140.pt" "deterministic" "$SHOWCASE"
 
+# 8. DIAGNOSTIC: does mid-chunk frame capture perturb the physics?
+# Rendered RLPD@415140 shows zero lifts where the stored n=50 evaluation recorded five
+# carries, and only the LIFTING conditions disagree. NO_CAPTURE=1 makes the rollout path
+# identical to eval_checkpoint.py, so if lifts reappear, capture is the cause. Run as a
+# normal queue job: a standalone poller starves, because this queue reclaims the GPU
+# within seconds of each job ending.
+NOCAP_OUT="$V/videos/_capture_probe"
+mkdir -p "$NOCAP_OUT"
+if [ ! -f "$NOCAP_OUT/_render_rlpd_nocap_rlpd_ckpt_step415140_deterministic.json" ]; then
+  wait_gpu && {
+    log "RUN   capture probe (NO_CAPTURE=1) on the disputed lifting conditions"
+    OUTDIR="$NOCAP_OUT" CKPT="$RUNS/rlpd/rlpd_ckpt_step415140.pt" \
+    CONDS="3,20,21,31,39,41" MODE=deterministic TAG=rlpd_nocap SEED_LABEL=1 \
+    NO_CAPTURE=1 RESET_SUITE_SEED=20260817 EP_CHUNKS=23 FPS=20 \
+    "$PY" "$T/render_rollouts.py" > "$NOCAP_OUT/nocap.log" 2>&1
+    log "DONE  capture probe (exit $?)"
+  }
+else
+  log "SKIP  capture probe (already complete)"
+fi
+
 log "RENDER_QUEUE_DONE -- verifying"
 "$PY" "$T/verify_rollouts.py" "$V/videos" 2>&1 | tail -60
 rm -f "$S/render_queue.pid"

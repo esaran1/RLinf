@@ -29,6 +29,14 @@ import numpy as np
 OUTDIR = os.environ["OUTDIR"]
 CKPT_PATH = os.environ["CKPT"]
 CONDS = [int(x) for x in os.environ["CONDS"].split(",") if x.strip() != ""]
+#: Draws per condition. A stochastic rollout samples fresh noise, and on this task WHICH
+#: condition succeeds does not replicate across draws while the success RATE does (see
+#: docs/contracts/g1_piston_sft_stochastic_success.json), so repeated draws on one
+#: condition are the only honest way to show the behaviour rather than one lucky sample.
+#: Repeating the condition list is equivalent to an inner loop and needs no restructuring;
+#: filenames are disambiguated by the draw index below.
+REPEATS = int(os.environ.get("REPEATS", "1"))
+CONDS = [c for c in CONDS for _ in range(REPEATS)]
 MODE = os.environ.get("MODE", "deterministic").lower()
 TAG = os.environ.get("TAG", "run")
 SEED_LABEL = os.environ.get("SEED_LABEL", "?")
@@ -277,6 +285,9 @@ try:
                 "hash": cond.hash(), "per_chunk": per_chunk}
 
         name = f"{TAG}_step{res['checkpoint_env_steps']}_cond{cond.index}_{MODE}"
+        if REPEATS > 1:
+            draw = sum(1 for r in res["rollouts"] if r["cond"] == cond.index)
+            name += f"_draw{draw}"
         mp4 = os.path.join(OUTDIR, name + ".mp4")
         try:
             imageio.mimsave(mp4, overlay(frames, meta), fps=FPS,

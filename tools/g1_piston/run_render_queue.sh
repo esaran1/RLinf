@@ -26,22 +26,23 @@ log(){ echo "[$(date +%H:%M:%S)] $*"; }
 
 # A job is complete when its status file says OK and each condition has both artifacts.
 is_complete(){
-  local outdir="$1" tag="$2" mode="$3" conds="$4"
-  "$PY" - "$outdir" "$tag" "$mode" "$conds" <<'PYEOF' >/dev/null 2>&1
+  local outdir="$1" tag="$2" mode="$3" conds="$4" repeats="${5:-1}"
+  "$PY" - "$outdir" "$tag" "$mode" "$conds" "$repeats" <<'PYEOF' >/dev/null 2>&1
 import json,os,sys,glob
 outdir,tag,mode,conds=sys.argv[1:5]
+repeats=int(sys.argv[5]) if len(sys.argv)>5 else 1
 st=os.path.join(outdir,f"_render_{tag}_{mode}.json")
 if not os.path.exists(st): sys.exit(1)
 d=json.load(open(st))
 if d.get("_status")!="OK": sys.exit(1)
 want={int(c) for c in conds.split(",") if c.strip()}
-got=set()
+got={}
 for r in d.get("rollouts",[]):
     v=r.get("video","")
     j=v[:-4]+".json"
     if os.path.exists(v) and os.path.exists(j) and os.path.getsize(v)>10000:
-        got.add(int(r["cond"]))
-sys.exit(0 if want<=got else 1)
+        got[int(r["cond"])]=got.get(int(r["cond"]),0)+1
+sys.exit(0 if all(got.get(c,0)>=repeats for c in want) else 1)
 PYEOF
 }
 
@@ -58,13 +59,16 @@ wait_gpu(){
   return 1
 }
 
-# render <subdir> <tag> <seed> <ckpt> <mode> <conds>
+# render <subdir> <tag> <seed> <ckpt> <mode> <conds> [repeats]
+# `repeats` renders N independent draws per condition -- only meaningful for stochastic
+# mode, where a single draw proves nothing about a rate.
 render(){
   local sub="$1" tag="$2" seed="$3" ckpt="$4" mode="$5" conds="$6"
+  local repeats="${7:-1}"
   local outdir="$V/videos/$sub"
   mkdir -p "$outdir"
 
-  if is_complete "$outdir" "$tag" "$mode" "$conds"; then
+  if is_complete "$outdir" "$tag" "$mode" "$conds" "$repeats"; then
     log "SKIP  $tag/$mode conds=$conds (already complete)"; return 0
   fi
   if [ "$ckpt" != "sft" ] && [ ! -f "$ckpt" ]; then
@@ -74,12 +78,12 @@ render(){
   wait_gpu || return 0
   log "RUN   $tag/$mode conds=$conds -> $sub"
   OUTDIR="$outdir" CKPT="$ckpt" CONDS="$conds" MODE="$mode" \
-  TAG="$tag" SEED_LABEL="$seed" FPS=20 \
+  TAG="$tag" SEED_LABEL="$seed" FPS=20 REPEATS="$repeats" \
   RESET_SUITE_SEED=20260817 EP_CHUNKS=23 \
   "$PY" "$T/render_rollouts.py" > "$outdir/${tag}_${mode}.log" 2>&1
   local rc=$?
 
-  if is_complete "$outdir" "$tag" "$mode" "$conds"; then
+  if is_complete "$outdir" "$tag" "$mode" "$conds" "$repeats"; then
     log "DONE  $tag/$mode"
   else
     log "FAIL  $tag/$mode (exit $rc) -- continuing"
@@ -111,14 +115,21 @@ render sft  sft  0 sft "deterministic" "$DISAGREE,$CONTEXT"
 # SAME conditions so the difference is attributable to sampling alone.
 #
 # IMPORTANT: a stochastic render is an INDEPENDENT DRAW, not a replay -- the trainer's
-# RNG had advanced through a deterministic sweep before its stochastic pass. So this
-# does not attempt to reproduce those four specific episodes. It re-samples the whole
-# first 25 conditions, which makes the stochastic success RATE measurable on the frozen
-# suite and directly comparable to the trainer's 4/25. Individual conditions may differ;
-# a rate that lands near 0.16 corroborates the finding, one near 0.00 refutes it.
-SFT_STOCH_SET="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24"
-render sft sft 0 sft "stochastic"    "$SFT_STOCH_SET"
-render sft sft 0 sft "deterministic" "11,14,16,18,5,20,24"
+# RNG had advanced through a deterministic sweep before its stochastic pass.
+#
+# Two independent stochastic sweeps of the (essentially) SFT policy succeeded on
+# DISJOINT condition sets -- step 0 on {11,14,16,18}, step 1380 on {5,9,20} -- with no
+# overlap, while the RATE held (0.16 then 0.12). Success is therefore driven by the
+# sampled noise, not by the initial condition, so rendering {11,14,16,18} once would
+# most likely show four failures and prove nothing.
+#
+# Instead: 8 independent draws on each of 4 conditions drawn from BOTH observed success
+# sets. Across 32 stochastic rollouts a rate near 0.12-0.16 should yield ~4-5 successes.
+# The matched deterministic renders of the same conditions are the control -- identical
+# weights, identical resets, sampling the only difference.
+SFT_STOCH_CONDS="11,16,5,20"
+render sft sft 0 sft "stochastic"    "$SFT_STOCH_CONDS" 8
+render sft sft 0 sft "deterministic" "$SFT_STOCH_CONDS,14,18,9"
 
 # 2. Matched pair at the ~414k budget, identical conditions.
 render matched rlpd_s1 1 "$RL/rlpd_ckpt_step415140.pt"  "deterministic" "$DISAGREE,$CONTEXT"

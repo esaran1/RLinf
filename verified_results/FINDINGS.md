@@ -13,42 +13,47 @@ induce transport. The transport measurement itself is too noisy to compare algor
 
 | claim | status | evidence |
 |---|---|---|
-| RL raises grasp from 0.02 to ~1.00 | **SUPPORTED** | spread 0.000, Jaccard 1.0 across 7 identical runs |
+| RL raises grasp from 0.02 to ~1.00 | **SUPPORTED** | 199/200 attempts, spread 0.040, Jaccard 0.99 across 8 runs |
 | No RL checkpoint ever completes the task | **SUPPORTED** | full success 0.00 in every run of every arm |
 | The untrained SFT policy solves it stochastically | **SUPPORTED** | 0.16 success, replicated by an independent render (0.16), verified on video |
 | SAC beats RLPD, or the reverse | **NOT SUPPORTED** | noise range [0.00, 0.36] contains the algorithmic range [0.12, 0.36] |
-| Any per-condition lift or carry claim | **NOT SUPPORTED** | carry Jaccard 0.062 across identical runs |
+| Any per-condition lift or carry claim | **NOT SUPPORTED** | carry Jaccard 0.066 across identical runs |
 | Chunk-boundary jitter limits carry | **NOT SUPPORTED** | Δcarry −0.04, inside noise |
 
 ---
 
 ## 1. Post-grasp outcomes are not reproducible
 
-Seven identical-protocol deterministic evaluations of **one** checkpoint
+Eight identical-protocol deterministic evaluations of **one** checkpoint
 (`rlpd_ckpt_step415140`) on the **same** frozen 25 conditions:
 
 ```
-carry    0.12 0.20 0.00 0.36 0.20 0.20 0.12    mean 0.171  stdev 0.110  spread 0.360
-lift     0.20 0.32 0.24 0.48 0.24 0.40 0.20
-grasp    1.00 1.00 1.00 1.00 1.00 1.00 1.00    spread 0.000
-success  0.00 0.00 0.00 0.00 0.00 0.00 0.00
+carry    0.12 0.20 0.00 0.36 0.20 0.20 0.12 0.36   mean 0.195  stdev 0.122  spread 0.360
+lift     0.20 0.32 0.24 0.48 0.24 0.40 0.20 0.56   mean 0.330  stdev 0.136  spread 0.360
+grasp    1.00 1.00 1.00 1.00 1.00 1.00 1.00 0.96   mean 0.995  stdev 0.014  spread 0.040
+success  0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00
 ```
 
-The dissociation is the result. In the *same* runs, grasp is perfectly reproducible
-condition-for-condition (Jaccard **1.0**) while carry is essentially uncorrelated
-(Jaccard **0.062**). The instrument is sound; post-grasp outcomes carry almost no per-run
-signal.
+The dissociation is the result. In the *same* runs, grasp is highly reproducible
+condition-for-condition (**199/200** attempts, Jaccard **0.99**) while carry is
+essentially uncorrelated (Jaccard **0.066**) — roughly 9× the stability in spread and 15×
+in per-condition agreement. The instrument is sound; post-grasp outcomes carry almost no
+per-run signal.
+
+The single grasp failure, in run 8, was a condition the policy failed even to **reach**
+(return −0.65) — a whole-rollout deviation, not a marginal grasp that slipped.
 
 The run-to-run carry spread (0.360) **exceeds the Wilson95 width a single run reports**
 (0.282), so a single evaluation is provably over-confident, not merely suspected of it.
-The spread converged and held across four further runs: 0.08 → 0.20 → 0.36 → 0.36 →
-0.36 → 0.36.
+The spread converged and held: 0.08 → 0.20 → 0.36 → 0.36 → 0.36 → 0.36 → 0.36. At
+eight runs the **lift** spread also crosses its interval (0.360 vs 0.344); only grasp
+remains inside.
 
 **Why this sinks the comparison.** The study's arms were each evaluated once:
 
 ```
 across algorithms and seeds:  SAC s1 0.36 | SAC s2 0.16 | RLPD 0.12   range [0.12, 0.36]
-one unchanged checkpoint:     0.12 0.20 0.00 0.36 0.20 0.20 0.12      range [0.00, 0.36]
+one unchanged checkpoint:     0.12 0.20 0.00 0.36 0.20 0.20 0.12 0.36 range [0.00, 0.36]
 ```
 
 Run 4 of the *RLPD* checkpoint produced carry 0.36 — the exact value that made SAC seed 1

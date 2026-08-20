@@ -1,6 +1,6 @@
 {
   "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
-  "n_runs": 7,
+  "n_runs": 8,
   "n_conditions": 25,
   "rates": {
     "grasp_rate": [
@@ -10,7 +10,8 @@
       1.0,
       1.0,
       1.0,
-      1.0
+      1.0,
+      0.96
     ],
     "lift_rate": [
       0.2,
@@ -19,7 +20,8 @@
       0.48,
       0.24,
       0.4,
-      0.2
+      0.2,
+      0.56
     ],
     "carry_rate": [
       0.12,
@@ -28,7 +30,8 @@
       0.36,
       0.2,
       0.2,
-      0.12
+      0.12,
+      0.36
     ],
     "throw_rate": [
       0.08,
@@ -37,9 +40,11 @@
       0.12,
       0.04,
       0.2,
-      0.08
+      0.08,
+      0.2
     ],
     "full_success_rate": [
+      0.0,
       0.0,
       0.0,
       0.0,
@@ -55,30 +60,31 @@
       5.3822,
       3.6178,
       5.0673,
-      3.2092
+      3.2092,
+      6.0673
     ]
   },
   "spread": {
-    "grasp_rate": 0.0,
-    "lift_rate": 0.28,
+    "grasp_rate": 0.04,
+    "lift_rate": 0.36,
     "carry_rate": 0.36,
     "throw_rate": 0.2,
     "full_success_rate": 0.0,
-    "mean_return": 2.173
+    "mean_return": 2.8581
   },
   "mean": {
-    "grasp_rate": 1.0,
-    "lift_rate": 0.2971,
-    "carry_rate": 0.1714,
-    "throw_rate": 0.1257,
+    "grasp_rate": 0.995,
+    "lift_rate": 0.33,
+    "carry_rate": 0.195,
+    "throw_rate": 0.135,
     "full_success_rate": 0.0,
-    "mean_return": 4.0917
+    "mean_return": 4.3387
   },
   "per_condition_jaccard": {
-    "grasp": 1.0,
-    "lift": 0.155,
+    "grasp": 0.99,
+    "lift": 0.177,
     "success": null,
-    "carry": 0.062
+    "carry": 0.066
   },
   "runs": [
     "n50 eval (first 25)",
@@ -87,6 +93,7 @@
     "rep2_n25",
     "rep3_n25",
     "rep4_n25",
-    "rep5_n25"
+    "rep5_n25",
+    "rep6_n25"
   ]
 }

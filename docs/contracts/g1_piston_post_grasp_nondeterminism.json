@@ -112,7 +112,7 @@
     },
     "noise_spread_from_one_unchanged_checkpoint": 0.2,
     "reading": "The spread across ALGORITHMS AND SEEDS (0.24) is barely larger than the spread produced by re-running ONE checkpoint (0.20). Every arm in the study was evaluated exactly once, so the reported carry differences are not distinguishable from evaluation noise.",
-    "what_survives": "Grasp emergence: 0.02 at SFT to ~1.00 after RL, with grasp_rate perfectly reproducible (spread 0.000, Jaccard 1.0) across every repeat. That claim is solid.",
+    "what_survives": "Grasp emergence: 0.02 at SFT to ~1.00 after RL, with grasp highly reproducible across eight runs (199/200 attempts, spread 0.040). Not perfectly reproducible -- one run missed one condition entirely, including its reach -- but roughly an order of magnitude more stable than carry.",
     "what_does_not": "Any carry-level ordering between SAC and RLPD, any per-condition claim, and any 'best checkpoint' selected on carry.",
     "four_run_update": "With four runs the noise range contains the entire algorithmic range. No carry-based comparison in this study is supportable, including the SAC s1 @414k carry 0.36 that anchored the early narrative."
   },
@@ -162,8 +162,8 @@
       "If a carry comparison is still wanted, budget repeats per arm rather than more conditions, and fix the reward exploit first -- 5 of 5 runs show throws, and one run was ALL throws."
     ]
   },
-  "FINAL_seven_run_result": {
-    "protocol": "rlpd_ckpt_step415140, frozen 25-condition prefix, deterministic, BLEND_STEPS=0, seven independent processes",
+  "FINAL_eight_run_result": {
+    "protocol": "rlpd_ckpt_step415140, frozen 25-condition prefix, deterministic, BLEND_STEPS=0, eight independent processes",
     "carry_rate": [
       0.12,
       0.2,
@@ -171,7 +171,8 @@
       0.36,
       0.2,
       0.2,
-      0.12
+      0.12,
+      0.36
     ],
     "lift_rate": [
       0.2,
@@ -180,7 +181,8 @@
       0.48,
       0.24,
       0.4,
-      0.2
+      0.2,
+      0.56
     ],
     "grasp_rate": [
       1.0,
@@ -189,9 +191,11 @@
       1.0,
       1.0,
       1.0,
-      1.0
+      1.0,
+      0.96
     ],
     "full_success_rate": [
+      0.0,
       0.0,
       0.0,
       0.0,
@@ -201,25 +205,26 @@
       0.0
     ],
     "carry": {
-      "mean": 0.171,
-      "stdev": 0.11,
-      "spread": 0.36,
-      "ci95_with_7_repeats": [
-        0.09,
-        0.253
-      ]
+      "mean": 0.195,
+      "stdev": 0.122,
+      "spread": 0.36
     },
-    "convergence": "spread 0.08 (2 runs) -> 0.20 (3) -> 0.36 (4,5,6,7). Stable across four consecutive additions.",
+    "grasp": {
+      "mean": 0.995,
+      "stdev": 0.014,
+      "spread": 0.04,
+      "raw": "199/200 attempts succeeded"
+    },
     "per_condition_jaccard": {
-      "grasp": 1.0,
-      "lift": 0.155,
-      "carry": 0.062
+      "grasp": 0.99,
+      "lift": 0.177,
+      "carry": 0.066
     },
-    "power_table": {
-      "0.10": "~5 repeats per arm",
-      "0.05": "~19 repeats per arm",
-      "0.02": "~117 repeats per arm"
+    "correction_at_run_8": {
+      "what": "Grasp was reported as PERFECTLY reproducible (spread 0.000, Jaccard 1.0) through seven runs. The eighth run broke that: grasp 0.96.",
+      "the_single_failure": "condition 19, where the policy failed even to REACH (reach=False, return -0.65) -- a whole-rollout deviation, not a marginal grasp that slipped.",
+      "corrected_claim": "Grasp is HIGHLY reproducible (199/200 attempts, spread 0.040, Jaccard 0.99), not perfectly. The dissociation against carry (spread 0.360, Jaccard 0.066) is unchanged and remains the result: grasp is roughly 9x more stable in spread and 15x in per-condition agreement."
     },
-    "the_dissociation": "In the SAME seven runs: grasp is spread 0.000 and Jaccard 1.0 while carry is spread 0.360 and Jaccard 0.062. The instrument is sound; post-grasp outcomes carry almost no per-run signal."
+    "lift_also_crossed": "At eight runs the LIFT spread (0.360) also exceeds the Wilson95 width a single run reports (0.344), joining carry. Only grasp remains inside its interval."
   }
 }

@@ -36,6 +36,8 @@ CONDS = [int(x) for x in os.environ["CONDS"].split(",") if x.strip() != ""]
 #: Repeating the condition list is equivalent to an inner loop and needs no restructuring;
 #: filenames are disambiguated by the draw index below.
 REPEATS = int(os.environ.get("REPEATS", "1"))
+#: Disable frame capture, for isolating its effect on contact physics.
+NO_CAPTURE = os.environ.get("NO_CAPTURE", "0") == "1"
 CONDS = [c for c in CONDS for _ in range(REPEATS)]
 MODE = os.environ.get("MODE", "deterministic").lower()
 TAG = os.environ.get("TAG", "run")
@@ -199,7 +201,13 @@ try:
             total_r += r
             # Capture every other control step: 50 Hz control -> ~25 fps of real motion,
             # no interpolation and no synthetic frames.
-            if t % 2 == 0:
+            #
+            # NO_CAPTURE=1 disables this entirely, making the rollout byte-identical to
+            # eval_checkpoint.run_chunk. Reading front_camera.data.output can drive a
+            # sensor/render update mid-chunk, and on a contact-rich task that is a
+            # candidate cause of divergence from the stored evaluation. The flag exists
+            # to TEST that, by isolating capture as the only difference.
+            if t % 2 == 0 and not NO_CAPTURE:
                 frames.append(grab())
             if done:
                 break

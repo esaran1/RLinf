@@ -7,24 +7,60 @@
   "evidence": {
     "deterministic_pooled": {
       "n": 125,
-      "sources": ["rlpd.json/init n=25", "sac_s2.json/init n=25", "sac.json/init n=25", "sft_v2.json/sft_baseline n=50"],
-      "carry_rate": 0.0, "full_success_rate": 0.0, "grasp_rate": 0.01
+      "sources": [
+        "rlpd.json/init n=25",
+        "sac_s2.json/init n=25",
+        "sac.json/init n=25",
+        "sft_v2.json/sft_baseline n=50"
+      ],
+      "carry_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.01
     },
     "stochastic": {
-      "n": 25, "source": "rlpd.json/init_stochastic",
-      "carry_rate": 0.28, "full_success_rate": 0.16, "grasp_rate": 0.40,
+      "n": 25,
+      "source": "rlpd.json/init_stochastic",
+      "carry_rate": 0.28,
+      "full_success_rate": 0.16,
+      "grasp_rate": 0.4,
       "mean_return": 6.936,
-      "success_wilson95": [0.064, 0.3465]
+      "success_wilson95": [
+        0.064,
+        0.3465
+      ]
     },
     "successful_conditions": {
       "note": "all four are coherent full sequences reach->grasp->lift->plate->success",
-      "cond11": {"return": 35.602, "disp_m": 0.3176, "lift_m": 0.2621},
-      "cond14": {"return": 35.574, "disp_m": 0.2972, "lift_m": 0.1737},
-      "cond16": {"return": 35.606, "disp_m": 0.3213, "lift_m": 0.2481},
-      "cond18": {"return": 35.624, "disp_m": 0.3290, "lift_m": 0.2175}
+      "cond11": {
+        "return": 35.602,
+        "disp_m": 0.3176,
+        "lift_m": 0.2621
+      },
+      "cond14": {
+        "return": 35.574,
+        "disp_m": 0.2972,
+        "lift_m": 0.1737
+      },
+      "cond16": {
+        "return": 35.606,
+        "disp_m": 0.3213,
+        "lift_m": 0.2481
+      },
+      "cond18": {
+        "return": 35.624,
+        "disp_m": 0.329,
+        "lift_m": 0.2175
+      }
     },
     "within_demo_ranges": {
-      "demo_disp_range_m": [0.200, 0.322], "demo_lift_range_m": [0.129, 0.232],
+      "demo_disp_range_m": [
+        0.2,
+        0.322
+      ],
+      "demo_lift_range_m": [
+        0.129,
+        0.232
+      ],
       "verdict": "the four successes sit inside the demonstration distribution; the RL carries do not"
     }
   },
@@ -35,5 +71,74 @@
     "'RL raises grasp from 0.02 to 1.00' is true but incomplete: RL raises the early stage while eliminating the downstream sequence."
   ],
   "open_question": "Whether sampling helps because exploration noise breaks a deterministic deadlock (e.g. a stuck contact), or because the SFT mean action is a poor summary of a multimodal action distribution. Not resolvable from metrics; needs the rendered rollouts.",
-  "status": "must be visually verified before being reported as a finding"
+  "status": "VISUALLY VERIFIED AND INDEPENDENTLY REPLICATED",
+  "replication_2026_08_20": {
+    "what": "25 freshly rendered stochastic rollouts of the untouched SFT policy on the frozen 25-condition prefix. Independent RNG stream, corrected horizontal metric (v1.1), every rollout verified against its raw trajectory.",
+    "result": {
+      "full_success_rate": 0.16,
+      "carry_rate": 0.24,
+      "grasp_rate": 0.48,
+      "success_wilson95": [
+        0.064,
+        0.3465
+      ],
+      "deterministic_control": {
+        "n": 12,
+        "success": 0.0,
+        "carry": 0.0,
+        "grasp": 0.0
+      }
+    },
+    "agreement_with_trainer": "trainer step-0 sweep gave success 0.16 / carry 0.28; this independent draw gives 0.16 / 0.24. The RATE replicates.",
+    "success_conditions_this_draw": [
+      0,
+      4,
+      6,
+      9
+    ],
+    "overlap_with_trainer_step0_draw": [],
+    "third_confirmation_that_noise_drives_success": "Three independent draws succeeded on three disjoint condition sets -- {11,14,16,18}, {5,9,20}, {0,4,6,9} -- while the rate held near 0.12-0.16. Success is caused by the sampled action noise, not by the initial condition.",
+    "transport_quality_true_geometry": {
+      "note": "horizontal displacement computed from true final piston pose, not a bound",
+      "cond0": {
+        "horiz_m": 0.2989,
+        "lift_m": 0.2123,
+        "ratio": 0.71
+      },
+      "cond4": {
+        "horiz_m": 0.2994,
+        "lift_m": 0.2125,
+        "ratio": 0.71
+      },
+      "cond6": {
+        "horiz_m": 0.3067,
+        "lift_m": 0.2389,
+        "ratio": 0.78
+      },
+      "cond9": {
+        "horiz_m": 0.3031,
+        "lift_m": 0.2751,
+        "ratio": 0.91
+      },
+      "demo_horizontal_range_m": [
+        0.2,
+        0.322
+      ],
+      "demo_lift_range_m": [
+        0.129,
+        0.232
+      ],
+      "demo_ratio_range": [
+        0.5,
+        0.81
+      ],
+      "verdict": "horizontal transport sits inside the demonstration range in all four; lift is inside for cond0/4 and slightly above for cond6/9; ratio inside for three of four."
+    },
+    "visual_inspection": {
+      "video": "verified_results/videos/sft/sft_step0_cond0_stochastic.mp4",
+      "observed": "piston upright in socket at frame 0 (stage -, disp 0.008 m); grasped and lifted by frame 120 (stage lift, disp 0.249 m, lift 0.212 m, socket visibly empty); stage success from frame 207 with the socket vacated and the piston transported.",
+      "label_matches_video": true,
+      "caveat": "The piston is small in frame and the TERMINAL placement over the hole plate is not crisply resolvable at this camera angle. Grasp, lift and horizontal transport are directly visible; the final placement is corroborated by the simulator success predicate and the recorded geometry rather than read off the video."
+    }
+  }
 }

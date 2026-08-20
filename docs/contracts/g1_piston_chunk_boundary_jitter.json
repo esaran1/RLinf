@@ -1,0 +1,48 @@
+{
+  "id": "g1_piston_chunk_boundary_jitter",
+  "recorded": "2026-08-20",
+  "severity": "AFFECTS EVERY ROLLOUT IN THE STUDY -- control defect, not a rendering artifact",
+  "reported_by": "user, from visual inspection of the rendered videos ('the hands are so jittery')",
+  "claim": "The commanded joint trajectory contains a step discontinuity at every 30-step action-chunk boundary. The hand joints snap by up to 1.0 rad in a single 50 Hz control step, 23 times per episode.",
+  "measurement": {
+    "probe": "one full rollout of rlpd_ckpt_step415140.pt on frozen eval condition 21, logging every 50 Hz command and the measured joint positions",
+    "n_control_steps": 690,
+    "chunk_length": 30,
+    "cmd_step_delta_intra_chunk_mean_rad": 0.00542,
+    "cmd_step_delta_at_chunk_boundary_mean_rad": 0.11610,
+    "boundary_to_intra_ratio": 21.4,
+    "cmd_step_delta_boundary_max_rad": 1.00002,
+    "worst_joints": {
+      "note": "identical values in pairs -- the Inspire retargeter drives two actuated joints from one commanded finger DOF",
+      "47_and_37": {"boundary": 0.5605, "intra": 0.0227, "ratio": 24.6},
+      "34_and_44": {"boundary": 0.5180, "intra": 0.0220, "ratio": 23.6},
+      "35_and_45": {"boundary": 0.4398, "intra": 0.0183, "ratio": 24.1},
+      "26": {"boundary": 0.4532, "intra": 0.0222, "ratio": 20.4}
+    },
+    "example_trace_joint47_rad": {
+      "boundary_step_30": [0.404, 0.401, 0.389, 1.292, 1.304, 1.319],
+      "boundary_step_60": [0.910, 0.896, 0.885, 1.371, 1.089, 0.971],
+      "reading": "0.389 -> 1.292 in ONE control step: a 0.9 rad (52 deg) finger snap"
+    },
+    "tracking": {
+      "mean_abs_command_minus_measured_rad": 0.0812,
+      "at_boundary_steps_rad": 0.1770,
+      "measured_joint_step_boundary_over_intra": 0.3,
+      "reading": "the physical joints do NOT follow the command spike -- the PD controller saturates and lags, so the arm is chasing a target it cannot track. Command tracking error TRIPLES at boundaries."
+    }
+  },
+  "root_cause": "The controller is open-loop within a chunk: the VLA predicts 30 actions from one observation, all 30 execute, then a fresh observation produces a new 30-step chunk. Nothing constrains the new chunk's first action to be continuous with the last action of the previous chunk, so the command teleports. This is inherent to the chunked action interface, not to SAC or RLPD.",
+  "affects": "Every rollout in the study -- SFT, SAC and RLPD alike -- because all share the same execution path (train_sac.py, eval_checkpoint.py and render_rollouts.py all run the identical run_chunk).",
+  "implications": [
+    "The videos accurately depict what the controller commands; the jitter is real robot behaviour, not a rendering artifact.",
+    "A 0.9 rad finger snap during contact is a plausible contributor to the grasp instability seen throughout: the piston is released or knocked at chunk boundaries.",
+    "It is also a candidate explanation for the render/stored divergence, since contact outcomes near a discontinuity are highly sensitive to timing.",
+    "Any real-robot deployment of this policy would be unsafe at these command rates."
+  ],
+  "not_yet_established": [
+    "Whether the SFT policy shows the same magnitude (probe run only on RLPD@415140 so far).",
+    "Whether smoothing the boundary improves carry/success, or merely looks better.",
+    "Whether the demonstrations themselves contain such discontinuities at chunk boundaries."
+  ],
+  "fix_must_not": "change the trained policy, the reward, the frozen metrics or the evaluation suite. Any smoothing is an EXECUTION-layer change and must be evaluated as a separate, clearly labelled arm rather than retrofitted onto existing numbers."
+}

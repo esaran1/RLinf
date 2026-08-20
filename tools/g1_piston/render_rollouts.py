@@ -267,6 +267,12 @@ try:
                 "chunk": c, "cum_return": round(float(ret), 3),
                 "piston_xyz": [round(float(x), 5) for x in bar],
                 "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
+                # Carry/throw test HORIZONTAL transport; disp_m is a 3-D
+                # norm and a vertical fling could clear the threshold on
+                # height alone. Record XY explicitly.
+                "disp_xy_m": round(float(
+                    np.linalg.norm((bar - bar0)[:2])), 4),
+                "final_dz_m": round(float(bar[2] - bar0[2]), 4),
                 "max_lift_m": round(maxlift, 4), "stage": stage,
                 "stages": {k: bool(v) for k, v in stages.items()},
             })
@@ -277,6 +283,12 @@ try:
         row = {"condition": cond.index, "hash": cond.hash(),
                "return": round(float(ret), 3),
                "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
+               # Carry/throw test HORIZONTAL transport; disp_m is a 3-D
+               # norm and a vertical fling could clear the threshold on
+               # height alone. Record XY explicitly.
+               "disp_xy_m": round(float(
+                   np.linalg.norm((bar - bar0)[:2])), 4),
+               "final_dz_m": round(float(bar[2] - bar0[2]), 4),
                "max_lift_m": round(maxlift, 4),
                "stages": {k: bool(v) for k, v in stages.items()}}
 

@@ -347,6 +347,12 @@ try:
             "condition": cond.index, "hash": cond.hash(),
             "return": round(float(ret), 3),
             "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
+            # Carry/throw test HORIZONTAL transport; disp_m is a 3-D
+            # norm and a vertical fling could clear the threshold on
+            # height alone. Record XY explicitly.
+            "disp_xy_m": round(float(
+                np.linalg.norm((bar - bar0)[:2])), 4),
+            "final_dz_m": round(float(bar[2] - bar0[2]), 4),
             "max_lift_m": round(maxlift, 4),
             "stages": {k: bool(v) for k, v in stages.items()},
         }, frames
@@ -637,6 +643,12 @@ try:
             "condition_hash": train_cond.hash(), "env_steps": env_steps,
             "return": round(float(ep_ret), 3),
             "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
+            # Carry/throw test HORIZONTAL transport; disp_m is a 3-D
+            # norm and a vertical fling could clear the threshold on
+            # height alone. Record XY explicitly.
+            "disp_xy_m": round(float(
+                np.linalg.norm((bar - bar0)[:2])), 4),
+            "final_dz_m": round(float(bar[2] - bar0[2]), 4),
             "max_lift_m": round(maxlift, 4),
             "stages": {k: bool(v) for k, v in ep_stages.items()},
         })

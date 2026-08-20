@@ -42,8 +42,61 @@ def _row(lift, disp, success=False, ret=0.0, maxlift=0.0):
 
 
 def test_threshold_is_frozen():
+    """The threshold never moves. The version moved once, for a bugfix, not a retune."""
     assert CARRY_MIN_DISPLACEMENT_M == 0.05
-    assert METRICS_VERSION == "v1-frozen-2026-08-17"
+    assert METRICS_VERSION == "v1.1-frozen-2026-08-17-horizontal-fix"
+
+
+def test_carry_uses_horizontal_not_three_dimensional_displacement():
+    """The bug this fixes: a purely vertical fling scored as a carry.
+
+    ``disp_m`` was recorded as a 3-D norm, so height alone could clear the horizontal
+    threshold -- the exploit counted as its own opposite.
+    """
+    from rlinf.envs.isaaclab.tasks.g1_piston_metrics import horizontal_disp_m
+
+    # 0.30 m straight up, no horizontal travel whatsoever.
+    fling = {"return": 6.0, "disp_m": 0.30, "disp_xy_m": 0.0, "max_lift_m": 0.30,
+             "stages": {"reach": True, "grasp": True, "lift": True,
+                        "plate": False, "success": False}}
+    assert horizontal_disp_m(fling) == 0.0
+    assert is_throw(fling), "a vertical fling must be a throw, never a carry"
+    assert not is_carry(fling)
+
+    # Same 3-D magnitude, but genuinely horizontal.
+    slide = dict(fling, disp_xy_m=0.30, max_lift_m=0.06)
+    assert is_carry(slide)
+    assert not is_throw(slide)
+
+
+def test_horizontal_disp_is_recovered_from_piston_geometry():
+    """Rows predating disp_xy_m are corrected from the recorded poses."""
+    from rlinf.envs.isaaclab.tasks.g1_piston_metrics import (
+        disp_is_3d_fallback,
+        horizontal_disp_m,
+    )
+
+    row = {"disp_m": 0.5, "max_lift_m": 0.4,
+           "piston_initial_xyz": [0.0, 0.0, 0.9],
+           "piston_final_xyz": [0.03, 0.04, 1.3],   # 0.05 horizontal, 0.40 vertical
+           "stages": {"lift": True}}
+    assert horizontal_disp_m(row) == pytest.approx(0.05, abs=1e-9)
+    assert not disp_is_3d_fallback(row)
+    # Exactly at the threshold, so it remains a carry.
+    assert is_carry(row)
+
+    # A row with neither xy nor geometry falls back to the 3-D value and says so.
+    bare = {"disp_m": 0.5, "max_lift_m": 0.4, "stages": {"lift": True}}
+    assert horizontal_disp_m(bare) == 0.5
+    assert disp_is_3d_fallback(bare)
+
+
+def test_a_non_lifting_episode_is_neither_carry_nor_throw():
+    """Both labels are defined only among lifting episodes."""
+    row = {"disp_m": 0.9, "disp_xy_m": 0.9, "max_lift_m": 0.0,
+           "stages": {"reach": True, "grasp": True, "lift": False}}
+    assert not is_carry(row)
+    assert not is_throw(row)
 
 
 def test_threshold_is_permissive_against_every_demonstration():

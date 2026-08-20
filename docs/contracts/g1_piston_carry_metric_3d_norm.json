@@ -1,7 +1,7 @@
 {
   "id": "g1_piston_carry_metric_3d_norm",
   "recorded": "2026-08-19",
-  "severity": "metric-definition-weakness",
+  "severity": "implementation-bug-FIXED",
   "metrics_version": "v1-frozen-2026-08-17",
   "claim": "The frozen carry test uses a 3-D displacement norm, so a predominantly VERTICAL move can be labelled a carry -- the very throw exploit the metric exists to catch.",
   "detail": {
@@ -14,16 +14,87 @@
     "run": "RLPD s1 @415140, n=50 deterministic, the only checkpoint with any carries",
     "carries": 6,
     "worst_case_horizontal_bound": {
-      "cond3":  {"disp3d": 0.0855, "max_lift": 0.0595, "horiz_lower_bound": 0.0614, "carry_survives": true},
-      "cond20": {"disp3d": 0.0558, "max_lift": 0.0533, "horiz_lower_bound": 0.0165, "carry_survives": false},
-      "cond21": {"disp3d": 0.1812, "max_lift": 0.0565, "horiz_lower_bound": 0.1722, "carry_survives": true},
-      "cond31": {"disp3d": 0.0941, "max_lift": 0.0860, "horiz_lower_bound": 0.0382, "carry_survives": false},
-      "cond39": {"disp3d": 0.1489, "max_lift": 0.0658, "horiz_lower_bound": 0.1336, "carry_survives": true},
-      "cond41": {"disp3d": 0.1473, "max_lift": 0.0253, "horiz_lower_bound": 0.1451, "carry_survives": true}
+      "cond3": {
+        "disp3d": 0.0855,
+        "max_lift": 0.0595,
+        "horiz_lower_bound": 0.0614,
+        "carry_survives": true
+      },
+      "cond20": {
+        "disp3d": 0.0558,
+        "max_lift": 0.0533,
+        "horiz_lower_bound": 0.0165,
+        "carry_survives": false
+      },
+      "cond21": {
+        "disp3d": 0.1812,
+        "max_lift": 0.0565,
+        "horiz_lower_bound": 0.1722,
+        "carry_survives": true
+      },
+      "cond31": {
+        "disp3d": 0.0941,
+        "max_lift": 0.086,
+        "horiz_lower_bound": 0.0382,
+        "carry_survives": false
+      },
+      "cond39": {
+        "disp3d": 0.1489,
+        "max_lift": 0.0658,
+        "horiz_lower_bound": 0.1336,
+        "carry_survives": true
+      },
+      "cond41": {
+        "disp3d": 0.1473,
+        "max_lift": 0.0253,
+        "horiz_lower_bound": 0.1451,
+        "carry_survives": true
+      }
     },
     "bound_caveat": "max_lift_m is a RUNNING MAX, not the final height, so these horizontal figures are lower bounds. The rendered rollouts record true per-chunk xyz and resolve it exactly."
   },
   "consequence": "Up to 2 of RLPD's 6 carries at 415140 may be predominantly vertical. Under a horizontal-only reading RLPD's carry rate at that checkpoint falls from 0.12 to as low as 0.08.",
   "action_taken": "verify_rollouts.py now recomputes horizontal displacement from the true final pose and flags any rollout whose carry label depends on the vertical component. The frozen metric is NOT overridden and no result is relabelled; the disagreement is reported.",
-  "deferred": "Any change to the carry definition is a metric change and must wait until the 3-seed comparison is complete, per the standing freeze."
+  "deferred": "Any change to the carry definition is a metric change and must wait until the 3-seed comparison is complete, per the standing freeze.",
+  "resolution": {
+    "date": "2026-08-19",
+    "verdict": "Confirmed an IMPLEMENTATION BUG, not a definitional choice. The frozen module said 'horizontal' in five places -- module docstring, the carry_rate role, the threshold comment, and both function docstrings -- and the demonstration reference range (0.200-0.322 m) is a horizontal range. The producers contradicted the frozen spec by writing disp_m as a 3-D norm.",
+    "fix": "metrics v1.1-frozen-2026-08-17-horizontal-fix. is_carry/is_throw now apply the threshold to horizontal displacement via horizontal_disp_m(). CARRY_MIN_DISPLACEMENT_M, the metric roles and the demonstration references are UNCHANGED -- only the axis was corrected. train_sac.py, eval_checkpoint.py and render_rollouts.py now record disp_xy_m and final_dz_m at source.",
+    "training_and_reward": "UNTOUCHED. g1_piston_metrics is not imported by train_sac.py or the reward; it is measurement only and never in the optimisation path. The trainer diff is +12 lines, all additional recorded fields.",
+    "recomputation": "tools/g1_piston/recompute_horizontal.py recomputes every stored result from raw rows. No carry flips to throw with CERTAINTY, but max_lift_m is a running max rather than the final height, so historical rows give an interval rather than a point.",
+    "corrected_headline_numbers": {
+      "rlpd_s1@415140_n50": {
+        "carry_3d": 0.12,
+        "carry_horizontal": "0.08-0.12",
+        "certain": 4,
+        "ambiguous": 2
+      },
+      "sac_s1@414660_n25": {
+        "carry_3d": 0.36,
+        "carry_horizontal": "0.32-0.36",
+        "certain": 8,
+        "ambiguous": 1
+      },
+      "sac_s2@690780_n50": {
+        "carry_3d": 0.14,
+        "carry_horizontal": "0.06-0.14",
+        "certain": 3,
+        "ambiguous": 4
+      },
+      "sac_s1@691080_n50": {
+        "carry_3d": 0.06,
+        "carry_horizontal": "0.04-0.06",
+        "certain": 2,
+        "ambiguous": 1
+      },
+      "sft_stochastic@0_n25": {
+        "carry_3d": 0.28,
+        "carry_horizontal": "0.20-0.28",
+        "certain": 5,
+        "ambiguous": 2
+      }
+    },
+    "qualitative_effect": "None of the conclusions change. Between-seed variance still exceeds the SAC-RLPD difference, full success is still 0.00 on every n=50 RL evaluation, and the SFT stochastic successes survive: rendered condition 0 has TRUE horizontal displacement 0.299 m, inside the demonstration range.",
+    "residual_uncertainty": "Rows lacking disp_xy_m yield an interval because the final vertical offset was never recorded. Rollouts rendered from now on are exact. The three queued training arms will record disp_xy_m natively."
+  }
 }

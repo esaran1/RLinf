@@ -65,11 +65,10 @@ def verify(path):
     lift = max([0.0] + [float(np.array(t["piston_xyz"], dtype=float)[2] - p0[2])
                         for t in traj])
 
-    # The frozen carry test uses disp_m, a 3-D norm, so a predominantly VERTICAL move
-    # can clear the 0.05 m threshold. Section 8 of the audit brief defines carry as
-    # HORIZONTAL transport, so recompute that separately from the true final pose and
-    # surface any rollout whose carry label depends on the vertical component. This does
-    # not override the frozen metric -- it reports the disagreement.
+    # Carry/throw are defined on HORIZONTAL transport. The rollout code used to write
+    # disp_m as a 3-D norm, letting a vertical fling clear the threshold; that bug is
+    # fixed in metrics v1.1 and disp_xy_m is now recorded at source. This recomputes the
+    # horizontal component from the true final pose as an independent check on both.
     horiz = float(np.linalg.norm((pN - p0)[:2]))
     checks["disp_recomputed"] = round(disp, 4)
     checks["horizontal_disp_recomputed"] = round(horiz, 4)
@@ -106,10 +105,18 @@ def verify(path):
 
     checks["carry_by_horizontal_only"] = bool(
         acc.get("lift") and horiz >= M.CARRY_MIN_DISPLACEMENT_M)
-    # A carry that only qualifies via the vertical component is exactly the throw
-    # exploit the metric exists to catch. Flag it loudly; do NOT silently relabel.
+    # Under metrics v1.1 the frozen label is ALREADY horizontal, so these must agree.
+    # A disagreement means the sidecar's disp_xy_m and the recorded poses disagree,
+    # which is a data-integrity failure rather than a definitional nuance.
     checks["carry_depends_on_vertical"] = bool(
         label["carry"] and not checks["carry_by_horizontal_only"])
+    if checks["carry_depends_on_vertical"]:
+        fails.append(f"carry label survives only via the vertical component "
+                     f"(horizontal {horiz:.4f} m < {M.CARRY_MIN_DISPLACEMENT_M} m); "
+                     f"disp_xy_m and the recorded piston poses disagree")
+    if "disp_xy_m" in stored and abs(stored["disp_xy_m"] - horiz) > TOL:
+        fails.append(f"disp_xy_m mismatch: stored {stored['disp_xy_m']} "
+                     f"vs raw {horiz:.4f}")
 
     vid = d["video"]
     checks["video_exists"] = os.path.exists(vid)
@@ -171,12 +178,10 @@ def main(dirs):
 
     susp = [r for r in recs if r["checks"].get("carry_depends_on_vertical")]
     if susp:
-        print(f"\n{len(susp)} carry-labelled rollout(s) qualify only through the "
-              f"vertical component of the 3-D displacement.")
-        print("The frozen metric counts them as carries; by a horizontal-only reading "
-              "they are throws.")
-        print("Not relabelled here -- the frozen definition stands. Reported for the "
-              "record and for visual adjudication.")
+        print(f"\n{len(susp)} rollout(s) FAILED the horizontal consistency check: the "
+              f"carry label survives only through the vertical component.")
+        print("Under metrics v1.1 carry is horizontal by definition, so this is a "
+              "data-integrity failure, not a definitional nuance.")
     return 0 if ok == len(recs) else 1
 
 

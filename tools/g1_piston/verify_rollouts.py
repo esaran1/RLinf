@@ -58,7 +58,12 @@ def verify(path):
     p0 = np.array(d["piston_initial_xyz"], dtype=float)
     pN = np.array(d["piston_final_xyz"], dtype=float)
     disp = float(np.linalg.norm(pN - p0))
-    lift = max(float(np.array(t["piston_xyz"], dtype=float)[2] - p0[2]) for t in traj)
+    # Floored at 0.0, matching the trainer/evaluator/renderer, which all seed
+    # ``maxlift = 0.0`` and take a running max. An untouched piston settles a few mm
+    # DOWNWARD under gravity, so an unfloored max is negative and would spuriously
+    # disagree with every no-contact rollout.
+    lift = max([0.0] + [float(np.array(t["piston_xyz"], dtype=float)[2] - p0[2])
+                        for t in traj])
 
     # The frozen carry test uses disp_m, a 3-D norm, so a predominantly VERTICAL move
     # can clear the 0.05 m threshold. Section 8 of the audit brief defines carry as

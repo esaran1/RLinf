@@ -59,6 +59,21 @@
       "at_boundary_steps_rad": 0.177,
       "measured_joint_step_boundary_over_intra": 0.3,
       "reading": "the physical joints do NOT follow the command spike -- the PD controller saturates and lags, so the arm is chasing a target it cannot track. Command tracking error TRIPLES at boundaries."
+    },
+    "hand_vs_arm": {
+      "hand_joints_26_34_35_36_37_44_45_46_47": {
+        "boundary": 0.4612,
+        "intra": 0.02,
+        "ratio": 23.1,
+        "max": 1.0
+      },
+      "all_other_joints": {
+        "boundary": 0.0455,
+        "intra": 0.0024,
+        "ratio": 18.6,
+        "max": 0.6257
+      },
+      "reading": "The discontinuity is a WHOLE-BODY defect -- the boundary-to-intra ratio is similar everywhere (18.6x arm, 23.1x hand) -- but its absolute magnitude is 10x larger on the fingers, because the Inspire retargeter maps one commanded finger DOF onto two actuated joints with gain. That is why it reads visually as jittery hands rather than a jittery arm."
     }
   },
   "root_cause": "The controller is open-loop within a chunk: the VLA predicts 30 actions from one observation, all 30 execute, then a fresh observation produces a new 30-step chunk. Nothing constrains the new chunk's first action to be continuous with the last action of the previous chunk, so the command teleports. This is inherent to the chunked action interface, not to SAC or RLPD.",

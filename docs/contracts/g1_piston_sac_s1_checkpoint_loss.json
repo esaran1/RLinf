@@ -1,0 +1,22 @@
+{
+  "id": "g1_piston_sac_s1_checkpoint_loss",
+  "recorded": "2026-08-19",
+  "severity": "limits-a-requested-deliverable",
+  "claim": "SAC seed 1 has no intermediate checkpoints. Only its FINAL state (691080 env steps) survives.",
+  "evidence": {
+    "runs/sac/": ["sac_ckpt_latest.pt only"],
+    "sac_ckpt_latest.pt internal env_steps": 691080,
+    "runs/sac.json checkpoints key": null,
+    "per-step retention commit": "8b46afa6 (2026-08-17 08:24)",
+    "sac s1 wall clock": "launched before 08-17 08:24, finished 08-17 12:00"
+  },
+  "cause": "Per-step checkpoint retention was committed while SAC seed 1 was already running. The live process held the pre-commit code, which wrote only <ALGO>_ckpt_latest.pt and overwrote it at every eval sweep. sac_s2 and rlpd, launched after the commit, have the full 7-checkpoint set.",
+  "consequence": "The ~414k SAC seed 1 checkpoint -- where that seed's carry rate peaked at 0.36 (n=25) -- CANNOT be re-evaluated, re-rendered, or verified. Any claim about SAC s1 @414k rests solely on the n=25 training-time evaluation recorded in runs/sac.json plus one training-time video of eval condition 0.",
+  "not_recoverable": true,
+  "surviving_s1_artifacts": {
+    "final checkpoint": "runs/sac/sac_ckpt_latest.pt (691080 steps)",
+    "training-time videos": "runs/sac/sac_step{0,1380,138660,276660,414660,552180,691080}_cond0.mp4",
+    "video condition": "frozen eval index 0, hash dffa437572f84d40, deterministic"
+  },
+  "mitigation": "Report SAC s1 @414k as n=25 training-time evidence only, explicitly flagged as non-reproducible. SAC seed 3 (queued) will provide a third seed WITH full checkpoint retention."
+}

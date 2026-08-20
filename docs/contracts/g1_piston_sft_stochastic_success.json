@@ -140,5 +140,19 @@
       "label_matches_video": true,
       "caveat": "The piston is small in frame and the TERMINAL placement over the hole plate is not crisply resolvable at this camera angle. Grasp, lift and horizontal transport are directly visible; the final placement is corroborated by the simulator success predicate and the recorded geometry rather than read off the video."
     }
+  },
+  "mechanism_2026_08_20": {
+    "question": "Does sampling rescue a near-miss, or does the deterministic policy fail in a qualitatively different way?",
+    "finding": "The deterministic mean action never contacts the piston at all. In 12 of 15 verified deterministic rollouts the piston displacement is IDENTICAL to 4 decimals (0.0091 m) and the final z identical to 5 decimals (0.88905) across DIFFERENT reset conditions -- the signature of an object that was never touched and only settled ~9 mm under gravity.",
+    "evidence": {
+      "identical_disp_rollouts": "12/15 at disp_m = 0.0091, final z = 0.88905",
+      "piston_rose_above_start_height": "2/15",
+      "cond5_outlier": "reach+grasp fired but the piston moved 2 mm and never lifted -- contact without engagement",
+      "distinct_returns": "-0.69 .. -0.46 plus one at 2.36, i.e. the reward varies with arm pose while the object stays put"
+    },
+    "contrast": "Under sampling, the same weights reach the piston in 40% of shared-condition rollouts and complete the whole task in 16%.",
+    "interpretation": "This is not a near-miss that exploration nudges over a threshold. The deterministic mean action is a poor summary of the SFT policy's action distribution on this task -- consistent with a multimodal or averaged-out chunk prediction whose mean lies between viable trajectories rather than on one. Sampling recovers individual modes.",
+    "consequence_for_the_comparison": "The whole SAC/RLPD comparison was scored deterministically, so it measured every policy through the one execution mode in which even the SFT initialisation is inert. Reported RL gains in grasp_rate are real, but the deterministic protocol understates the baseline they are measured against.",
+    "not_yet_established": "Whether the same mean-vs-sample gap holds for the TRAINED checkpoints. RLPD s1 @690180 shows grasp 0.72 deterministic vs 1.00 stochastic at n=50, which is directionally consistent but far smaller. The queued deterministic-vs-stochastic renders test this directly."
   }
 }

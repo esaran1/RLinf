@@ -1,0 +1,29 @@
+{
+  "id": "g1_piston_render_physics_divergence",
+  "recorded": "2026-08-20",
+  "severity": "OPEN -- affects whether rendered rollouts can corroborate stored evaluations",
+  "claim": "Rendering the SAME checkpoint on the SAME frozen conditions in the SAME deterministic mode reproduces the stored evaluation for non-lifting conditions but NOT for lifting ones.",
+  "evidence": {
+    "checkpoint": "runs/rlpd/rlpd_ckpt_step415140.pt (identical path and env_steps in both)",
+    "conditions": "frozen eval 3,16,19,20,21,31,39,41,46,32",
+    "stored_n50": "5 carries + 2 throws; lifting conditions return 6.4-12.5",
+    "rendered": "0 carries, 0 throws, 0 lifts; every condition grasp-only, return 2.32-2.58",
+    "agreement_where_no_lift": "cond 46 stored disp 0.0143 vs rendered 0.0175; cond 32 stored 0.0037 vs rendered 0.0110 -- both grasp-only in both runs, returns ~2.4 in both",
+    "divergence_only_on_lifts": "every disagreement is a condition where the stored sweep recorded a lift"
+  },
+  "ruled_out": {
+    "code_drift": "vlm_encode and sample_action are byte-identical between eval_checkpoint.py and render_rollouts.py (AST comparison, matching SHA-256). The only eval_checkpoint.py change since the stored run adds recorded fields, not behaviour.",
+    "wrong_checkpoint": "both record checkpoint_env_steps 415140 and the same file path",
+    "wrong_suite": "all rendered rollouts pass the frozen-suite hash check",
+    "sweep_position_drift": "lifts in the stored sweep occur at scattered indices (3,16,19,20,21,31,39,41), not a contiguous run, so this is not simple state accumulation across the 50-episode sweep"
+  },
+  "leading_hypothesis": "The renderer reads sc['front_camera'].data.output every other control step INSIDE run_chunk; the evaluator never touches the camera mid-chunk. In IsaacLab a sensor read can drive a render/update, changing sub-step timing. On a contact-rich grasp this is a plausible cause of a lift either occurring or not.",
+  "test_in_flight": "NO_CAPTURE=1 re-renders conditions 3,20,21,31,39,41 with frame capture disabled, making the rollout path identical to the evaluator. If lifts reappear, capture is the cause.",
+  "implications_if_confirmed": [
+    "Videos of LIFTING behaviour cannot be produced by this capture method without perturbing the very behaviour being filmed.",
+    "The stored evaluations remain the measurement of record; the rendered rollouts would corroborate only non-lifting outcomes.",
+    "A workaround would be to capture frames only between chunks, or to re-render with capture at a cadence that does not interleave with physics sub-steps."
+  ],
+  "not_yet_established": "Whether the divergence is caused by capture, or whether this task's grasp is simply non-deterministic across processes. A third possibility is GPU non-determinism in the VLM forward pass changing the action chunk slightly, which a contact-sensitive task could amplify.",
+  "does_not_affect": "The SFT stochastic finding, which was replicated by rendering (success 0.16 vs stored 0.16) and whose successes were themselves rendered with capture enabled."
+}

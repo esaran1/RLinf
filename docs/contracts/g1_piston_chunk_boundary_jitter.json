@@ -74,6 +74,35 @@
         "max": 0.6257
       },
       "reading": "The discontinuity is a WHOLE-BODY defect -- the boundary-to-intra ratio is similar everywhere (18.6x arm, 23.1x hand) -- but its absolute magnitude is 10x larger on the fingers, because the Inspire retargeter maps one commanded finger DOF onto two actuated joints with gain. That is why it reads visually as jittery hands rather than a jittery arm."
+    },
+    "recovery_profile": {
+      "what": "mean |command - measured| by position within a chunk, averaged over all 23 chunks",
+      "step0_rad": 0.177,
+      "step29_rad": 0.0608,
+      "decay": "3x",
+      "first_ten_steps": [
+        0.177,
+        0.137,
+        0.116,
+        0.101,
+        0.092,
+        0.088,
+        0.085,
+        0.085,
+        0.086,
+        0.08
+      ],
+      "reading": "Tracking error SPIKES at the chunk boundary and decays over roughly the first third of the chunk. The arm spends ~6-10 of every 30 control steps recovering from the jump before it tracks the commanded trajectory properly. This is the mechanism by which the discontinuity degrades control, and it sets the blend window: a 6-step ramp covers the observed recovery."
+    },
+    "blend_anchor_validation": {
+      "question": "Should a new chunk be blended from the previous COMMAND or from the MEASURED joint position?",
+      "mean_abs_new_chunk_minus_previous_command_rad": 0.1161,
+      "mean_abs_new_chunk_minus_measured_position_rad": 0.1602,
+      "verdict": "The new chunk is closer to the previous COMMAND, so blending toward the command is the correct anchor. Blending toward the measured position would have pulled the robot further from the policy's intent."
+    },
+    "standing_tracking_error_rad": {
+      "hand": 0.1276,
+      "other": 0.0717
     }
   },
   "root_cause": "The controller is open-loop within a chunk: the VLA predicts 30 actions from one observation, all 30 execute, then a fresh observation produces a new 30-step chunk. Nothing constrains the new chunk's first action to be continuous with the last action of the previous chunk, so the command teleports. This is inherent to the chunked action interface, not to SAC or RLPD.",

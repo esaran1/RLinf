@@ -296,6 +296,14 @@ try:
             "reset_suite_seed": RESET_SUITE_SEED,
             "n_train": EXPERIMENT_N_TRAIN,
             "mode": MODE, "fps": FPS, "n_frames": len(frames),
+            # A stochastic rollout samples fresh noise. This renderer seeds SEED=0 at
+            # start-up, but the trainer's generator had already advanced through a
+            # deterministic sweep before its own stochastic pass, so a stochastic render
+            # is an INDEPENDENT DRAW from the same policy -- not a replay of the
+            # trainer's episode. Its outcome may legitimately differ; the label written
+            # here is always recomputed from THIS rollout's trajectory.
+            "stochastic_is_independent_draw": (MODE == "stochastic"),
+            "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
             "piston_initial_xyz": [round(float(x), 5) for x in bar0],
             "piston_final_xyz": [round(float(x), 5) for x in bar],

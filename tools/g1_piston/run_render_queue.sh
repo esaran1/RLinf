@@ -102,6 +102,24 @@ SHOWCASE="21,19,3"                    # best carry, throw exploit, carry-vs-no-r
 # 1. SFT baseline on the same conditions used for the comparison.
 render sft  sft  0 sft "deterministic" "$DISAGREE,$CONTEXT"
 
+# 1b. THE MOST IMPORTANT ARTIFACTS IN THE SET.
+# The untrained SFT policy produces the only full task successes anywhere in this
+# experiment, and only under its own sampling noise (conds 11,14,16,18 -> reach, grasp,
+# lift, plate, success; disp and lift inside the demonstration ranges). Under the
+# deterministic mean action the same weights are inert across 125 rollouts. See
+# docs/contracts/g1_piston_sft_stochastic_success.json. Both modes are rendered on the
+# SAME conditions so the difference is attributable to sampling alone.
+#
+# IMPORTANT: a stochastic render is an INDEPENDENT DRAW, not a replay -- the trainer's
+# RNG had advanced through a deterministic sweep before its stochastic pass. So this
+# does not attempt to reproduce those four specific episodes. It re-samples the whole
+# first 25 conditions, which makes the stochastic success RATE measurable on the frozen
+# suite and directly comparable to the trainer's 4/25. Individual conditions may differ;
+# a rate that lands near 0.16 corroborates the finding, one near 0.00 refutes it.
+SFT_STOCH_SET="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24"
+render sft sft 0 sft "stochastic"    "$SFT_STOCH_SET"
+render sft sft 0 sft "deterministic" "11,14,16,18,5,20,24"
+
 # 2. Matched pair at the ~414k budget, identical conditions.
 render matched rlpd_s1 1 "$RL/rlpd_ckpt_step415140.pt"  "deterministic" "$DISAGREE,$CONTEXT"
 render matched sac_s2  2 "$S2/sac_ckpt_step414000.pt"   "deterministic" "$DISAGREE,$CONTEXT"

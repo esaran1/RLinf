@@ -40,6 +40,9 @@ def label(row):
 def main():
     smooth = sorted(glob.glob(f"{V}/videos_smooth/**/*.json", recursive=True))
     smooth = [p for p in smooth if not os.path.basename(p).startswith("_render_")]
+    # Comparison metadata wraps two rollouts and has its own schema; the rollouts it
+    # references are verified individually, so skip the wrapper rather than reject it.
+    smooth = [p for p in smooth if "trajectory" in json.load(open(p))]
     if not smooth:
         print("no smooth renders yet")
         return 0

@@ -1,0 +1,20 @@
+{
+  "id": "g1_piston_knockoff_observation",
+  "recorded": "2026-08-20",
+  "severity": "observation -- explains an outlier, changes no conclusion",
+  "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+  "what": "A blended render of sac_s2@414000 on frozen condition 3 shows the robot KNOCKING the piston off the table rather than grasping it: horizontal displacement 0.1895 m and a lift of 0.1310 m with the grasp stage never firing.",
+  "per_chunk_trace": {
+    "chunk_10": {"z": 0.8904, "disp_xy": 0.0063, "stage": "reach"},
+    "chunk_11": {"z": 1.0291, "disp_xy": 0.1331, "note": "piston flung upward 0.14 m"},
+    "chunk_12": {"z": 0.8334, "disp_xy": 0.1969, "note": "lands BELOW its 0.889 start height -- off the support"},
+    "chunk_13_to_22": {"z": "~0.829", "disp_xy": "~0.189", "note": "stationary on the floor for the rest of the episode"}
+  },
+  "is_it_the_blend": {
+    "verdict": "NO -- attributable to the known post-grasp nondeterminism.",
+    "evidence": "Three independent measurements of the SAME checkpoint and condition: stored n=50 (blend 0) gave reach only, disp 0.0106; a render (blend 0) gave reach+grasp, disp 0.0039; the blended render gave reach only, disp 0.1895. The two BLEND=0 runs already disagree with each other on whether grasp fires, so the divergence cannot be attributed to blending.",
+    "caveat": "This is n=1 per arm. A causal claim either way would need repeats, and the A/B that did use matched arms found no effect (carry 0.20 -> 0.16, inside noise)."
+  },
+  "notable": "Condition 3 is one of the rare cases where even the GRASP stage diverges between identical runs. Grasp is 199/200 reproducible overall, so this is the ~0.5% tail rather than a counterexample to that claim.",
+  "why_it_matters": "A knock-off produces a LARGE horizontal displacement (0.19 m) with no grasp. The frozen carry test requires lift, so it is correctly not scored as a carry -- but it is a reminder that displacement alone is not evidence of manipulation, and that any future metric keying on displacement without a grasp precondition would be exploitable."
+}

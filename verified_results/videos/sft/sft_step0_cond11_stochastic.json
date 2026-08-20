@@ -1,0 +1,522 @@
+{
+  "video": "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond11_stochastic.mp4",
+  "method": "sft",
+  "seed": "0",
+  "checkpoint": "sft",
+  "checkpoint_env_steps": 0,
+  "checkpoint_grad_updates": 0,
+  "condition_index": 11,
+  "condition_hash": "1df14a4bfcdd5f8d",
+  "condition_in_frozen_suite": true,
+  "condition_joint_delta": {
+    "right_shoulder_pitch_joint": 0.04493237797768927,
+    "right_shoulder_roll_joint": -0.020150613065615344,
+    "right_shoulder_yaw_joint": 0.02881435721428431,
+    "right_elbow_joint": 0.02821609173409126,
+    "right_wrist_roll_joint": -0.005385993045179706,
+    "right_wrist_pitch_joint": 0.0155757409612466,
+    "right_wrist_yaw_joint": 0.018452521814904935,
+    "waist_yaw_joint": -0.010146236256089609,
+    "waist_roll_joint": -0.0009115599295693097,
+    "waist_pitch_joint": 0.009021552886236309
+  },
+  "condition_piston_dxy": [
+    0.0009716082426053942,
+    -0.0004645188663787071
+  ],
+  "reset_suite_seed": 20260817,
+  "n_train": 400,
+  "mode": "stochastic",
+  "fps": 20,
+  "n_frames": 345,
+  "stochastic_is_independent_draw": true,
+  "rng_seed": 0,
+  "episode_chunks": 23,
+  "piston_initial_xyz": [
+    -0.14903,
+    0.39954,
+    0.89813
+  ],
+  "piston_final_xyz": [
+    -0.15476,
+    0.39305,
+    0.89543
+  ],
+  "row": {
+    "condition": 11,
+    "hash": "1df14a4bfcdd5f8d",
+    "return": 2.373,
+    "disp_m": 0.0091,
+    "max_lift_m": 0.019,
+    "stages": {
+      "reach": true,
+      "grasp": true,
+      "lift": false,
+      "tube": false,
+      "plate": false,
+      "success": false
+    }
+  },
+  "trajectory": [
+    {
+      "chunk": 0,
+      "cum_return": -0.026,
+      "piston_xyz": [
+        -0.14933,
+        0.39962,
+        0.88907
+      ],
+      "disp_m": 0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 1,
+      "cum_return": 0.981,
+      "piston_xyz": [
+        -0.15416,
+        0.40449,
+        0.88999
+      ],
+      "disp_m": 0.0108,
+      "max_lift_m": 0.0,
+      "stage": "reach",
+      "stages": {
+        "reach": true,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 2,
+      "cum_return": 2.955,
+      "piston_xyz": [
+        -0.15417,
+        0.40283,
+        0.89046
+      ],
+      "disp_m": 0.0098,
+      "max_lift_m": 0.0,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 3,
+      "cum_return": 2.929,
+      "piston_xyz": [
+        -0.14742,
+        0.39135,
+        0.90171
+      ],
+      "disp_m": 0.0091,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 4,
+      "cum_return": 2.899,
+      "piston_xyz": [
+        -0.15627,
+        0.39948,
+        0.8925
+      ],
+      "disp_m": 0.0092,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 5,
+      "cum_return": 2.869,
+      "piston_xyz": [
+        -0.15533,
+        0.39637,
+        0.892
+      ],
+      "disp_m": 0.0093,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 6,
+      "cum_return": 2.852,
+      "piston_xyz": [
+        -0.1543,
+        0.40336,
+        0.89023
+      ],
+      "disp_m": 0.0102,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 7,
+      "cum_return": 2.822,
+      "piston_xyz": [
+        -0.14922,
+        0.39652,
+        0.88989
+      ],
+      "disp_m": 0.0088,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 8,
+      "cum_return": 2.793,
+      "piston_xyz": [
+        -0.14833,
+        0.39459,
+        0.89995
+      ],
+      "disp_m": 0.0053,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 9,
+      "cum_return": 2.763,
+      "piston_xyz": [
+        -0.15472,
+        0.3994,
+        0.8994
+      ],
+      "disp_m": 0.0058,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 10,
+      "cum_return": 2.733,
+      "piston_xyz": [
+        -0.15163,
+        0.39538,
+        0.89753
+      ],
+      "disp_m": 0.0049,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 11,
+      "cum_return": 2.703,
+      "piston_xyz": [
+        -0.15553,
+        0.39747,
+        0.89032
+      ],
+      "disp_m": 0.0104,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 12,
+      "cum_return": 2.673,
+      "piston_xyz": [
+        -0.15409,
+        0.39751,
+        0.89002
+      ],
+      "disp_m": 0.0098,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 13,
+      "cum_return": 2.643,
+      "piston_xyz": [
+        -0.15317,
+        0.39778,
+        0.8895
+      ],
+      "disp_m": 0.0097,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 14,
+      "cum_return": 2.613,
+      "piston_xyz": [
+        -0.15604,
+        0.40559,
+        0.89073
+      ],
+      "disp_m": 0.0119,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 15,
+      "cum_return": 2.583,
+      "piston_xyz": [
+        -0.15583,
+        0.39402,
+        0.89105
+      ],
+      "disp_m": 0.0113,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 16,
+      "cum_return": 2.553,
+      "piston_xyz": [
+        -0.15643,
+        0.4029,
+        0.89161
+      ],
+      "disp_m": 0.0104,
+      "max_lift_m": 0.0036,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 17,
+      "cum_return": 2.523,
+      "piston_xyz": [
+        -0.15012,
+        0.39414,
+        0.91709
+      ],
+      "disp_m": 0.0197,
+      "max_lift_m": 0.019,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 18,
+      "cum_return": 2.493,
+      "piston_xyz": [
+        -0.15611,
+        0.403,
+        0.8906
+      ],
+      "disp_m": 0.0109,
+      "max_lift_m": 0.019,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 19,
+      "cum_return": 2.463,
+      "piston_xyz": [
+        -0.15577,
+        0.39315,
+        0.89559
+      ],
+      "disp_m": 0.0096,
+      "max_lift_m": 0.019,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 20,
+      "cum_return": 2.433,
+      "piston_xyz": [
+        -0.15619,
+        0.39974,
+        0.89092
+      ],
+      "disp_m": 0.0102,
+      "max_lift_m": 0.019,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 21,
+      "cum_return": 2.403,
+      "piston_xyz": [
+        -0.15448,
+        0.40227,
+        0.89005
+      ],
+      "disp_m": 0.0101,
+      "max_lift_m": 0.019,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 22,
+      "cum_return": 2.373,
+      "piston_xyz": [
+        -0.15476,
+        0.39305,
+        0.89543
+      ],
+      "disp_m": 0.0091,
+      "max_lift_m": 0.019,
+      "stage": "grasp",
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    }
+  ]
+}

@@ -214,11 +214,11 @@ try:
                     len(meta["per_chunk"]) - 1)
             pc = meta["per_chunk"][k]
             lines = [
-                f"{meta['method']} seed {meta['seed']}  {meta['mode']}",
-                f"env steps {meta['env_steps']:,}",
-                f"cond {meta['condition']}  {meta['hash'][:8]}",
-                f"return {pc['cum_return']:.2f}  stage {pc['stage']}",
-                f"disp {pc['disp_m']:.3f} m  lift {pc['max_lift_m']:.3f} m",
+                f"{meta['method']} s{meta['seed']} | {meta['mode']}",
+                f"steps: {meta['env_steps']:,}",
+                f"cond {meta['condition']} | {meta['hash'][:8]}",
+                f"return {pc['cum_return']:.2f} | stage {pc['stage']}",
+                f"disp {pc['disp_m']:.3f}m | lift {pc['max_lift_m']:.3f}m",
             ]
             w = max(d.textlength(t) for t in lines) + 8
             d.rectangle([0, 0, w, 12 * len(lines) + 6], fill=(0, 0, 0))

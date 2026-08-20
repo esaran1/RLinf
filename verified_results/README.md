@@ -49,6 +49,25 @@ cumulative return, stage, displacement and lift — all read from real simulator
 
 Filenames are `{method}_step{env_steps}_cond{condition}_{mode}[_draw{n}].mp4`.
 
+## Two video sets: `videos/` and `videos_smooth/`
+
+| directory | execution | use it for |
+|---|---|---|
+| `videos/` | frozen study protocol (`BLEND_STEPS=0`) | anything tied to a reported number |
+| `videos_smooth/` | chunk blending on (`BLEND_STEPS=6`) | presentation and visual inspection |
+
+The original videos show a real control defect: the commanded trajectory jumps by up to
+**1.0 rad in a single 50 Hz step** at every 30-step chunk boundary, worst on the hand
+joints, which is the visible shaking. Blending ramps each chunk in over 120 ms, cutting
+the worst jump to **0.14 rad**, while leaving the last 24 of 30 steps bit-identical to
+the policy's own trajectory.
+
+**The smooth videos are not evidence of a better policy.** The A/B measured carry
+0.20 → 0.16 — inside a run-to-run noise floor of 0.36. Blending changes how the robot
+moves, not what it achieves. It is justified because a 1.0 rad/step command is not
+physically executable and would be unsafe on hardware, **not** because it improves the
+task. See `docs/contracts/g1_piston_blend_ab_result.json`.
+
 ## Caveat on per-condition outcomes
 
 The rollouts in `videos/matched/` do not reproduce the carries the stored n=50
@@ -57,9 +76,9 @@ to rendering perturbing the physics; that hypothesis is **refuted**. A no-captur
 using the evaluator reproduces 0 of 5 stored lifts too, and produces lifts on entirely
 different conditions.
 
-The real finding: for a fixed checkpoint under deterministic execution, **grasp is
-perfectly reproducible (25/25 in both runs) while the post-grasp outcome is not** — the
-lifting condition sets had zero overlap (Jaccard 0.00) at a similar aggregate rate. See
+The real finding, now measured over **eight** identical runs of one checkpoint: **grasp
+is highly reproducible (199/200 attempts, Jaccard 0.99) while the post-grasp outcome is
+not** — carry Jaccard 0.066, and the rate itself spans 0.00–0.36. See
 `docs/contracts/g1_piston_post_grasp_nondeterminism.json`.
 
 So no video is privileged: these are as faithful as the stored evaluation. But **no

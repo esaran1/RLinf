@@ -62,12 +62,24 @@ arm(){
 # prefix is the matched-curve suite used throughout. A promising result can be upgraded
 # to n=50 afterwards.
 N="${N_EVAL_AB:-25}"
-arm sft            "sft"                                   0
-arm sft            "sft"                                   6
+# ORDERING (corrected): the RL checkpoints go first.
+#
+# SFT led originally because it is the only policy that ever solved the task -- but that
+# was its STOCHASTIC behaviour, and this A/B is deterministic. Measured, SFT-deterministic
+# grasps 1/25: a near floor, where boundary smoothing has almost nothing to preserve,
+# because it can only help a rollout that already makes contact.
+#
+# The RL checkpoints grasp ~1.00 and then lose the object before transport. That is
+# exactly the population in which a 0.6 rad finger snap during contact would be the
+# binding constraint, so they are the informative arms.
 arm rlpd_s1_415140 "$RUNS/rlpd/rlpd_ckpt_step415140.pt"     0
 arm rlpd_s1_415140 "$RUNS/rlpd/rlpd_ckpt_step415140.pt"     6
 arm sac_s2_690780  "$RUNS/sac_s2/sac_ckpt_step690780.pt"    0
 arm sac_s2_690780  "$RUNS/sac_s2/sac_ckpt_step690780.pt"    6
+# SFT last, retained as a floor control: if smoothing "improves" a policy that barely
+# makes contact, that would signal a confound rather than a real effect.
+arm sft            "sft"                                   0
+arm sft            "sft"                                   6
 
 log "BLEND_AB_DONE"
 rm -f "$S/blend_ab.pid"

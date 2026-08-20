@@ -1,7 +1,7 @@
 {
   "id": "g1_piston_render_physics_divergence",
   "recorded": "2026-08-20",
-  "severity": "OPEN -- affects whether rendered rollouts can corroborate stored evaluations",
+  "severity": "CLOSED -- hypothesis refuted, superseded",
   "claim": "Rendering the SAME checkpoint on the SAME frozen conditions in the SAME deterministic mode reproduces the stored evaluation for non-lifting conditions but NOT for lifting ones.",
   "evidence": {
     "checkpoint": "runs/rlpd/rlpd_ckpt_step415140.pt (identical path and env_steps in both)",
@@ -25,5 +25,13 @@
     "A workaround would be to capture frames only between chunks, or to re-render with capture at a cadence that does not interleave with physics sub-steps."
   ],
   "not_yet_established": "Whether the divergence is caused by capture, or whether this task's grasp is simply non-deterministic across processes. A third possibility is GPU non-determinism in the VLM forward pass changing the action chunk slightly, which a contact-sensitive task could amplify.",
-  "does_not_affect": "The SFT stochastic finding, which was replicated by rendering (success 0.16 vs stored 0.16) and whose successes were themselves rendered with capture enabled."
+  "does_not_affect": "The SFT stochastic finding, which was replicated by rendering (success 0.16 vs stored 0.16) and whose successes were themselves rendered with capture enabled.",
+  "resolution_2026_08_20": {
+    "verdict": "The leading hypothesis (mid-chunk camera reads perturbing contact physics) is REFUTED.",
+    "test": "eval_checkpoint.py, no frame capture, same checkpoint and frozen conditions, fresh process (blend_ab/rlpd_s1_415140_blend0_n25.json)",
+    "result": "reproduced 0 of 5 stored lifts -- identical to the capture-enabled render",
+    "actual_cause": "Per-condition post-grasp outcomes are not reproducible across processes at all. See g1_piston_post_grasp_nondeterminism.json: grasp is 25/25 in both runs, but the lifting condition sets have ZERO overlap.",
+    "consequence": "The divergence was never about rendering. Rendered rollouts are as faithful as any other run; no run reproduces another's per-condition outcomes past the grasp.",
+    "supersedes": "videos/matched/ can be cited as showing typical behaviour AND as being as valid as the stored evaluation -- neither is privileged, because neither is reproducible per-condition."
+  }
 }

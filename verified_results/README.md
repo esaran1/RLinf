@@ -49,17 +49,24 @@ cumulative return, stage, displacement and lift — all read from real simulator
 
 Filenames are `{method}_step{env_steps}_cond{condition}_{mode}[_draw{n}].mp4`.
 
-## Caveat on `videos/matched/`
+## Caveat on per-condition outcomes
 
-The RLPD and SAC rollouts there are real, but they **do not reproduce the carries** the
-stored n=50 evaluations recorded for the same checkpoints and conditions. Rendering
-appears to perturb contact physics — every non-lifting condition reproduces exactly,
-while every lifting one does not. See
-`docs/contracts/g1_piston_render_physics_divergence.json`.
+The rollouts in `videos/matched/` do not reproduce the carries the stored n=50
+evaluations recorded for the same checkpoints and conditions. This was first attributed
+to rendering perturbing the physics; that hypothesis is **refuted**. A no-capture rerun
+using the evaluator reproduces 0 of 5 stored lifts too, and produces lifts on entirely
+different conditions.
 
-Treat `videos/matched/` as showing typical grasp-only behaviour, **not** as evidence
-about carry rates. The stored evaluations remain the measurement of record. The `sft/`
-videos are unaffected: those replicated their stored result exactly.
+The real finding: for a fixed checkpoint under deterministic execution, **grasp is
+perfectly reproducible (25/25 in both runs) while the post-grasp outcome is not** — the
+lifting condition sets had zero overlap (Jaccard 0.00) at a similar aggregate rate. See
+`docs/contracts/g1_piston_post_grasp_nondeterminism.json`.
+
+So no video is privileged: these are as faithful as the stored evaluation. But **no
+per-condition claim is supportable** for lift or carry, and aggregate rates need an
+interval that covers run-to-run variation, not just binomial error. Grasp-level claims
+are solid. The `sft/` stochastic videos are unaffected — that finding replicated at the
+rate level, which is the level it was ever claimed at.
 
 ## Regenerating
 

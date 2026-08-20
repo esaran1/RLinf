@@ -65,5 +65,54 @@
     },
     "correction": "An earlier framing implied the aggregate rates were also shown unreliable. They are not, yet -- only the per-condition outcomes are. The repeat-evaluation run in flight is what decides the rate question.",
     "why_it_still_matters_for_the_study": "Even if the rate variance turns out modest, the SAC-vs-RLPD differences in question (0.36 vs 0.16 vs 0.12) are comparable to the already-observed run-to-run rate swing (0.12 -> 0.20 carry), so those comparisons remain under-powered until the noise floor is bounded."
+  },
+  "three_run_result_2026_08_20": {
+    "runs": "three identical-protocol deterministic evaluations of rlpd_ckpt_step415140, frozen 25-condition prefix",
+    "carry_rate": [
+      0.12,
+      0.2,
+      0.0
+    ],
+    "lift_rate": [
+      0.2,
+      0.32,
+      0.24
+    ],
+    "throw_rate": [
+      0.08,
+      0.12,
+      0.24
+    ],
+    "grasp_rate": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "full_success_rate": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "carry_spread": 0.2,
+    "carry_stdev": 0.101,
+    "per_condition_jaccard": {
+      "grasp": 1.0,
+      "lift": 0.059,
+      "carry": 0.0
+    },
+    "run3_detail": "6 lifts, ALL classified as throws -- horizontal displacement 0.0004-0.0115 m against a 0.05 m threshold. The same checkpoint that carried 3 and 5 times in the other two runs carried ZERO times here.",
+    "verdict_now_upgraded": "The AGGREGATE RATE is also unreliable, not only the per-condition outcome. A single checkpoint's carry rate spans 0.00-0.20 across identical runs."
+  },
+  "study_level_consequence": {
+    "algorithmic_spread_that_motivated_the_study": {
+      "SAC_s1_414k": 0.36,
+      "SAC_s2_690k": 0.16,
+      "RLPD_s1_415k": 0.12,
+      "spread": 0.24
+    },
+    "noise_spread_from_one_unchanged_checkpoint": 0.2,
+    "reading": "The spread across ALGORITHMS AND SEEDS (0.24) is barely larger than the spread produced by re-running ONE checkpoint (0.20). Every arm in the study was evaluated exactly once, so the reported carry differences are not distinguishable from evaluation noise.",
+    "what_survives": "Grasp emergence: 0.02 at SFT to ~1.00 after RL, with grasp_rate perfectly reproducible (spread 0.000, Jaccard 1.0) across every repeat. That claim is solid.",
+    "what_does_not": "Any carry-level ordering between SAC and RLPD, any per-condition claim, and any 'best checkpoint' selected on carry."
   }
 }

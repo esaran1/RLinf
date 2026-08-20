@@ -1,0 +1,57 @@
+{
+  "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+  "n_runs": 2,
+  "n_conditions": 25,
+  "rates": {
+    "grasp_rate": [
+      1.0,
+      1.0
+    ],
+    "lift_rate": [
+      0.2,
+      0.32
+    ],
+    "carry_rate": [
+      0.12,
+      0.2
+    ],
+    "throw_rate": [
+      0.08,
+      0.12
+    ],
+    "full_success_rate": [
+      0.0,
+      0.0
+    ],
+    "mean_return": [
+      3.4714,
+      4.4945
+    ]
+  },
+  "spread": {
+    "grasp_rate": 0.0,
+    "lift_rate": 0.12,
+    "carry_rate": 0.08,
+    "throw_rate": 0.04,
+    "full_success_rate": 0.0,
+    "mean_return": 1.0231
+  },
+  "mean": {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.26,
+    "carry_rate": 0.16,
+    "throw_rate": 0.1,
+    "full_success_rate": 0.0,
+    "mean_return": 3.983
+  },
+  "per_condition_jaccard": {
+    "grasp": 1.0,
+    "lift": 0.0,
+    "success": null,
+    "carry": 0.0
+  },
+  "runs": [
+    "n50 eval (first 25)",
+    "blend A/B baseline"
+  ]
+}

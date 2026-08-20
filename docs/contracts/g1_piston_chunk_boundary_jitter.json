@@ -103,6 +103,15 @@
     "standing_tracking_error_rad": {
       "hand": 0.1276,
       "other": 0.0717
+    },
+    "per_boundary_finger_jump": {
+      "what": "max |command step| over the hand joints at each of the 22 chunk boundaries in one episode",
+      "mean_rad": 0.586,
+      "median_rad": 0.66,
+      "max_rad": 1.0,
+      "boundaries_over_0.5_rad": "13/22",
+      "boundaries_over_1.0_rad": "1/22",
+      "reading": "The fingers are commanded to snap by more than 29 degrees at over half of all chunk boundaries, throughout the episode -- including while the piston is held. This is the most direct mechanistic candidate for why grasps in this study do not survive into transport: grasp_rate reaches ~1.00 while carry_rate stays near 0."
     }
   },
   "root_cause": "The controller is open-loop within a chunk: the VLA predicts 30 actions from one observation, all 30 execute, then a fresh observation produces a new 30-step chunk. Nothing constrains the new chunk's first action to be continuous with the last action of the previous chunk, so the command teleports. This is inherent to the chunked action interface, not to SAC or RLPD.",
@@ -151,5 +160,6 @@
     "default": "BLEND_STEPS=0 -- disabled, so no existing result changes silently",
     "tests": "tests/unit_tests/test_g1_piston_chunk_blend.py, 11 tests"
   },
-  "open_question": "Whether this improves TASK OUTCOMES or only appearance. A/B queued: same checkpoints, same frozen suite, deterministic, BLEND_STEPS the only variable, paired baseline re-run in-session."
+  "open_question": "Whether this improves TASK OUTCOMES or only appearance. A/B queued: same checkpoints, same frozen suite, deterministic, BLEND_STEPS the only variable, paired baseline re-run in-session.",
+  "hypothesis_now_testable": "If the boundary finger snap is what breaks the grasp, then blending should raise carry/lift without changing grasp. If carry is unchanged, the jitter is real but not the binding constraint, and the failure lies elsewhere (reward, or the policy's own trajectory)."
 }

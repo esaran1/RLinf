@@ -1,0 +1,26 @@
+{
+  "id": "g1_piston_blend_ab_result",
+  "recorded": "2026-08-20",
+  "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+  "question": "Does removing the chunk-boundary jitter improve the task, or only its appearance?",
+  "answer": "NO DETECTABLE EFFECT on task outcomes at n=25. The jitter is real and the fix demonstrably smooths the commands, but it does not measurably change what the robot achieves.",
+  "arm": "rlpd_ckpt_step415140, frozen 25-condition prefix, deterministic, BLEND_STEPS the only variable, both halves measured in the same session",
+  "rates": {
+    "blend0": {"carry": 0.20, "throw": 0.12, "lift": 0.32, "grasp": 1.00, "success": 0.00, "return": 4.495},
+    "blend6": {"carry": 0.16, "throw": 0.12, "lift": 0.28, "grasp": 1.00, "success": 0.00, "return": 4.057},
+    "delta": {"carry": -0.04, "throw": 0.00, "lift": -0.04, "grasp": 0.00, "success": 0.00, "return": -0.437}
+  },
+  "why_the_delta_is_not_evidence": {
+    "per_condition_churn": "4 improved, 8 regressed, 13 unchanged -- movement in both directions, the fingerprint of noise rather than a treatment",
+    "decisive_control": "Two runs of the SAME treatment (blend=0) in different processes overlap with Jaccard 0.00 on their lifting-condition sets. The cross-treatment comparison (blend=0 vs blend=6) overlaps 0.15 -- MORE than same-treatment runs do.",
+    "rate_containment": "blend=6 lift rate 0.28 sits inside the blend=0 run-to-run range of 0.20-0.32",
+    "conclusion": "The treatment effect is smaller than the run-to-run noise floor, so this experiment cannot resolve it. A -0.04 delta at n=25 is not a regression either; it is indistinguishable from zero."
+  },
+  "what_this_does_and_does_not_show": {
+    "does_show": "Chunk-boundary smoothing is not a free win. The hypothesis that the finger snap is the binding constraint on carry is NOT supported at this sample size.",
+    "does_not_show": "That the jitter is harmless. n=25 against a noise floor this wide has very low power, and the fix retains its independent justification: the commanded trajectory is physically unrealisable (1.0 rad in one 50 Hz step), the demonstrations contain no such discontinuity, and a real robot could not execute it safely.",
+    "does_not_show_2": "That blending hurts. The -0.04 is inside noise."
+  },
+  "recommendation": "Keep BLEND_STEPS=0 as the default so the frozen comparison is untouched. Retain the fix as an available execution mode justified on trajectory-realisability grounds, not on task performance. Do not claim a carry improvement.",
+  "power_note": "To resolve an effect of +/-0.05 carry against a run-to-run swing of 0.12 would need repeat evaluations per arm, not a larger single evaluation -- the variance is between runs, not between conditions."
+}

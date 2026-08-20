@@ -113,6 +113,44 @@
     "noise_spread_from_one_unchanged_checkpoint": 0.2,
     "reading": "The spread across ALGORITHMS AND SEEDS (0.24) is barely larger than the spread produced by re-running ONE checkpoint (0.20). Every arm in the study was evaluated exactly once, so the reported carry differences are not distinguishable from evaluation noise.",
     "what_survives": "Grasp emergence: 0.02 at SFT to ~1.00 after RL, with grasp_rate perfectly reproducible (spread 0.000, Jaccard 1.0) across every repeat. That claim is solid.",
-    "what_does_not": "Any carry-level ordering between SAC and RLPD, any per-condition claim, and any 'best checkpoint' selected on carry."
+    "what_does_not": "Any carry-level ordering between SAC and RLPD, any per-condition claim, and any 'best checkpoint' selected on carry.",
+    "four_run_update": "With four runs the noise range contains the entire algorithmic range. No carry-based comparison in this study is supportable, including the SAC s1 @414k carry 0.36 that anchored the early narrative."
+  },
+  "four_run_result_2026_08_20": {
+    "carry_rate": [
+      0.12,
+      0.2,
+      0.0,
+      0.36
+    ],
+    "lift_rate": [
+      0.2,
+      0.32,
+      0.24,
+      0.48
+    ],
+    "grasp_rate": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "full_success_rate": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "carry_spread": 0.36,
+    "carry_stdev": 0.151,
+    "per_condition_jaccard": {
+      "grasp": 1.0,
+      "lift": 0.128,
+      "carry": 0.028
+    },
+    "threshold_crossed": "The run-to-run carry spread (0.360) now EXCEEDS the Wilson95 width a single run reports (0.282). A single evaluation is therefore provably over-confident about the carry rate, not merely suspected of it.",
+    "the_decisive_coincidence": "Run 4 of the RLPD checkpoint produced carry 0.36 -- the exact value that made SAC seed 1 look like the strongest arm in the study. The same RLPD checkpoint produced 0.00 two runs earlier.",
+    "containment": "The single-checkpoint noise range [0.00, 0.36] now CONTAINS the entire algorithmic range [0.12, 0.36] observed across both algorithms and all seeds.",
+    "spread_is_still_widening": "0.08 at 2 runs, 0.20 at 3, 0.36 at 4 -- the floor estimate has not converged, so 0.36 is a LOWER BOUND on the true noise range."
   }
 }

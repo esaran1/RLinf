@@ -1,48 +1,24 @@
 {
-  "tag": "sac_s2",
-  "checkpoint": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step414000.pt",
+  "tag": "sac_s1",
+  "checkpoint": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac/sac_ckpt_latest.pt",
   "mode": "deterministic",
   "conditions": [
     21,
-    3,
-    19
+    3
   ],
   "rollouts": [
     {
       "cond": 21,
       "hash": "5b24a1b90643a0b4",
-      "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_smooth/matched/sac_s2_step414000_cond21_deterministic.mp4",
+      "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_smooth/final/sac_s1_step691080_cond21_deterministic.mp4",
       "row": {
         "condition": 21,
         "hash": "5b24a1b90643a0b4",
-        "return": 2.521,
-        "disp_m": 0.0045,
-        "disp_xy_m": 0.0045,
-        "final_dz_m": 0.0004,
-        "max_lift_m": 0.0013,
-        "stages": {
-          "reach": true,
-          "grasp": true,
-          "lift": false,
-          "tube": false,
-          "plate": false,
-          "success": false
-        }
-      },
-      "frames": 345
-    },
-    {
-      "cond": 3,
-      "hash": "f5537120a8d1ea37",
-      "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_smooth/matched/sac_s2_step414000_cond3_deterministic.mp4",
-      "row": {
-        "condition": 3,
-        "hash": "f5537120a8d1ea37",
-        "return": 0.926,
-        "disp_m": 0.2017,
-        "disp_xy_m": 0.1895,
-        "final_dz_m": -0.0692,
-        "max_lift_m": 0.131,
+        "return": 0.545,
+        "disp_m": 0.0066,
+        "disp_xy_m": 0.0065,
+        "final_dz_m": 0.0005,
+        "max_lift_m": 0.0006,
         "stages": {
           "reach": true,
           "grasp": false,
@@ -55,20 +31,20 @@
       "frames": 345
     },
     {
-      "cond": 19,
-      "hash": "6639633827d8171f",
-      "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_smooth/matched/sac_s2_step414000_cond19_deterministic.mp4",
+      "cond": 3,
+      "hash": "f5537120a8d1ea37",
+      "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_smooth/final/sac_s1_step691080_cond3_deterministic.mp4",
       "row": {
-        "condition": 19,
-        "hash": "6639633827d8171f",
-        "return": 2.6,
-        "disp_m": 0.0083,
-        "disp_xy_m": 0.0083,
-        "final_dz_m": -0.0006,
-        "max_lift_m": 0.0009,
+        "condition": 3,
+        "hash": "f5537120a8d1ea37",
+        "return": -0.391,
+        "disp_m": 0.0091,
+        "disp_xy_m": 0.0,
+        "final_dz_m": -0.0091,
+        "max_lift_m": 0.0,
         "stages": {
-          "reach": true,
-          "grasp": true,
+          "reach": false,
+          "grasp": false,
           "lift": false,
           "tube": false,
           "plate": false,
@@ -78,8 +54,8 @@
       "frames": 345
     }
   ],
-  "checkpoint_env_steps": 414000,
-  "checkpoint_grad_updates": 2899,
+  "checkpoint_env_steps": 691080,
+  "checkpoint_grad_updates": 4810,
   "_status": "OK",
   "suite": {
     "n_train": 400,
@@ -138,5 +114,5 @@
       "2c3b8cacc6ea11bc"
     ]
   },
-  "wall_clock_s": 173.7
+  "wall_clock_s": 122.3
 }

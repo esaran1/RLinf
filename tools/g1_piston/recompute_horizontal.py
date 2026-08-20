@@ -29,7 +29,7 @@ from rlinf.envs.isaaclab.tasks import g1_piston_metrics as M  # noqa: E402
 
 S = ("/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/"
      "c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad")
-V = "/home/jren313/research/starvla_rl/verified_results"
+V = "/home/jren313/research/starvla_rl/RLinf/verified_results"
 T = M.CARRY_MIN_DISPLACEMENT_M
 
 

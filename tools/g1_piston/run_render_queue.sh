@@ -18,7 +18,7 @@ S="${SCRATCH:-/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad
 T="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="${PY:-$HOME/miniconda3/envs/env_isaaclab/bin/python}"
 RUNS="$S/runs"
-V="${VERIFIED:-/home/jren313/research/starvla_rl/verified_results}"
+V="${VERIFIED:-/home/jren313/research/starvla_rl/RLinf/verified_results}"
 export MUJOCO_GL=egl PROJECT_ROOT=/home/jren313/unitree_sim_isaaclab
 
 echo "$$" > "$S/render_queue.pid"

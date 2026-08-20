@@ -19,7 +19,7 @@ from collections import defaultdict
 sys.path.insert(0, "/home/jren313/research/starvla_rl/RLinf")
 from rlinf.envs.isaaclab.tasks import g1_piston_metrics as M  # noqa: E402
 
-V = "/home/jren313/research/starvla_rl/verified_results"
+V = "/home/jren313/research/starvla_rl/RLinf/verified_results"
 VERIF = f"{V}/manifests/rollout_verification.json"
 
 

@@ -1,0 +1,84 @@
+{
+  "selection_rules": {
+    "rlpd_best_carry": "argmax disp_m among frozen-carry-classified conditions, RLPD@415140 n=50 det",
+    "rlpd_throw_exploit": "argmax lift/disp ratio among frozen-throw-classified conditions",
+    "median_return": "median return condition (both arms grasp-only) -- the typical case",
+    "worst_return": "argmin return -- representative failure",
+    "matched_disagreement": "all conditions where the frozen label differs between RLPD@415140 and SAC_s2@414000 at matched budget",
+    "progression": "a matched-disagreement carry condition, rendered at every retained RLPD checkpoint"
+  },
+  "targets": {
+    "rlpd_best_carry": {
+      "cond": 21,
+      "hash": "5b24a1b90643a0b4",
+      "disp": 0.1812,
+      "lift": 0.0565
+    },
+    "rlpd_throw_exploit": {
+      "cond": 19,
+      "hash": "6639633827d8171f",
+      "disp": 0.0198,
+      "lift": 0.0477,
+      "ratio": 2.41
+    },
+    "median_return": {
+      "cond": 46,
+      "hash": "e9ec7799dfb062a7",
+      "return": 2.394
+    },
+    "worst_return": {
+      "cond": 32,
+      "hash": "9e46511cfbfaef03",
+      "return": 2.31
+    },
+    "matched_disagreement": [
+      3,
+      16,
+      19,
+      20,
+      21,
+      31,
+      39,
+      41
+    ]
+  },
+  "carry_conditions": [
+    3,
+    20,
+    21,
+    31,
+    39,
+    41
+  ],
+  "throw_conditions": [
+    16,
+    19
+  ],
+  "caveat_carry_quality": {
+    "demo_lift_range_m": [
+      0.129,
+      0.232
+    ],
+    "demo_disp_range_m": [
+      0.2,
+      0.322
+    ],
+    "rlpd_carry_lift_m": [
+      0.0595,
+      0.0533,
+      0.0565,
+      0.086,
+      0.0658,
+      0.0253
+    ],
+    "rlpd_carry_disp_m": [
+      0.0855,
+      0.0558,
+      0.1812,
+      0.0941,
+      0.1489,
+      0.1473
+    ],
+    "note": "every RLPD carry lifts BELOW the weakest demonstration; must be checked visually before being called transport"
+  }
+}

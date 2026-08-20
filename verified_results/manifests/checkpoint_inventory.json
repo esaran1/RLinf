@@ -1,0 +1,257 @@
+[
+ {
+  "run": "sac",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac/sac_ckpt_latest.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 691080,
+  "grad_updates": 4810
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_latest.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 690780,
+  "grad_updates": 4830
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step1380.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 1380,
+  "grad_updates": 7
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step138000.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 138000,
+  "grad_updates": 1016
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step276000.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 276000,
+  "grad_updates": 2014
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step414000.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 414000,
+  "grad_updates": 2899
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step552240.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 552240,
+  "grad_updates": 4017
+ },
+ {
+  "run": "sac_s2",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step690780.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 690780,
+  "grad_updates": 4830
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_latest.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 690180,
+  "grad_updates": 4990
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step1380.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 1380,
+  "grad_updates": 5
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step139320.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 139320,
+  "grad_updates": 969
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step277320.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 277320,
+  "grad_updates": 1942
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step415140.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 415140,
+  "grad_updates": 2983
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step552000.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 552000,
+  "grad_updates": 3873
+ },
+ {
+  "run": "rlpd",
+  "path": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step690180.pt",
+  "size_mb": 173.2,
+  "loadable": true,
+  "keys": [
+   "action_model",
+   "actor_logstd",
+   "alpha",
+   "critic",
+   "env_steps",
+   "grad_updates",
+   "target"
+  ],
+  "env_steps": 690180,
+  "grad_updates": 4990
+ }
+]

@@ -1,0 +1,1333 @@
+{
+  "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+  "curves": {
+    "RLPD_s1": [
+      [
+        0,
+        0.0
+      ],
+      [
+        1380,
+        0.0
+      ],
+      [
+        139320,
+        0.0
+      ],
+      [
+        277320,
+        0.0
+      ],
+      [
+        415140,
+        0.12
+      ],
+      [
+        552000,
+        0.0
+      ],
+      [
+        690180,
+        0.0
+      ]
+    ],
+    "SAC_s1": [
+      [
+        0,
+        0.0
+      ],
+      [
+        1380,
+        0.0
+      ],
+      [
+        138660,
+        0.08
+      ],
+      [
+        276660,
+        0.0
+      ],
+      [
+        414660,
+        0.36
+      ],
+      [
+        552180,
+        0.12
+      ],
+      [
+        691080,
+        0.12
+      ]
+    ],
+    "SAC_s2": [
+      [
+        0,
+        0.0
+      ],
+      [
+        1380,
+        0.0
+      ],
+      [
+        138000,
+        0.0
+      ],
+      [
+        276000,
+        0.0
+      ],
+      [
+        414000,
+        0.04
+      ],
+      [
+        552240,
+        0.0
+      ],
+      [
+        690780,
+        0.16
+      ]
+    ]
+  },
+  "carry_auc": {
+    "RLPD_s1": 0.02387898809006346,
+    "SAC_s1": 0.12375412397985762,
+    "SAC_s2": 0.02404238686701989
+  },
+  "admitted": [
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "init",
+      "env_steps": 0,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.04,
+      "lift_rate": 0.0,
+      "reach_rate": 0.2,
+      "mean_return": -0.3686,
+      "mean_disp_m": 0.0088,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 1380,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "reach_rate": 0.64,
+      "mean_return": -0.0096,
+      "mean_disp_m": 0.0093,
+      "mean_max_lift_m": 0.0001,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 138660,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.08,
+      "carry_rate_horizontal_high": 0.08,
+      "carry_rate": 0.08,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.04,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.08,
+      "reach_rate": 1.0,
+      "mean_return": 3.8708,
+      "mean_disp_m": 0.0276,
+      "mean_max_lift_m": 0.005,
+      "success_ci95": [
+        0.0071,
+        0.1954
+      ],
+      "carry_ci95": [
+        0.0222,
+        0.2497
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 276660,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.331,
+      "mean_disp_m": 0.0111,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 414660,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.32,
+      "carry_rate_horizontal_high": 0.36,
+      "carry_rate": 0.36,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.04,
+      "grasp_rate": 0.92,
+      "lift_rate": 0.4,
+      "reach_rate": 0.96,
+      "mean_return": 5.9346,
+      "mean_disp_m": 0.0881,
+      "mean_max_lift_m": 0.0384,
+      "success_ci95": [
+        0.0071,
+        0.1954
+      ],
+      "carry_ci95": [
+        0.2025,
+        0.5548
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 552180,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.12,
+      "carry_rate_horizontal_high": 0.12,
+      "carry_rate": 0.12,
+      "throw_rate": 0.12,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.96,
+      "lift_rate": 0.24,
+      "reach_rate": 1.0,
+      "mean_return": 3.5277,
+      "mean_disp_m": 0.0385,
+      "mean_max_lift_m": 0.0472,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0417,
+        0.2996
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 691080,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.12,
+      "carry_rate": 0.12,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.16,
+      "reach_rate": 1.0,
+      "mean_return": 3.3102,
+      "mean_disp_m": 0.023,
+      "mean_max_lift_m": 0.0605,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0417,
+        0.2996
+      ]
+    },
+    {
+      "source": "sac.json",
+      "method": "SAC",
+      "seed": 1,
+      "tag": "final",
+      "env_steps": 691080,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.04,
+      "carry_rate_horizontal_high": 0.06,
+      "carry_rate": 0.06,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.98,
+      "lift_rate": 0.1,
+      "reach_rate": 1.0,
+      "mean_return": 3.0003,
+      "mean_disp_m": 0.0266,
+      "mean_max_lift_m": 0.0357,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0206,
+        0.1622
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "init",
+      "env_steps": 0,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "reach_rate": 0.12,
+      "mean_return": -0.5395,
+      "mean_disp_m": 0.0091,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "periodic",
+      "env_steps": 1380,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "reach_rate": 0.48,
+      "mean_return": -0.1824,
+      "mean_disp_m": 0.0094,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "periodic",
+      "env_steps": 138000,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.2,
+      "lift_rate": 0.0,
+      "reach_rate": 0.2,
+      "mean_return": -0.0484,
+      "mean_disp_m": 0.0096,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "periodic",
+      "env_steps": 276000,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.3609,
+      "mean_disp_m": 0.0109,
+      "mean_max_lift_m": 0.0001,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "periodic",
+      "env_steps": 414000,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.04,
+      "carry_rate": 0.04,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.88,
+      "lift_rate": 0.08,
+      "reach_rate": 1.0,
+      "mean_return": 2.9124,
+      "mean_disp_m": 0.0129,
+      "mean_max_lift_m": 0.0121,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0071,
+        0.1954
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "periodic",
+      "env_steps": 552240,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.12,
+      "lift_rate": 0.0,
+      "reach_rate": 0.68,
+      "mean_return": 0.829,
+      "mean_disp_m": 0.0086,
+      "mean_max_lift_m": 0.0054,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "periodic",
+      "env_steps": 690780,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.08,
+      "carry_rate_horizontal_high": 0.16,
+      "carry_rate": 0.16,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.16,
+      "reach_rate": 1.0,
+      "mean_return": 3.4335,
+      "mean_disp_m": 0.0425,
+      "mean_max_lift_m": 0.0245,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.064,
+        0.3465
+      ]
+    },
+    {
+      "source": "sac_s2.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "final",
+      "env_steps": 690780,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.06,
+      "carry_rate_horizontal_high": 0.14,
+      "carry_rate": 0.14,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.18,
+      "reach_rate": 1.0,
+      "mean_return": 3.5244,
+      "mean_disp_m": 0.03,
+      "mean_max_lift_m": 0.0167,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0695,
+        0.2619
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "init",
+      "env_steps": 0,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "reach_rate": 0.08,
+      "mean_return": -0.5836,
+      "mean_disp_m": 0.009,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "init_stochastic",
+      "env_steps": 0,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.2,
+      "carry_rate_horizontal_high": 0.28,
+      "carry_rate": 0.28,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.16,
+      "grasp_rate": 0.4,
+      "lift_rate": 0.28,
+      "reach_rate": 0.64,
+      "mean_return": 6.9363,
+      "mean_disp_m": 0.0834,
+      "mean_max_lift_m": 0.0611,
+      "success_ci95": [
+        0.064,
+        0.3465
+      ],
+      "carry_ci95": [
+        0.1428,
+        0.4758
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 1380,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.0,
+      "lift_rate": 0.0,
+      "reach_rate": 0.52,
+      "mean_return": -0.156,
+      "mean_disp_m": 0.01,
+      "mean_max_lift_m": 0.0001,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic_stochastic",
+      "env_steps": 1380,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.12,
+      "carry_rate_horizontal_high": 0.24,
+      "carry_rate": 0.24,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.12,
+      "grasp_rate": 0.4,
+      "lift_rate": 0.28,
+      "reach_rate": 0.68,
+      "mean_return": 5.5924,
+      "mean_disp_m": 0.0633,
+      "mean_max_lift_m": 0.0575,
+      "success_ci95": [
+        0.0417,
+        0.2996
+      ],
+      "carry_ci95": [
+        0.115,
+        0.4343
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 139320,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.3562,
+      "mean_disp_m": 0.0093,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic_stochastic",
+      "env_steps": 139320,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.5192,
+      "mean_disp_m": 0.0096,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 277320,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.04,
+      "lift_rate": 0.0,
+      "reach_rate": 0.04,
+      "mean_return": -0.5066,
+      "mean_disp_m": 0.0096,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic_stochastic",
+      "env_steps": 277320,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.3996,
+      "mean_disp_m": 0.0095,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 415140,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.08,
+      "carry_rate_horizontal_high": 0.12,
+      "carry_rate": 0.12,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.12,
+      "reach_rate": 1.0,
+      "mean_return": 2.8899,
+      "mean_disp_m": 0.0386,
+      "mean_max_lift_m": 0.0198,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0417,
+        0.2996
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic_stochastic",
+      "env_steps": 415140,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.24,
+      "carry_rate_horizontal_high": 0.24,
+      "carry_rate": 0.24,
+      "throw_rate": 0.16,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.4,
+      "reach_rate": 1.0,
+      "mean_return": 4.1517,
+      "mean_disp_m": 0.0461,
+      "mean_max_lift_m": 0.0131,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.115,
+        0.4343
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 552000,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.12,
+      "lift_rate": 0.0,
+      "reach_rate": 0.12,
+      "mean_return": -0.2801,
+      "mean_disp_m": 0.0099,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic_stochastic",
+      "env_steps": 552000,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.04,
+      "carry_rate_horizontal_high": 0.04,
+      "carry_rate": 0.04,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.64,
+      "lift_rate": 0.04,
+      "reach_rate": 0.64,
+      "mean_return": 1.5695,
+      "mean_disp_m": 0.0161,
+      "mean_max_lift_m": 0.004,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0071,
+        0.1954
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic",
+      "env_steps": 690180,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.6,
+      "lift_rate": 0.0,
+      "reach_rate": 0.8,
+      "mean_return": 1.4882,
+      "mean_disp_m": 0.0097,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "periodic_stochastic",
+      "env_steps": 690180,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n25",
+      "n": 25,
+      "disp_3d_fallback_rows": 25,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.6726,
+      "mean_disp_m": 0.0097,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.1332
+      ],
+      "carry_ci95": [
+        0.0,
+        0.1332
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "final",
+      "env_steps": 690180,
+      "mode": "deterministic",
+      "origin": "training",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.72,
+      "lift_rate": 0.0,
+      "reach_rate": 0.84,
+      "mean_return": 1.747,
+      "mean_disp_m": 0.0099,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "rlpd.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "final_stochastic",
+      "env_steps": 690180,
+      "mode": "stochastic",
+      "origin": "training",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.6811,
+      "mean_disp_m": 0.0096,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "n50_rlpd_277320.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "posthoc_n50",
+      "env_steps": 277320,
+      "mode": "deterministic",
+      "origin": "posthoc",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.02,
+      "lift_rate": 0.0,
+      "reach_rate": 0.04,
+      "mean_return": -0.5422,
+      "mean_disp_m": 0.0091,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "n50_rlpd_415140.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "posthoc_n50",
+      "env_steps": 415140,
+      "mode": "deterministic",
+      "origin": "posthoc",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.08,
+      "carry_rate_horizontal_high": 0.12,
+      "carry_rate": 0.12,
+      "throw_rate": 0.04,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.16,
+      "reach_rate": 1.0,
+      "mean_return": 3.175,
+      "mean_disp_m": 0.0263,
+      "mean_max_lift_m": 0.0153,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0562,
+        0.2381
+      ]
+    },
+    {
+      "source": "n50_rlpd_552000.json",
+      "method": "RLPD",
+      "seed": 1,
+      "tag": "posthoc_n50",
+      "env_steps": 552000,
+      "mode": "deterministic",
+      "origin": "posthoc",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.1,
+      "lift_rate": 0.0,
+      "reach_rate": 0.1,
+      "mean_return": -0.3112,
+      "mean_disp_m": 0.012,
+      "mean_max_lift_m": 0.0003,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "n50_sac_s2_276000.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "posthoc_n50",
+      "env_steps": 276000,
+      "mode": "deterministic",
+      "origin": "posthoc",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 1.0,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.3644,
+      "mean_disp_m": 0.0112,
+      "mean_max_lift_m": 0.0001,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "n50_sac_s2_414000.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "posthoc_n50",
+      "env_steps": 414000,
+      "mode": "deterministic",
+      "origin": "posthoc",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.98,
+      "lift_rate": 0.0,
+      "reach_rate": 1.0,
+      "mean_return": 2.8551,
+      "mean_disp_m": 0.0121,
+      "mean_max_lift_m": 0.0008,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "n50_sac_s2_552240.json",
+      "method": "SAC",
+      "seed": 2,
+      "tag": "posthoc_n50",
+      "env_steps": 552240,
+      "mode": "deterministic",
+      "origin": "posthoc",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.02,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.18,
+      "lift_rate": 0.02,
+      "reach_rate": 0.74,
+      "mean_return": 1.0711,
+      "mean_disp_m": 0.0138,
+      "mean_max_lift_m": 0.0098,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    },
+    {
+      "source": "sft_v2.json",
+      "method": "SFT",
+      "seed": 0,
+      "tag": "sft_baseline",
+      "env_steps": 0,
+      "mode": "deterministic",
+      "origin": "baseline",
+      "suite": "n50",
+      "n": 50,
+      "disp_3d_fallback_rows": 50,
+      "carry_rate_horizontal_low": 0.0,
+      "carry_rate_horizontal_high": 0.0,
+      "carry_rate": 0.0,
+      "throw_rate": 0.0,
+      "full_success_rate": 0.0,
+      "grasp_rate": 0.02,
+      "lift_rate": 0.0,
+      "reach_rate": 0.14,
+      "mean_return": -0.4863,
+      "mean_disp_m": 0.009,
+      "mean_max_lift_m": 0.0,
+      "success_ci95": [
+        0.0,
+        0.0714
+      ],
+      "carry_ci95": [
+        0.0,
+        0.0714
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "source": "sac_s3.json",
+      "reason": "run not present on disk"
+    },
+    {
+      "source": "rlpd_s2.json",
+      "reason": "run not present on disk"
+    },
+    {
+      "source": "rlpd_s3.json",
+      "reason": "run not present on disk"
+    },
+    {
+      "source": "n50_rlpd_277320.json.wrongsuite",
+      "reason": "quarantined (wrong suite / partial / failed)"
+    },
+    {
+      "source": "n50_rlpd_415140.json.wrongsuite",
+      "reason": "quarantined (wrong suite / partial / failed)"
+    }
+  ]
+}

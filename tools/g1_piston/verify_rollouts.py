@@ -155,7 +155,7 @@ def main(dirs):
     out = {"metrics_version": M.METRICS_VERSION,
            "n_rollouts": len(recs), "n_verified": ok, "n_failed": len(recs) - ok,
            "rollouts": recs}
-    dest = ("/home/jren313/research/starvla_rl/verified_results/manifests/"
+    dest = ("/home/jren313/research/starvla_rl/RLinf/verified_results/manifests/"
             "rollout_verification.json")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     json.dump(out, open(dest, "w"), indent=2)
@@ -187,4 +187,4 @@ def main(dirs):
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:] or [
-        "/home/jren313/research/starvla_rl/verified_results/videos"]))
+        "/home/jren313/research/starvla_rl/RLinf/verified_results/videos"]))

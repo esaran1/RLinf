@@ -24,7 +24,7 @@ from rlinf.envs.isaaclab.tasks.g1_piston_reset import (  # noqa: E402
 
 S = ("/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/"
      "c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad")
-V = "/home/jren313/research/starvla_rl/verified_results"
+V = "/home/jren313/research/starvla_rl/RLinf/verified_results"
 
 _, EV = build_reset_suite(n_train=EXPERIMENT_N_TRAIN, n_eval=50, seed=20260817)
 H50 = [c.hash() for c in EV]

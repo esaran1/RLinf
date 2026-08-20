@@ -1,0 +1,67 @@
+{
+  "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+  "groups": {
+    "rlpd_s1|415140|deterministic": {
+      "n": 1,
+      "success": 0,
+      "carry": 0,
+      "videos": [
+        "/home/jren313/research/starvla_rl/verified_results/videos/matched/rlpd_s1_step415140_cond3_deterministic.mp4"
+      ]
+    },
+    "sft|0|stochastic": {
+      "n": 25,
+      "success": 4,
+      "carry": 6,
+      "videos": [
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond0_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond10_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond11_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond12_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond13_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond14_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond15_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond16_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond17_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond18_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond19_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond1_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond20_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond21_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond22_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond23_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond24_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond2_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond3_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond4_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond5_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond6_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond7_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond8_stochastic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond9_stochastic.mp4"
+      ]
+    },
+    "sft|0|deterministic": {
+      "n": 15,
+      "success": 0,
+      "carry": 0,
+      "videos": [
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond11_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond14_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond16_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond18_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond19_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond20_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond21_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond24_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond31_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond32_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond39_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond3_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond41_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond46_deterministic.mp4",
+        "/home/jren313/research/starvla_rl/verified_results/videos/sft/sft_step0_cond5_deterministic.mp4"
+      ]
+    }
+  }
+}

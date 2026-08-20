@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 
-V = "/home/jren313/research/starvla_rl/verified_results"
+V = "/home/jren313/research/starvla_rl/RLinf/verified_results"
 VERIF = f"{V}/manifests/rollout_verification.json"
 
 

@@ -117,3 +117,30 @@ def test_boundary_stats_detects_the_defect_and_the_fix():
 def test_default_blend_window_is_short_relative_to_the_chunk():
     """The ramp must not consume the chunk: most steps are the policy's own."""
     assert 0 < DEFAULT_BLEND_STEPS <= 30 // 4
+
+
+def test_the_chunk_end_pose_is_never_altered():
+    """Blending changes how the policy gets there, never where it ends up.
+
+    The last ``H - blend_steps`` commands are the policy's own, so the commanded end
+    pose of every chunk is bit-identical with and without blending. Without this,
+    smoothing would be silently rewriting the policy's intent.
+    """
+    rng = np.random.default_rng(0)
+    for _ in range(200):
+        prev = rng.normal(size=53)
+        chunk = rng.normal(size=(30, 53))
+        out = blend_chunk(chunk, prev, blend_steps=6)
+        assert np.array_equal(out[6:], chunk[6:])
+        assert np.array_equal(out[-1], chunk[-1])
+
+
+def test_blending_never_increases_the_boundary_jump():
+    """The intervention is strictly smoothing: it cannot worsen what it targets."""
+    rng = np.random.default_rng(1)
+    for _ in range(2000):
+        prev = rng.normal(size=8)
+        chunk = rng.normal(size=(30, 8))
+        out = blend_chunk(chunk, prev, blend_steps=6)
+        assert (np.abs(out[0] - prev).max()
+                <= np.abs(chunk[0] - prev).max() + 1e-12)

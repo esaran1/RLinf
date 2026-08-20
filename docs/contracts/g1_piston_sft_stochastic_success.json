@@ -1,0 +1,39 @@
+{
+  "id": "g1_piston_sft_stochastic_success",
+  "recorded": "2026-08-19",
+  "severity": "changes-the-headline-claim",
+  "metrics_version": "v1-frozen-2026-08-17",
+  "claim": "The untrained SFT policy completes the full task under its own sampling noise, and does so more often than ANY reinforcement-learned checkpoint. Under the deterministic mean action it is nearly inert.",
+  "evidence": {
+    "deterministic_pooled": {
+      "n": 125,
+      "sources": ["rlpd.json/init n=25", "sac_s2.json/init n=25", "sac.json/init n=25", "sft_v2.json/sft_baseline n=50"],
+      "carry_rate": 0.0, "full_success_rate": 0.0, "grasp_rate": 0.01
+    },
+    "stochastic": {
+      "n": 25, "source": "rlpd.json/init_stochastic",
+      "carry_rate": 0.28, "full_success_rate": 0.16, "grasp_rate": 0.40,
+      "mean_return": 6.936,
+      "success_wilson95": [0.064, 0.3465]
+    },
+    "successful_conditions": {
+      "note": "all four are coherent full sequences reach->grasp->lift->plate->success",
+      "cond11": {"return": 35.602, "disp_m": 0.3176, "lift_m": 0.2621},
+      "cond14": {"return": 35.574, "disp_m": 0.2972, "lift_m": 0.1737},
+      "cond16": {"return": 35.606, "disp_m": 0.3213, "lift_m": 0.2481},
+      "cond18": {"return": 35.624, "disp_m": 0.3290, "lift_m": 0.2175}
+    },
+    "within_demo_ranges": {
+      "demo_disp_range_m": [0.200, 0.322], "demo_lift_range_m": [0.129, 0.232],
+      "verdict": "the four successes sit inside the demonstration distribution; the RL carries do not"
+    }
+  },
+  "identical_weights_check": "Both step-0 evaluations run the untouched SFT policy before any gradient update; train_sac.py calls evaluate('init', 0) and evaluate('init_stochastic', 0, deterministic=False) back to back. The ONLY difference is deterministic mean action vs sampling at std 0.20.",
+  "consequences": [
+    "The deterministic evaluation protocol used for the whole SAC-vs-RLPD comparison systematically understates the SFT baseline, which is the reference the RL arms are supposed to improve on.",
+    "No RL checkpoint at any budget in any seed ever reaches the plate stage or a full success. The only full successes in the entire experiment come from the UNTRAINED policy.",
+    "'RL raises grasp from 0.02 to 1.00' is true but incomplete: RL raises the early stage while eliminating the downstream sequence."
+  ],
+  "open_question": "Whether sampling helps because exploration noise breaks a deterministic deadlock (e.g. a stuck contact), or because the SFT mean action is a poor summary of a multimodal action distribution. Not resolvable from metrics; needs the rendered rollouts.",
+  "status": "must be visually verified before being reported as a finding"
+}

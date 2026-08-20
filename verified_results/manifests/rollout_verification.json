@@ -1,7 +1,7 @@
 {
   "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
-  "n_rollouts": 74,
-  "n_verified": 74,
+  "n_rollouts": 76,
+  "n_verified": 76,
   "n_failed": 0,
   "rollouts": [
     {
@@ -150,6 +150,106 @@
         "carry_depends_on_vertical": false,
         "video_exists": true,
         "video_bytes": 2310219
+      },
+      "failures": [],
+      "verified": true
+    },
+    {
+      "sidecar": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos/deterministic_vs_stochastic/sac_s2_step690780_cond19_stochastic.json",
+      "video": "/home/jren313/research/starvla_rl/verified_results/videos/deterministic_vs_stochastic/sac_s2_step690780_cond19_stochastic.mp4",
+      "method": "sac_s2",
+      "seed": "2",
+      "checkpoint": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step690780.pt",
+      "checkpoint_env_steps": 690780,
+      "condition_index": 19,
+      "condition_hash": "6639633827d8171f",
+      "mode": "stochastic",
+      "stored_row": {
+        "condition": 19,
+        "hash": "6639633827d8171f",
+        "return": 2.576,
+        "disp_m": 0.0105,
+        "disp_xy_m": 0.0074,
+        "final_dz_m": -0.0075,
+        "max_lift_m": 0.0,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "checks": {
+        "hash_in_frozen_suite": true,
+        "suite_config": true,
+        "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+        "disp_recomputed": 0.0105,
+        "horizontal_disp_recomputed": 0.0074,
+        "lift_recomputed": 0.0,
+        "recomputed_label": {
+          "carry": false,
+          "throw": false,
+          "success": false,
+          "grasp": true,
+          "lift": false,
+          "reach": true
+        },
+        "carry_by_horizontal_only": false,
+        "carry_depends_on_vertical": false,
+        "video_exists": true,
+        "video_bytes": 2600579
+      },
+      "failures": [],
+      "verified": true
+    },
+    {
+      "sidecar": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos/deterministic_vs_stochastic/sac_s2_step690780_cond21_stochastic.json",
+      "video": "/home/jren313/research/starvla_rl/verified_results/videos/deterministic_vs_stochastic/sac_s2_step690780_cond21_stochastic.mp4",
+      "method": "sac_s2",
+      "seed": "2",
+      "checkpoint": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step690780.pt",
+      "checkpoint_env_steps": 690780,
+      "condition_index": 21,
+      "condition_hash": "5b24a1b90643a0b4",
+      "mode": "stochastic",
+      "stored_row": {
+        "condition": 21,
+        "hash": "5b24a1b90643a0b4",
+        "return": 2.487,
+        "disp_m": 0.0029,
+        "disp_xy_m": 0.0028,
+        "final_dz_m": -0.0008,
+        "max_lift_m": 0.0007,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "checks": {
+        "hash_in_frozen_suite": true,
+        "suite_config": true,
+        "metrics_version": "v1.1-frozen-2026-08-17-horizontal-fix",
+        "disp_recomputed": 0.0029,
+        "horizontal_disp_recomputed": 0.0028,
+        "lift_recomputed": 0.0007,
+        "recomputed_label": {
+          "carry": false,
+          "throw": false,
+          "success": false,
+          "grasp": true,
+          "lift": false,
+          "reach": true
+        },
+        "carry_by_horizontal_only": false,
+        "carry_depends_on_vertical": false,
+        "video_exists": true,
+        "video_bytes": 2629483
       },
       "failures": [],
       "verified": true

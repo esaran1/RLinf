@@ -48,7 +48,13 @@ EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))
 SEED = int(os.environ.get("SEED", "0"))
 
 os.makedirs(OUTDIR, exist_ok=True)
-STATUS = os.path.join(OUTDIR, f"_render_{TAG}_{MODE}.json")
+# The checkpoint MUST be in the status filename. Progression jobs share a tag, mode
+# and condition list and differ only by checkpoint; without it they all collide on
+# one status file and the queue's is_complete() skips every later checkpoint as
+# "already complete" -- which silently gutted the progression sequence once.
+_CKPT_ID = ("sft" if CKPT_PATH in ("", "sft")
+           else os.path.basename(CKPT_PATH).replace(".pt", ""))
+STATUS = os.path.join(OUTDIR, f"_render_{TAG}_{_CKPT_ID}_{MODE}.json")
 res = {"tag": TAG, "checkpoint": CKPT_PATH, "mode": MODE, "conditions": CONDS,
        "rollouts": []}
 

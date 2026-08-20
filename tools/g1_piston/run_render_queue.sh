@@ -26,12 +26,14 @@ log(){ echo "[$(date +%H:%M:%S)] $*"; }
 
 # A job is complete when its status file says OK and each condition has both artifacts.
 is_complete(){
-  local outdir="$1" tag="$2" mode="$3" conds="$4" repeats="${5:-1}"
-  "$PY" - "$outdir" "$tag" "$mode" "$conds" "$repeats" <<'PYEOF' >/dev/null 2>&1
+  local outdir="$1" tag="$2" mode="$3" conds="$4" repeats="${5:-1}" ckpt="${6:-sft}"
+  "$PY" - "$outdir" "$tag" "$mode" "$conds" "$repeats" "$ckpt" <<'PYEOF' >/dev/null 2>&1
 import json,os,sys,glob
 outdir,tag,mode,conds=sys.argv[1:5]
 repeats=int(sys.argv[5]) if len(sys.argv)>5 else 1
-st=os.path.join(outdir,f"_render_{tag}_{mode}.json")
+ckpt=sys.argv[6] if len(sys.argv)>6 else "sft"
+cid="sft" if ckpt in ("","sft") else os.path.basename(ckpt).replace(".pt","")
+st=os.path.join(outdir,f"_render_{tag}_{cid}_{mode}.json")
 if not os.path.exists(st): sys.exit(1)
 d=json.load(open(st))
 if d.get("_status")!="OK": sys.exit(1)
@@ -68,7 +70,7 @@ render(){
   local outdir="$V/videos/$sub"
   mkdir -p "$outdir"
 
-  if is_complete "$outdir" "$tag" "$mode" "$conds" "$repeats"; then
+  if is_complete "$outdir" "$tag" "$mode" "$conds" "$repeats" "$ckpt"; then
     log "SKIP  $tag/$mode conds=$conds (already complete)"; return 0
   fi
   if [ "$ckpt" != "sft" ] && [ ! -f "$ckpt" ]; then
@@ -83,11 +85,12 @@ render(){
   "$PY" "$T/render_rollouts.py" > "$outdir/${tag}_${mode}.log" 2>&1
   local rc=$?
 
-  if is_complete "$outdir" "$tag" "$mode" "$conds" "$repeats"; then
+  if is_complete "$outdir" "$tag" "$mode" "$conds" "$repeats" "$ckpt"; then
     log "DONE  $tag/$mode"
   else
     log "FAIL  $tag/$mode (exit $rc) -- continuing"
-    local st="$outdir/_render_${tag}_${mode}.json"
+    local cid; cid=$([ "$ckpt" = "sft" ] && echo sft || basename "$ckpt" .pt)
+    local st="$outdir/_render_${tag}_${cid}_${mode}.json"
     [ -f "$st" ] && mv -f "$st" "${st}.failed.$(date +%s)"
   fi
   return 0

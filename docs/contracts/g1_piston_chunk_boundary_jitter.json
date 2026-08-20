@@ -9,24 +9,54 @@
     "n_control_steps": 690,
     "chunk_length": 30,
     "cmd_step_delta_intra_chunk_mean_rad": 0.00542,
-    "cmd_step_delta_at_chunk_boundary_mean_rad": 0.11610,
+    "cmd_step_delta_at_chunk_boundary_mean_rad": 0.1161,
     "boundary_to_intra_ratio": 21.4,
     "cmd_step_delta_boundary_max_rad": 1.00002,
     "worst_joints": {
       "note": "identical values in pairs -- the Inspire retargeter drives two actuated joints from one commanded finger DOF",
-      "47_and_37": {"boundary": 0.5605, "intra": 0.0227, "ratio": 24.6},
-      "34_and_44": {"boundary": 0.5180, "intra": 0.0220, "ratio": 23.6},
-      "35_and_45": {"boundary": 0.4398, "intra": 0.0183, "ratio": 24.1},
-      "26": {"boundary": 0.4532, "intra": 0.0222, "ratio": 20.4}
+      "47_and_37": {
+        "boundary": 0.5605,
+        "intra": 0.0227,
+        "ratio": 24.6
+      },
+      "34_and_44": {
+        "boundary": 0.518,
+        "intra": 0.022,
+        "ratio": 23.6
+      },
+      "35_and_45": {
+        "boundary": 0.4398,
+        "intra": 0.0183,
+        "ratio": 24.1
+      },
+      "26": {
+        "boundary": 0.4532,
+        "intra": 0.0222,
+        "ratio": 20.4
+      }
     },
     "example_trace_joint47_rad": {
-      "boundary_step_30": [0.404, 0.401, 0.389, 1.292, 1.304, 1.319],
-      "boundary_step_60": [0.910, 0.896, 0.885, 1.371, 1.089, 0.971],
+      "boundary_step_30": [
+        0.404,
+        0.401,
+        0.389,
+        1.292,
+        1.304,
+        1.319
+      ],
+      "boundary_step_60": [
+        0.91,
+        0.896,
+        0.885,
+        1.371,
+        1.089,
+        0.971
+      ],
       "reading": "0.389 -> 1.292 in ONE control step: a 0.9 rad (52 deg) finger snap"
     },
     "tracking": {
       "mean_abs_command_minus_measured_rad": 0.0812,
-      "at_boundary_steps_rad": 0.1770,
+      "at_boundary_steps_rad": 0.177,
       "measured_joint_step_boundary_over_intra": 0.3,
       "reading": "the physical joints do NOT follow the command spike -- the PD controller saturates and lags, so the arm is chasing a target it cannot track. Command tracking error TRIPLES at boundaries."
     }
@@ -44,5 +74,38 @@
     "Whether smoothing the boundary improves carry/success, or merely looks better.",
     "Whether the demonstrations themselves contain such discontinuities at chunk boundaries."
   ],
-  "fix_must_not": "change the trained policy, the reward, the frozen metrics or the evaluation suite. Any smoothing is an EXECUTION-layer change and must be evaluated as a separate, clearly labelled arm rather than retrofitted onto existing numbers."
+  "fix_must_not": "change the trained policy, the reward, the frozen metrics or the evaluation suite. Any smoothing is an EXECUTION-layer change and must be evaluated as a separate, clearly labelled arm rather than retrofitted onto existing numbers.",
+  "demonstration_comparison": {
+    "question": "Do the demonstrations contain the same discontinuity? If so, smoothing would be inventing behaviour rather than restoring it.",
+    "measurement": "14 demonstration action files, shape ~(686, 30) normalized actions",
+    "demo_mean_abs_action_step": 0.00105,
+    "demo_mean_abs_step_at_every_30th_index": 0.00099,
+    "ratio": 0.94,
+    "verdict": "The demonstrations have NO chunk-boundary discontinuity -- the ratio is 0.94x, i.e. every-30th steps are if anything SMALLER than average. Chunking is imposed at inference time and does not exist in the data. Blending therefore RESTORES a property of the training distribution rather than inventing one."
+  },
+  "fix": {
+    "module": "rlinf/envs/isaaclab/tasks/g1_piston_chunk_blend.py",
+    "method": "ramp a new chunk in from the previous chunk's last command over 6 control steps (120 ms); the remaining 24 of 30 steps are the policy's own trajectory, unmodified",
+    "measured_effect_on_the_real_recorded_commands": {
+      "boundary_step_mean_rad": {
+        "before": 0.1161,
+        "after": 0.0166
+      },
+      "intra_chunk_step_mean_rad": {
+        "before": 0.0054,
+        "after": 0.0066
+      },
+      "boundary_to_intra_ratio": {
+        "before": 21.4,
+        "after": 2.5
+      },
+      "worst_single_step_jump_rad": {
+        "before": 1.0,
+        "after": 0.1429
+      }
+    },
+    "default": "BLEND_STEPS=0 -- disabled, so no existing result changes silently",
+    "tests": "tests/unit_tests/test_g1_piston_chunk_blend.py, 11 tests"
+  },
+  "open_question": "Whether this improves TASK OUTCOMES or only appearance. A/B queued: same checkpoints, same frozen suite, deterministic, BLEND_STEPS the only variable, paired baseline re-run in-session."
 }

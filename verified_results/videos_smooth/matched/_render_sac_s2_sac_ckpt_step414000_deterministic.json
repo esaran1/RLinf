@@ -1,0 +1,14 @@
+{
+  "tag": "sac_s2",
+  "checkpoint": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/sac_s2/sac_ckpt_step414000.pt",
+  "mode": "deterministic",
+  "conditions": [
+    21,
+    3,
+    19
+  ],
+  "rollouts": [],
+  "checkpoint_env_steps": 414000,
+  "checkpoint_grad_updates": 2899,
+  "_status": "RUNNING"
+}

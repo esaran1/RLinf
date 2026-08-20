@@ -1,0 +1,46 @@
+{
+  "output": "verified_results/videos_smooth/comparison/untrained_success_vs_rl_grasp_only.mp4",
+  "left": {
+    "video": "verified_results/videos_smooth/sft/sft_step0_cond0_stochastic.mp4",
+    "sidecar": {
+      "condition": 0,
+      "hash": "dffa437572f84d40",
+      "return": 35.881,
+      "disp_m": 0.3133,
+      "disp_xy_m": 0.2984,
+      "final_dz_m": 0.0955,
+      "max_lift_m": 0.2584,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "plate": true,
+        "success": true
+      }
+    },
+    "blend_steps": 6
+  },
+  "right": {
+    "video": "verified_results/videos_smooth/matched/rlpd_s1_step415140_cond21_deterministic.mp4",
+    "sidecar": {
+      "condition": 21,
+      "hash": "5b24a1b90643a0b4",
+      "return": 2.518,
+      "disp_m": 0.0064,
+      "disp_xy_m": 0.0063,
+      "final_dz_m": 0.0006,
+      "max_lift_m": 0.0008,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    "blend_steps": 6
+  },
+  "n_frames": 345
+}

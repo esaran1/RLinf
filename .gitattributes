@@ -1,1 +1,2 @@
 verified_results/videos/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+verified_results/**/*.mp4 filter=lfs diff=lfs merge=lfs -text

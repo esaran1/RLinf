@@ -161,5 +161,29 @@
     "tests": "tests/unit_tests/test_g1_piston_chunk_blend.py, 11 tests"
   },
   "open_question": "Whether this improves TASK OUTCOMES or only appearance. A/B queued: same checkpoints, same frozen suite, deterministic, BLEND_STEPS the only variable, paired baseline re-run in-session.",
-  "hypothesis_now_testable": "If the boundary finger snap is what breaks the grasp, then blending should raise carry/lift without changing grasp. If carry is unchanged, the jitter is real but not the binding constraint, and the failure lies elsewhere (reward, or the policy's own trajectory)."
+  "hypothesis_now_testable": "If the boundary finger snap is what breaks the grasp, then blending should raise carry/lift without changing grasp. If carry is unchanged, the jitter is real but not the binding constraint, and the failure lies elsewhere (reward, or the policy's own trajectory).",
+  "end_to_end_verification_2026_08_20": {
+    "what": "Controlled in-simulator measurement, not the offline blend calculation. Same checkpoint (rlpd_ckpt_step415140), same frozen condition 21, deterministic execution, full 23-chunk episode, 690 control steps, 22 boundaries. BLEND_STEPS is the only variable.",
+    "blend_0": {
+      "intra_chunk_mean": 0.005539,
+      "boundary_mean": 0.113961,
+      "ratio": 20.575,
+      "boundary_max": 0.902608,
+      "intra_max": 0.279358
+    },
+    "blend_6": {
+      "intra_chunk_mean": 0.008538,
+      "boundary_mean": 0.023424,
+      "ratio": 2.744,
+      "boundary_max": 0.146113,
+      "intra_max": 0.146818
+    },
+    "improvement": {
+      "boundary_mean": "4.9x smaller",
+      "ratio": "20.6x -> 2.7x",
+      "worst_single_jump": "0.903 rad -> 0.146 rad, 6.2x smaller"
+    },
+    "note": "The blended worst jump (0.146) is now BELOW the un-blended intra-chunk maximum (0.279), i.e. a chunk boundary is no longer the roughest moment in the trajectory. Intra-chunk mean rises slightly (0.0055 -> 0.0085) because the ramp redistributes the jump across six steps, which is the intended trade.",
+    "verdict": "The fix reaches the simulator. The visible shaking is genuinely removed, confirmed by direct command measurement rather than by the offline calculation or by eye."
+  }
 }

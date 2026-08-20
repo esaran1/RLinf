@@ -41,7 +41,8 @@ arm(){
   local name="$1" ckpt="$2" blend="$3"
   local out="$OUT/${name}_blend${blend}_n${N}.json"
   if is_done "$out"; then log "SKIP  $name blend=$blend"; return 0; fi
-  [ -f "$ckpt" ] || { log "MISS  $name -- no checkpoint"; return 0; }
+  # "sft" is a sentinel the evaluator accepts, meaning the raw SFT policy.
+  [ "$ckpt" = "sft" ] || [ -f "$ckpt" ] || { log "MISS  $name -- no checkpoint"; return 0; }
   wait_gpu || { log "gpu never freed"; return 0; }
   log "RUN   $name blend=$blend (n=$N, deterministic)"
   OUTF="$out" CKPT="$ckpt" RUN_DIR="$OUT/${name}_b${blend}" \

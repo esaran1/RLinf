@@ -1,0 +1,78 @@
+{
+  "headline": "No SAC-vs-RLPD claim is supportable: SAC's two training seeds disagree more than SAC differs from RLPD.",
+  "evidence_414k_frozen_suite": {
+    "SAC_seed1": {
+      "carry": 0.36,
+      "n": 25,
+      "ci95": [
+        0.2,
+        0.56
+      ],
+      "note": "n=25 only; no saved 414k checkpoint (predates per-step retention)"
+    },
+    "SAC_seed2": {
+      "carry": 0.0,
+      "n": 50,
+      "ci95": [
+        0.0,
+        0.07
+      ]
+    },
+    "RLPD_seed1": {
+      "carry": 0.12,
+      "n": 50,
+      "ci95": [
+        0.06,
+        0.24
+      ]
+    },
+    "reading": "RLPD sits BETWEEN the two SAC seeds. SAC s1 and SAC s2 have non-overlapping carry intervals despite being the SAME algorithm."
+  },
+  "correction": "an earlier report of mine said RLPD underperformed SAC on every primary metric. That compared RLPD against SAC seed 1 alone. With SAC seed 2 measured at n=50, SAC s2 carries 0.00 at the same checkpoint -- worse than RLPD's 0.12. The direction of the comparison depends entirely on which SAC seed is picked, which is precisely why the claim is unsupportable.",
+  "posthoc_reproduces_training": {
+    "rlpd@415140": {
+      "train_n25": 0.12,
+      "posthoc_n25": 0.12,
+      "posthoc_n50": 0.12
+    },
+    "sac_s2@414000": {
+      "train_n25": 0.04,
+      "posthoc_n25": 0.0,
+      "posthoc_n50": 0.0
+    },
+    "note": "RLPD reproduces exactly; SAC s2 differs by one condition (0.04 = 1/25), within GPU nondeterminism for a contact-rich task"
+  },
+  "n50_results": {
+    "rlpd@277320": {
+      "carry": 0.0,
+      "throw": 0.0,
+      "grasp": 0.02,
+      "return": -0.542
+    },
+    "rlpd@415140": {
+      "carry": 0.12,
+      "throw": 0.04,
+      "grasp": 1.0,
+      "return": 3.175
+    },
+    "sac_s2@276000": {
+      "carry": 0.0,
+      "throw": 0.0,
+      "grasp": 1.0,
+      "return": 2.364
+    },
+    "sac_s2@414000": {
+      "carry": 0.0,
+      "throw": 0.0,
+      "grasp": 0.98,
+      "return": 2.855
+    }
+  },
+  "what_IS_supported": "both algorithms take grasp from the SFT baseline of 0.02 to ~1.00; that holds across every seed and checkpoint measured",
+  "what_is_NOT_supported": [
+    "RLPD better than SAC",
+    "SAC better than RLPD",
+    "any sample-efficiency ordering"
+  ],
+  "required_next": "the three missing training arms (RLPD s2, SAC s3, RLPD s3). With 3 seeds per method the seed distribution can be separated from the algorithm difference; with 2 vs 1 it cannot."
+}

@@ -162,15 +162,16 @@
       "If a carry comparison is still wanted, budget repeats per arm rather than more conditions, and fix the reward exploit first -- 5 of 5 runs show throws, and one run was ALL throws."
     ]
   },
-  "FINAL_six_run_result": {
-    "protocol": "rlpd_ckpt_step415140, frozen 25-condition prefix, deterministic, BLEND_STEPS=0, six independent processes",
+  "FINAL_seven_run_result": {
+    "protocol": "rlpd_ckpt_step415140, frozen 25-condition prefix, deterministic, BLEND_STEPS=0, seven independent processes",
     "carry_rate": [
       0.12,
       0.2,
       0.0,
       0.36,
       0.2,
-      0.2
+      0.2,
+      0.12
     ],
     "lift_rate": [
       0.2,
@@ -178,17 +179,11 @@
       0.24,
       0.48,
       0.24,
-      0.4
-    ],
-    "throw_rate": [
-      0.08,
-      0.12,
-      0.24,
-      0.12,
-      0.04,
+      0.4,
       0.2
     ],
     "grasp_rate": [
+      1.0,
       1.0,
       1.0,
       1.0,
@@ -202,28 +197,29 @@
       0.0,
       0.0,
       0.0,
+      0.0,
       0.0
     ],
     "carry": {
-      "mean": 0.18,
-      "stdev": 0.118,
+      "mean": 0.171,
+      "stdev": 0.11,
       "spread": 0.36,
-      "ci95_with_6_repeats": [
-        0.086,
-        0.274
+      "ci95_with_7_repeats": [
+        0.09,
+        0.253
       ]
     },
-    "convergence": "spread 0.08 (2 runs) -> 0.20 (3) -> 0.36 (4) -> 0.36 (5) -> 0.36 (6). CONVERGED.",
+    "convergence": "spread 0.08 (2 runs) -> 0.20 (3) -> 0.36 (4,5,6,7). Stable across four consecutive additions.",
     "per_condition_jaccard": {
       "grasp": 1.0,
-      "lift": 0.149,
-      "carry": 0.074
+      "lift": 0.155,
+      "carry": 0.062
     },
     "power_table": {
-      "0.10": "~6 repeats per arm",
-      "0.05": "~22 repeats per arm",
-      "0.02": "~134 repeats per arm"
+      "0.10": "~5 repeats per arm",
+      "0.05": "~19 repeats per arm",
+      "0.02": "~117 repeats per arm"
     },
-    "the_dissociation": "In the SAME six runs: grasp is spread 0.000 and Jaccard 1.0 (perfectly reproducible, condition for condition) while carry is spread 0.360 and Jaccard 0.074. The instrument is sound; post-grasp outcomes simply carry almost no per-run signal."
+    "the_dissociation": "In the SAME seven runs: grasp is spread 0.000 and Jaccard 1.0 while carry is spread 0.360 and Jaccard 0.062. The instrument is sound; post-grasp outcomes carry almost no per-run signal."
   }
 }

@@ -13,41 +13,42 @@ induce transport. The transport measurement itself is too noisy to compare algor
 
 | claim | status | evidence |
 |---|---|---|
-| RL raises grasp from 0.02 to ~1.00 | **SUPPORTED** | spread 0.000, Jaccard 1.0 across 6 identical runs |
+| RL raises grasp from 0.02 to ~1.00 | **SUPPORTED** | spread 0.000, Jaccard 1.0 across 7 identical runs |
 | No RL checkpoint ever completes the task | **SUPPORTED** | full success 0.00 in every run of every arm |
 | The untrained SFT policy solves it stochastically | **SUPPORTED** | 0.16 success, replicated by an independent render (0.16), verified on video |
 | SAC beats RLPD, or the reverse | **NOT SUPPORTED** | noise range [0.00, 0.36] contains the algorithmic range [0.12, 0.36] |
-| Any per-condition lift or carry claim | **NOT SUPPORTED** | carry Jaccard 0.074 across identical runs |
+| Any per-condition lift or carry claim | **NOT SUPPORTED** | carry Jaccard 0.062 across identical runs |
 | Chunk-boundary jitter limits carry | **NOT SUPPORTED** | Δcarry −0.04, inside noise |
 
 ---
 
 ## 1. Post-grasp outcomes are not reproducible
 
-Six identical-protocol deterministic evaluations of **one** checkpoint
+Seven identical-protocol deterministic evaluations of **one** checkpoint
 (`rlpd_ckpt_step415140`) on the **same** frozen 25 conditions:
 
 ```
-carry    0.12  0.20  0.00  0.36  0.20  0.20     mean 0.180  stdev 0.118  spread 0.360
-lift     0.20  0.32  0.24  0.48  0.24  0.40
-grasp    1.00  1.00  1.00  1.00  1.00  1.00     spread 0.000
-success  0.00  0.00  0.00  0.00  0.00  0.00
+carry    0.12 0.20 0.00 0.36 0.20 0.20 0.12    mean 0.171  stdev 0.110  spread 0.360
+lift     0.20 0.32 0.24 0.48 0.24 0.40 0.20
+grasp    1.00 1.00 1.00 1.00 1.00 1.00 1.00    spread 0.000
+success  0.00 0.00 0.00 0.00 0.00 0.00 0.00
 ```
 
 The dissociation is the result. In the *same* runs, grasp is perfectly reproducible
 condition-for-condition (Jaccard **1.0**) while carry is essentially uncorrelated
-(Jaccard **0.074**). The instrument is sound; post-grasp outcomes carry almost no per-run
+(Jaccard **0.062**). The instrument is sound; post-grasp outcomes carry almost no per-run
 signal.
 
 The run-to-run carry spread (0.360) **exceeds the Wilson95 width a single run reports**
 (0.282), so a single evaluation is provably over-confident, not merely suspected of it.
-The spread converged: 0.08 → 0.20 → 0.36 → 0.36 → 0.36.
+The spread converged and held across four further runs: 0.08 → 0.20 → 0.36 → 0.36 →
+0.36 → 0.36.
 
 **Why this sinks the comparison.** The study's arms were each evaluated once:
 
 ```
 across algorithms and seeds:  SAC s1 0.36 | SAC s2 0.16 | RLPD 0.12   range [0.12, 0.36]
-one unchanged checkpoint:     0.12 0.20 0.00 0.36 0.20 0.20           range [0.00, 0.36]
+one unchanged checkpoint:     0.12 0.20 0.00 0.36 0.20 0.20 0.12      range [0.00, 0.36]
 ```
 
 Run 4 of the *RLPD* checkpoint produced carry 0.36 — the exact value that made SAC seed 1
@@ -58,9 +59,9 @@ a larger single evaluation does not shrink it:
 
 | carry difference to resolve | repeats per arm |
 |---|---|
-| 0.10 | ~6 |
-| 0.05 | ~22 |
-| 0.02 | ~134 |
+| 0.10 | ~5 |
+| 0.05 | ~19 |
+| 0.02 | ~117 |
 
 ---
 
@@ -122,7 +123,7 @@ measured against was systematically understated.
 
 ## 4. The reward exploit is still live
 
-Throws appear in all six repeat runs, and **run 3 was entirely throws** (6 lifts, 0
+Throws appear in every repeat run, and **one run was entirely throws** (6 lifts, 0
 carries; horizontal displacement 0.0004–0.0115 m against a 0.05 m threshold). The `lift`
 bonus pays for height alone, so flinging the piston banks reward without transport.
 

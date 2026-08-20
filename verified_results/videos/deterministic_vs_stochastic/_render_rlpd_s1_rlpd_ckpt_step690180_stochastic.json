@@ -1,0 +1,142 @@
+{
+  "tag": "rlpd_s1",
+  "checkpoint": "/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad/runs/rlpd/rlpd_ckpt_step690180.pt",
+  "mode": "stochastic",
+  "conditions": [
+    21,
+    19,
+    3
+  ],
+  "rollouts": [
+    {
+      "cond": 21,
+      "hash": "5b24a1b90643a0b4",
+      "video": "/home/jren313/research/starvla_rl/verified_results/videos/deterministic_vs_stochastic/rlpd_s1_step690180_cond21_stochastic.mp4",
+      "row": {
+        "condition": 21,
+        "hash": "5b24a1b90643a0b4",
+        "return": 2.565,
+        "disp_m": 0.0056,
+        "disp_xy_m": 0.0056,
+        "final_dz_m": 0.0003,
+        "max_lift_m": 0.0007,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 19,
+      "hash": "6639633827d8171f",
+      "video": "/home/jren313/research/starvla_rl/verified_results/videos/deterministic_vs_stochastic/rlpd_s1_step690180_cond19_stochastic.mp4",
+      "row": {
+        "condition": 19,
+        "hash": "6639633827d8171f",
+        "return": 2.465,
+        "disp_m": 0.0091,
+        "disp_xy_m": 0.0042,
+        "final_dz_m": -0.0081,
+        "max_lift_m": 0.0,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 3,
+      "hash": "f5537120a8d1ea37",
+      "video": "/home/jren313/research/starvla_rl/verified_results/videos/deterministic_vs_stochastic/rlpd_s1_step690180_cond3_stochastic.mp4",
+      "row": {
+        "condition": 3,
+        "hash": "f5537120a8d1ea37",
+        "return": 2.674,
+        "disp_m": 0.0099,
+        "disp_xy_m": 0.004,
+        "final_dz_m": -0.009,
+        "max_lift_m": 0.0,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "frames": 345
+    }
+  ],
+  "checkpoint_env_steps": 690180,
+  "checkpoint_grad_updates": 4990,
+  "_status": "OK",
+  "suite": {
+    "n_train": 400,
+    "n_eval": 50,
+    "reset_suite_seed": 20260817,
+    "eval_hashes": [
+      "dffa437572f84d40",
+      "f60fa5ca03c6a477",
+      "9bf42ffa96caaecd",
+      "f5537120a8d1ea37",
+      "00968119b01cb36a",
+      "ecab971237c428ef",
+      "dcc2fd8a069b75f6",
+      "271e8b94af4b9cb3",
+      "33cdfb7b8ee5fecb",
+      "20b0da5b1f52a49c",
+      "723816bdda5dcf5f",
+      "1df14a4bfcdd5f8d",
+      "0ffd70a332336855",
+      "d9277cf3bd98fdf7",
+      "d018c28710bb9fdd",
+      "03734cd7523b08b1",
+      "50d2414e0a64edbc",
+      "9e0fbfd2161bcaac",
+      "4cc2a807c83d9f0e",
+      "6639633827d8171f",
+      "28e4dae88b2738f6",
+      "5b24a1b90643a0b4",
+      "49d98c0f89e09e80",
+      "280513feb0d5128b",
+      "33b7fa7b2ddf9cd1",
+      "bfb9a20f41c23408",
+      "bfe68f0bf1533f07",
+      "c22ee26a83c0ac81",
+      "a23837af91767ffd",
+      "ef582e2419d8155c",
+      "4f5d9bc09d03c768",
+      "811c6bb59b69eb88",
+      "9e46511cfbfaef03",
+      "9d427f427ca9fa98",
+      "d9dcf5d4cbe59bab",
+      "fe8414b633cb5b2c",
+      "552212c6a249aa81",
+      "bcd1f013a70078fb",
+      "fad187b1acb39434",
+      "a532acf5dd7ef65f",
+      "d3d35d1a5666b761",
+      "9553ea2a8bff4ce1",
+      "9d6349968e5e1807",
+      "45c47cbbcfb9711f",
+      "43b4852df9b5fc78",
+      "959602134cbd0331",
+      "e9ec7799dfb062a7",
+      "67c0c6be5cabd47b",
+      "4af7ff3b684e6b40",
+      "2c3b8cacc6ea11bc"
+    ]
+  },
+  "wall_clock_s": 174.7
+}

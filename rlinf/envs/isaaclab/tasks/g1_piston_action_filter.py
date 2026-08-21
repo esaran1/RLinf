@@ -137,3 +137,29 @@ def attenuation_at(f_hz: float, fc_hz: float = DEMO_BANDWIDTH_HZ,
     # Skip the transient; compare steady-state amplitudes.
     tail = slice(n // 2, None)
     return float(np.abs(y[tail]).max() / np.abs(x[tail]).max())
+
+
+def temporal_smoothness_penalty(action_chunk, active_mask=None):
+    """CAPS-style temporal smoothness loss for a predicted action chunk.
+
+    Mean squared difference between consecutive actions within the chunk (Mysore et
+    al., ICRA 2021, arXiv:2012.06644 -- the L_T term), the training-time counterpart of
+    :class:`DemoEnvelopeFilter`: rather than filtering the oscillation at execution, it
+    penalises the actor for predicting it. Works on torch tensors so it can sit inside
+    the actor loss with gradients flowing.
+
+    Args:
+        action_chunk: ``[..., H, D]`` predicted actions (any monotone action space).
+        active_mask: optional boolean ``[D]``; only these dims are penalised, so frozen
+            dims cannot dilute the term.
+
+    Returns:
+        A scalar tensor. For the demonstrations this evaluates to ~1e-6 (they move
+        0.0009/step); for the measured RLPD checkpoint, ~1e-3 -- three orders larger,
+        so a weight around 0.1-1.0 penalises the pathology without touching demo-like
+        behaviour.
+    """
+    diff = action_chunk[..., 1:, :] - action_chunk[..., :-1, :]
+    if active_mask is not None:
+        diff = diff[..., active_mask]
+    return (diff ** 2).mean()

@@ -36,6 +36,13 @@ RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817"))
 #: alongside each deterministic one. Costs one extra sweep per checkpoint.
 EVAL_STOCHASTIC = os.environ.get("EVAL_STOCHASTIC", "1") == "1"
 UTD = float(os.environ.get("UTD", "0.5"))             # gradient updates per env decision
+#: CAPS-style temporal smoothness weight on the actor's predicted chunk (L_T of
+#: Mysore et al., ICRA 2021). 0 disables (the frozen experiment). Motivated by the
+#: measured RL-induced finger oscillation: demos move 0.0009/step, the RL policy
+#: 0.04/step -- see docs/contracts/g1_piston_rl_induced_oscillation.json. The penalty
+#: evaluates ~1e-6 on demo-like motion and ~1e-3 on the pathology, so weights around
+#: 0.1-1.0 punish the pump without constraining demonstrated behaviour.
+SMOOTH_LAMBDA = float(os.environ.get("SMOOTH_LAMBDA", "0"))
 BATCH = int(os.environ.get("BATCH", "8"))
 DEMO_FRAC = float(os.environ.get("DEMO_FRAC", "0.5")) # RLPD offline mix
 SEED = int(os.environ.get("SEED", "0"))
@@ -49,6 +56,7 @@ res = {
         "n_eval_conditions": N_EVAL_CONDITIONS,
         "n_eval_periodic": N_EVAL_PERIODIC, "reset_suite_seed": RESET_SUITE_SEED,
         "eval_stochastic": EVAL_STOCHASTIC,
+        "smooth_lambda": SMOOTH_LAMBDA,
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -84,6 +92,7 @@ try:
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
+    AFLT = _load("g1af", RL + "g1_piston_action_filter.py")
 
     # ---------------- simulator ----------------
     from isaaclab.app import AppLauncher
@@ -537,6 +546,15 @@ try:
         logp_chunk = lp.mean(dim=-1, keepdim=True)      # per control action
         entropy_term = alpha * logp_chunk
         aloss = (entropy_term - qpi).mean()
+        if SMOOTH_LAMBDA > 0:
+            # Penalise the DETERMINISTIC squashed chunk, not the sample: the target is
+            # the policy's predicted trajectory, and sampling noise would swamp it.
+            det = torch.tanh(mean_b) * ((ACTION_HIGH - ACTION_LOW) / 2.0) \
+                  + (ACTION_HIGH + ACTION_LOW) / 2.0
+            smooth = AFLT.temporal_smoothness_penalty(det, ACT_MASK.cpu()
+                                                      if det.device.type == "cpu"
+                                                      else ACT_MASK)
+            aloss = aloss + SMOOTH_LAMBDA * smooth
         opt_actor.zero_grad(); aloss.backward()
         agn = torch.nn.utils.clip_grad_norm_(
             list(model.action_model.parameters()) + [actor_logstd], 10.0)

@@ -134,3 +134,35 @@ def test_the_actual_measured_policy_pump_is_flattened():
         return np.mean([sig[b:b + 30].max() - sig[b:b + 30].min()
                         for b in range(0, len(sig) - 30, 30)])
     assert swing(y) < 0.5 * swing(x[:, 0]), (swing(x[:, 0]), swing(y))
+
+
+def test_smoothness_penalty_separates_demos_from_the_pathology():
+    """The training-time penalty must score the measured oscillation orders of
+    magnitude above demonstration-like motion, so a single weight covers both."""
+    import torch
+
+    from rlinf.envs.isaaclab.tasks.g1_piston_action_filter import (
+        temporal_smoothness_penalty,
+    )
+
+    t = torch.arange(30, dtype=torch.float64) * CONTROL_DT
+    demo_like = (0.0009 * 50 * t).unsqueeze(-1).expand(30, 4).unsqueeze(0)
+    pump = (0.33 * torch.sin(2 * torch.pi * 1.7 * t)).unsqueeze(-1).expand(30, 4)
+    pump = pump.unsqueeze(0)
+    p_demo = temporal_smoothness_penalty(demo_like)
+    p_pump = temporal_smoothness_penalty(pump)
+    assert p_pump / max(p_demo, torch.tensor(1e-12)) > 100, (p_demo, p_pump)
+
+
+def test_smoothness_penalty_respects_the_active_mask():
+    import torch
+
+    from rlinf.envs.isaaclab.tasks.g1_piston_action_filter import (
+        temporal_smoothness_penalty,
+    )
+
+    chunk = torch.zeros(1, 30, 4)
+    chunk[..., 3] = torch.linspace(0, 10, 30)     # violent motion on dim 3 only
+    mask = torch.tensor([True, True, True, False])
+    assert temporal_smoothness_penalty(chunk, mask).item() == 0.0
+    assert temporal_smoothness_penalty(chunk).item() > 0.0

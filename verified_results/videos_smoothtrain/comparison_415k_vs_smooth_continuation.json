@@ -22,15 +22,15 @@
     "blend_steps": null
   },
   "right": {
-    "video": "verified_results/videos_smoothtrain/rlpd_smooth_step15180_cond21_deterministic.mp4",
+    "video": "verified_results/videos_smoothtrain/diag_smooth_step15180_cond21_deterministic.mp4",
     "sidecar": {
       "condition": 21,
       "hash": "5b24a1b90643a0b4",
-      "return": 7.16,
-      "disp_m": 0.0016,
-      "disp_xy_m": 0.0009,
-      "final_dz_m": 0.0013,
-      "max_lift_m": 0.0502,
+      "return": 6.651,
+      "disp_m": 0.058,
+      "disp_xy_m": 0.057,
+      "final_dz_m": -0.0112,
+      "max_lift_m": 0.111,
       "stages": {
         "reach": true,
         "grasp": true,

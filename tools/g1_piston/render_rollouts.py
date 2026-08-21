@@ -38,6 +38,13 @@ CONDS = [int(x) for x in os.environ["CONDS"].split(",") if x.strip() != ""]
 REPEATS = int(os.environ.get("REPEATS", "1"))
 #: Disable frame capture, for isolating its effect on contact physics.
 NO_CAPTURE = os.environ.get("NO_CAPTURE", "0") == "1"
+#: Keep rolling after the simulator signals termination. Display/diagnosis only: the
+#: sidecar records where the signal fired (`sim_done_chunk`) so nothing is hidden --
+#: it lets the video show what the policy does for the full episode, and what actually
+#: happened to the object around the termination.
+IGNORE_DONE = os.environ.get("IGNORE_DONE", "0") == "1"
+#: Log per-step object pose and termination flags without changing rollout behaviour.
+LOG_STEPS = os.environ.get("LOG_STEPS", "0") == "1" or IGNORE_DONE
 #: Control steps over which a new chunk ramps in from the previous chunk's last command.
 #: 0 (the default) reproduces the study's execution exactly. Non-zero is a DIFFERENT
 #: EXECUTION MODE and must be reported as its own arm -- see
@@ -211,6 +218,8 @@ try:
         a = torch.where(ACT_MASK, a, FROZEN_V.expand_as(a))
         return a.reshape(b, c, d)
 
+    step_log = []  # per-step object pose + termination flags, IGNORE_DONE only
+
     def run_chunk(norm_action, frames, grab, prev_cmd=None):
         """Identical to eval_checkpoint.run_chunk, plus frame capture and optional blend.
 
@@ -233,6 +242,13 @@ try:
             a = cmd[t].unsqueeze(0)
             for _hold in range(2):
                 _, _, te, tr, _ = env.step(a)
+                if LOG_STEPS:
+                    step_log.append({
+                        "root": [round(float(x), 4) for x in
+                                 sc["object"].data.root_pos_w[0].cpu().numpy()],
+                        "body1": [round(float(x), 4) for x in
+                                  sc["object"].data.body_pos_w[0, 1].cpu().numpy()],
+                        "te": bool(te[0]), "tr": bool(tr[0])})
                 if bool(te[0]) or bool(tr[0]):
                     done = True
             r, info = reward_fn.step()
@@ -247,7 +263,7 @@ try:
             # to TEST that, by isolating capture as the only difference.
             if t % 2 == 0 and not NO_CAPTURE:
                 frames.append(grab())
-            if done:
+            if done and not IGNORE_DONE:
                 break
         return total_r, done, info, cmd[min(t, H - 1)].cpu().numpy().copy()
 
@@ -291,6 +307,8 @@ try:
         _ = act_filter.reset() if act_filter is not None else None
         bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
         frames, per_chunk = [], []
+        sim_done_chunk = None
+        step_log.clear()
         ret, maxlift, stages = 0.0, 0.0, {}
         deterministic = (MODE == "deterministic")
         prev_cmd = None
@@ -325,7 +343,10 @@ try:
                 "stages": {k: bool(v) for k, v in stages.items()},
             })
             if done:
-                break
+                if sim_done_chunk is None:
+                    sim_done_chunk = c
+                if not IGNORE_DONE:
+                    break
 
         bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
         row = {"condition": cond.index, "hash": cond.hash(),
@@ -379,6 +400,8 @@ try:
             "filter_dims": FILTER_DIMS,
             "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
+            "sim_done_chunk": sim_done_chunk,
+            "step_log": list(step_log) if LOG_STEPS else None,
             "piston_initial_xyz": [round(float(x), 5) for x in bar0],
             "piston_final_xyz": [round(float(x), 5) for x in bar],
             "row": row, "trajectory": per_chunk,

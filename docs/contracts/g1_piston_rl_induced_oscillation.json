@@ -151,6 +151,7 @@
     "controlled_comparison": "The penalty is causally responsible for the smoothing: against the lambda=0 counterfactual (3.37e-3) the lambda=100 policy is 3.4x smoother, and arm sway only moves under the penalty. Task metrics are statistically indistinguishable between the two continuations (lift 0.72 vs 0.68, return 8.56 vs 7.71) -- the smoothness penalty cost nothing.",
     "task_note": "Both continuations exceed the ENTIRE 8-run baseline range on lift, tube and return (baseline lift <= 0.56, tube <= 0.24, return <= 6.07). Attribution: the additional training, not the penalty. Single evaluation each -- interpret via the noise-floor caveat, though exceeding the full observed range on three metrics simultaneously in both arms is unlikely to be noise."
    }
-  }
+  },
+  "render_termination_note": "The first smoothed renders ended at chunk 3: the underlying IsaacLab task has a single termination term (misleadingly named \"success\") that resets when the object leaves x(-0.42,1.0), y(0.2,0.7), or z<0.5. The smoothed policy transports the piston ~0.17 m toward the y=0.2 boundary; whether it crosses mid-episode varies by draw (contact nondeterminism -- same checkpoint, same condition: one render terminated at chunk 3, the diagnostic re-render ran all 23 chunks with te/tr false at every one of 1380 logged steps, final root y=0.2345). Implication for the continuation evals: episodes that cross the boundary truncate early, which biases lift/return DOWN, so lift 0.72 / 0.68 are conservative. mean_return comparisons across arms with different truncation rates carry that caveat. The full-length render (diag_smooth_*, step_log included) replaced the truncated draw in the comparison video; the truncated draw is retained as evidence."
  }
 }

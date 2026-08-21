@@ -213,8 +213,15 @@ Two corollaries worth stating plainly:
    the controlled comparison is the stronger and cleaner readout. Both continuations
    exceed the entire 8-run baseline range on lift/tube/return — attributable to the
    extra training, and stated with the noise-floor caveat (one evaluation per arm).
-   Videos: `videos_smoothtrain/` (all three renders reach **lift**; the 415k baseline's
-   matched renders end at grasp).
+   Videos: `videos_smoothtrain/` (renders reach **lift**; the 415k baseline's matched
+   renders end at grasp). One render caveat, diagnosed after the first cut: the sim's
+   own termination (an out-of-bounds reset the upstream task misnames `success`) fires
+   when the piston leaves y ∈ (0.2, 0.7) — and the smoothed policy carries the piston
+   ~0.17 m toward that boundary, so some draws truncate at chunk 3 while a logged
+   re-render of the same checkpoint/condition ran all 23 chunks (1380 steps, no fire,
+   final y = 0.2345). Truncation biases the continuation lift/return numbers *down*, so
+   they are conservative. The comparison video uses the full-length draw; the truncated
+   draw is retained.
 
 Contract: `docs/contracts/g1_piston_rl_induced_oscillation.json`. Videos:
 `videos_filtered/rlpd_hand/` (hand-only filter, the validated fix).

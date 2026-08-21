@@ -61,11 +61,16 @@ For grasp, yes. For lift or carry, no — a different run succeeds on different 
 Say this before being asked; it is the finding, not a limitation of the tooling.
 
 **"Why do the hands shake in the earlier videos?"**
-A real control defect: the commanded trajectory jumped up to 1.0 rad in a single 50 Hz
-step at every 30-step chunk boundary, worst on the hand joints. Fixed at the execution
-layer (`videos_smooth/` has the fix on, worst jump now 0.14 rad). **It did not improve
-task performance** — carry 0.20 → 0.16, inside noise — which rules out the jitter as the
-reason grasps do not survive into transport.
+Two real, separately measured defects. (1) Chunk-boundary jerk: the command jumped up to
+1.0 rad in one 50 Hz step at every 30-step boundary — fixed by blending. (2) The larger
+one: **RL fine-tuning itself induced a ~1.7 Hz finger oscillation** — the RLPD policy's
+predicted finger trajectory pumps 43× the demonstrations' per-step velocity (SAC: 247×),
+while the untrained SFT policy is demo-smooth. Fixed by a demonstration-envelope filter
+on the 12 hand dims only (`videos_filtered/rlpd_hand/`): every constant measured from
+the demos, grasp preserved at 1.00 on the frozen suite, arm passed through bit-exactly.
+**Neither fix changed task outcomes** — carry stays inside the noise range — which rules
+out the shaking as the reason grasps do not survive into transport. Full story:
+FINDINGS.md §5.
 
 **"So RL made things worse?"**
 On full task success, RL went from 0.16 (stochastic SFT) to 0.00, and it never recovers

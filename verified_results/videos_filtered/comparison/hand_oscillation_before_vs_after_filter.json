@@ -1,0 +1,46 @@
+{
+  "output": "verified_results/videos_filtered/comparison/hand_oscillation_before_vs_after_filter.mp4",
+  "left": {
+    "video": "verified_results/videos/matched/rlpd_s1_step415140_cond21_deterministic.mp4",
+    "sidecar": {
+      "condition": 21,
+      "hash": "5b24a1b90643a0b4",
+      "return": 2.348,
+      "disp_m": 0.0085,
+      "disp_xy_m": 0.003,
+      "final_dz_m": -0.008,
+      "max_lift_m": 0.0,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    "blend_steps": null
+  },
+  "right": {
+    "video": "verified_results/videos_filtered/rlpd_hand/rlpd_s1_step415140_cond21_deterministic.mp4",
+    "sidecar": {
+      "condition": 21,
+      "hash": "5b24a1b90643a0b4",
+      "return": 2.515,
+      "disp_m": 0.0085,
+      "disp_xy_m": 0.0085,
+      "final_dz_m": 0.0007,
+      "max_lift_m": 0.0008,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    "blend_steps": 0
+  },
+  "n_frames": 345
+}

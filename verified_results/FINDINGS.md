@@ -137,6 +137,67 @@ the wrong quantity.
 
 ---
 
+## 5. RL made the hands oscillate — root cause and the validated fix
+
+The visible "hand shaking" in the videos is **not** sensor noise, rendering, or the
+chunk-boundary jitter of finding 2. It is the RL policy's *predicted finger trajectory
+itself*: a ~1.7 Hz open-close pump, ~0.6 rad per 30-step chunk, with 92% of its energy
+below 2 Hz and smooth sign-flips — deliberate swings, not dither.
+
+**Attribution ladder** (per-chunk finger swing on joint 47, identical execution):
+
+| policy | swing/chunk | per-step | vs demos |
+|---|---|---|---|
+| demonstrations | 0.03 | 0.0009 | 1× |
+| SFT (untrained) | 0.065 | 0.0041 | 4.6× |
+| RLPD @415k | 0.580 | 0.0398 | **43×** |
+| SAC seed 2 @690k | 1.594 | 0.2225 | **247×** |
+
+SFT is demo-smooth; the oscillation is *created by RL fine-tuning*. Dose-response
+supports the mechanism: RLPD's 50% demonstration replay keeps its pump 3× smaller than
+SAC's — demo replay partially protects smoothness. The reward has no action-smoothness
+term, so nothing opposes the drift (consistent with CAPS, Mysore et al., ICRA 2021).
+
+**Fix: a demonstration-envelope filter** (`g1_piston_action_filter.py`) — causal 2-pole
+low-pass at 1.2 Hz plus a 0.175/step slew cap, every constant measured from the 11 demos
+(97.6% of demonstrated hand energy is below 1.0 Hz; 0.175 is the largest step any demo
+contains). Three pre-registered A/B arms on the frozen suite, judged against the 8-run
+noise floor of finding 1:
+
+| arm | grasp | verdict |
+|---|---|---|
+| filter on all 30 dims | 0.68 | **FAIL** — below every baseline run; arm lag breaks reach timing |
+| filter on the 12 hand dims only | **1.00** | **PASS** — arm bit-exact, grasp fully preserved |
+| full-dim filter, SFT stochastic | success 0/25 | **FAIL** — destroys the 0.16 success rate |
+
+In-sim with the hand-only filter: finger per-step motion 0.0398 → 0.0156 (2.6×
+smoother), total command range halved (1.32 → 0.68 rad), energy above 1 Hz cut from 32%
+to 10%. Carry 0.04, inside the noise range — the filter removes the fast pathology at
+zero task cost.
+
+**What remains is not noise.** After filtering, a 0.8 Hz, ±0.17 rad slow open-close
+finger wave persists — *inside* the demonstrated bandwidth, so the filter passes it
+correctly. It is the policy's predicted behaviour, not execution roughness: no envelope
+filter can remove it without vetoing the policy. The source-level remedy is
+training-time (`SMOOTH_LAMBDA`) or heavier demonstration replay (the dose-response row
+above). A lower-cutoff arm (0.6 Hz, pre-registered gate) tests how much of the slow wave
+can be traded away before finger closure becomes too slow to grasp.
+
+Two corollaries worth stating plainly:
+
+1. **The SFT policy's successes depend on high-frequency action noise.** Filtering the
+   stochastic SFT to the demonstrated bandwidth eliminated not just its 4/25 successes
+   but *all reaching*. The only behaviour in this study that completes the task does so
+   by exploiting exactly the out-of-envelope dynamics the filter removes.
+2. **A training-time fix exists for future runs**: `SMOOTH_LAMBDA` in `train_sac.py`
+   adds the CAPS temporal-smoothness penalty (demo motion scores ~1e-6, the pathology
+   ~1e-3, so one weight separates them). Default 0; untested at scale here.
+
+Contract: `docs/contracts/g1_piston_rl_induced_oscillation.json`. Videos:
+`videos_filtered/rlpd_hand/` (hand-only filter, the validated fix).
+
+---
+
 ## Recommendation
 
 **Do not** resume the three remaining training seeds for a carry-based comparison: ~32

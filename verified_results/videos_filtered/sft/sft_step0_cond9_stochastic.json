@@ -1,0 +1,573 @@
+{
+  "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_filtered/sft/sft_step0_cond9_stochastic.mp4",
+  "method": "sft",
+  "seed": "0",
+  "checkpoint": "sft",
+  "checkpoint_env_steps": 0,
+  "checkpoint_grad_updates": 0,
+  "condition_index": 9,
+  "condition_hash": "20b0da5b1f52a49c",
+  "condition_in_frozen_suite": true,
+  "condition_joint_delta": {
+    "right_shoulder_pitch_joint": -0.024198430618770906,
+    "right_shoulder_roll_joint": -0.014616355481937307,
+    "right_shoulder_yaw_joint": 0.04631904753754859,
+    "right_elbow_joint": 0.04826181737039742,
+    "right_wrist_roll_joint": 0.0014192528641199104,
+    "right_wrist_pitch_joint": -0.02422533986398097,
+    "right_wrist_yaw_joint": -0.04375793860406757,
+    "waist_yaw_joint": 0.017726680785470465,
+    "waist_roll_joint": 0.0024190185327851027,
+    "waist_pitch_joint": 0.005511340368963228
+  },
+  "condition_piston_dxy": [
+    0.0006829183491852851,
+    -0.00018975600031150269
+  ],
+  "reset_suite_seed": 20260817,
+  "n_train": 400,
+  "mode": "stochastic",
+  "fps": 20,
+  "n_frames": 345,
+  "stochastic_is_independent_draw": true,
+  "blend_steps": 0,
+  "filter_hz": 1.2,
+  "filter_dims": "all",
+  "rng_seed": 0,
+  "episode_chunks": 23,
+  "piston_initial_xyz": [
+    -0.14932,
+    0.39981,
+    0.89817
+  ],
+  "piston_final_xyz": [
+    -0.14913,
+    0.39933,
+    0.88905
+  ],
+  "row": {
+    "condition": 9,
+    "hash": "20b0da5b1f52a49c",
+    "return": -0.684,
+    "disp_m": 0.0091,
+    "disp_xy_m": 0.0005,
+    "final_dz_m": -0.0091,
+    "max_lift_m": 0.0,
+    "stages": {
+      "reach": false,
+      "grasp": false,
+      "lift": false,
+      "tube": false,
+      "plate": false,
+      "success": false
+    }
+  },
+  "trajectory": [
+    {
+      "chunk": 0,
+      "cum_return": -0.026,
+      "piston_xyz": [
+        -0.14928,
+        0.39872,
+        0.88917
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0011,
+      "final_dz_m": -0.009,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 1,
+      "cum_return": -0.056,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 2,
+      "cum_return": -0.086,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 3,
+      "cum_return": -0.116,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 4,
+      "cum_return": -0.146,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 5,
+      "cum_return": -0.176,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 6,
+      "cum_return": -0.206,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 7,
+      "cum_return": -0.236,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 8,
+      "cum_return": -0.266,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 9,
+      "cum_return": -0.296,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 10,
+      "cum_return": -0.326,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 11,
+      "cum_return": -0.356,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 12,
+      "cum_return": -0.384,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 13,
+      "cum_return": -0.414,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 14,
+      "cum_return": -0.444,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 15,
+      "cum_return": -0.474,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 16,
+      "cum_return": -0.504,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 17,
+      "cum_return": -0.534,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 18,
+      "cum_return": -0.564,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 19,
+      "cum_return": -0.594,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 20,
+      "cum_return": -0.624,
+      "piston_xyz": [
+        -0.14913,
+        0.39932,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 21,
+      "cum_return": -0.654,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 22,
+      "cum_return": -0.684,
+      "piston_xyz": [
+        -0.14913,
+        0.39933,
+        0.88905
+      ],
+      "disp_m": 0.0091,
+      "disp_xy_m": 0.0005,
+      "final_dz_m": -0.0091,
+      "max_lift_m": 0.0,
+      "stage": "-",
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "plate": false,
+        "success": false
+      }
+    }
+  ]
+}

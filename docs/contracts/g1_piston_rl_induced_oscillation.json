@@ -97,6 +97,16 @@
    "success": 0.0,
    "mean_return": 3.22,
    "verdict": "PASS (pre-registered gate grasp >= 0.92). The combination of the hand-only demo-envelope filter (1.2 Hz) and 6-step arm chunk blending is task-neutral: grasp 0.96 inside the baseline range [0.96, 1.00], carry 0.12 inside noise. This is the PRESENTATION execution config: hands smoothed, arm boundary snap (up to 1 rad) ramped out."
+  },
+  "hand_filter_fc06_plus_blend6_rlpd_415k_det_n25": {
+   "file": "runs/filter_ab/rlpd_415k_handfc06_n25.json",
+   "grasp": 1.0,
+   "lift": 0.04,
+   "carry": 0.04,
+   "throw": 0.0,
+   "success": 0.0,
+   "mean_return": 2.533,
+   "verdict": "PASS (pre-registered gate grasp >= 0.92). fc=0.6 Hz on the hand dims plus 6-step arm blending keeps grasp at 1.00 -- the grasp is robust to slow finger closure. This is the calmest validated execution config; the remaining visible motion is the sub-1 Hz ARM sway, which only the training-time fix can address."
   }
  },
  "conclusion": "Execution-layer fix validated: DemoEnvelopeFilter (f_c=1.2 Hz, slew 0.175/step) applied to the 12 hand dims only. Grasp preserved at 1.00 (n=25 det, frozen suite), carry inside noise, boundary jumps 0.90 -> 0.01 rad, per-step hand motion ~3x smoother. Full-dim filtering is REJECTED (arm lag breaks grasp: 0.68). Stochastic-SFT filtering is REJECTED (destroys the 0.16 success rate; those successes ride on high-frequency sampled noise). Training-time counterpart for future runs: SMOOTH_LAMBDA (CAPS L_T) in train_sac.py, default 0.",

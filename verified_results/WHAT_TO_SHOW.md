@@ -69,8 +69,10 @@ while the untrained SFT policy is demo-smooth. Fixed by a demonstration-envelope
 on the 12 hand dims only (`videos_filtered/rlpd_hand/`): every constant measured from
 the demos, grasp preserved at 1.00 on the frozen suite, arm passed through bit-exactly.
 **Neither fix changed task outcomes** — carry stays inside the noise range — which rules
-out the shaking as the reason grasps do not survive into transport. Full story:
-FINDINGS.md §5.
+out the shaking as the reason grasps do not survive into transport. The calmest validated config is
+`videos_filtered/rlpd_handfc06/` (grasp 1.00); the before/after is
+`videos_filtered/comparison/hand_oscillation_raw_vs_calmest_config.mp4`. The residual
+slow arm sway is also RL-induced and only fixable in training. Full story: FINDINGS.md §5.
 
 **"So RL made things worse?"**
 On full task success, RL went from 0.16 (stochastic SFT) to 0.00, and it never recovers

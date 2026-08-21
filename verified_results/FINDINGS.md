@@ -169,19 +169,25 @@ noise floor of finding 1:
 | filter on all 30 dims | 0.68 | **FAIL** — below every baseline run; arm lag breaks reach timing |
 | filter on the 12 hand dims only | **1.00** | **PASS** — arm bit-exact, grasp fully preserved |
 | full-dim filter, SFT stochastic | success 0/25 | **FAIL** — destroys the 0.16 success rate |
+| hand filter 1.2 Hz + arm blend 6 | 0.96 | **PASS** — presentation config; arm boundary snap 1.0 → 0.15 rad |
+| hand filter **0.6 Hz** + arm blend 6 | **1.00** | **PASS** — calmest validated config; finger range 1.32 → 0.31 rad, per-step 43× → 5.6× demos |
 
 In-sim with the hand-only filter: finger per-step motion 0.0398 → 0.0156 (2.6×
 smoother), total command range halved (1.32 → 0.68 rad), energy above 1 Hz cut from 32%
 to 10%. Carry 0.04, inside the noise range — the filter removes the fast pathology at
 zero task cost.
 
-**What remains is not noise.** After filtering, a 0.8 Hz, ±0.17 rad slow open-close
-finger wave persists — *inside* the demonstrated bandwidth, so the filter passes it
-correctly. It is the policy's predicted behaviour, not execution roughness: no envelope
-filter can remove it without vetoing the policy. The source-level remedy is
-training-time (`SMOOTH_LAMBDA`) or heavier demonstration replay (the dose-response row
-above). A lower-cutoff arm (0.6 Hz, pre-registered gate) tests how much of the slow wave
-can be traded away before finger closure becomes too slow to grasp.
+**What remains is not noise — and it is not only the hands.** RL also induced a slow
+(sub-1 Hz) **arm sway**: shoulder/elbow command sway is 2–4× the SFT policy's (joint 26:
+0.40 → 1.03 rad; joint 16: 0.14 → 0.60), with SAC equal or worse (joint 16: 1.66). This
+sits at 0.2–0.8 Hz, where demonstrated reaching also lives, so no execution filter can
+remove it — the full-dim A/B already showed arm filtering breaks grasp. The fc=0.6 arm
+brought the *fingers* to 5.6× demo velocity (from 43×) at grasp 1.00; the visible
+residual in even the calmest config is this arm sway. The source-level remedy is
+training-time: a CAPS smoothness penalty (`SMOOTH_LAMBDA`) or heavier demonstration
+replay (the dose-response row above). A pre-registered continuation run — RLPD resumed
+from the same 415k checkpoint with `SMOOTH_LAMBDA=100` — tests exactly this; its gate
+(penalty −50% at grasp ≥ 0.92) was committed before the data.
 
 Two corollaries worth stating plainly:
 

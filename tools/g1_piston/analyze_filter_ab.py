@@ -69,6 +69,29 @@ def main():
     else:
         print("RLPD filtered eval: not available yet")
 
+    got = load(f"{S}/runs/filter_ab/rlpd_415k_handonly_n25.json", "deterministic")
+    if got:
+        rows, status = got
+        c = M.classify(rows)
+        print(f"\nRLPD@415k HAND-ONLY FILTER (f_c=1.2 Hz, dims 14-25), n={len(rows)}, "
+              f"status={status}")
+        print("  grasp %.2f  lift %.2f  carry %.2f  throw %.2f  succ %.2f  ret %.3f"
+              % (c["grasp_rate"], c["lift_rate"], c["carry_rate"], c["throw_rate"],
+                 c["full_success_rate"], c["mean_return"]))
+        gr, cr = c["grasp_rate"], c["carry_rate"]
+        if gr < BASE_GRASP_MIN:
+            print(f"  VERDICT grasp: STILL a regression ({gr:.2f}) -- the hand filter "
+                  "itself interferes with gripping, not just arm lag")
+        else:
+            print(f"  VERDICT grasp: restored ({gr:.2f} vs baseline min 0.96) -- the "
+                  "full-dim regression was arm lag, as hypothesised")
+        if cr > max(BASE_CARRY):
+            print("  VERDICT carry: above the entire baseline range")
+        else:
+            print(f"  VERDICT carry: {cr:.2f}, inside baseline noise [0.00, 0.36]")
+    else:
+        print("\nhand-only filtered eval: not available yet")
+
     got = load(f"{S}/runs/filter_ab/sft_stoch_filter12_n25.json", "stochastic")
     if got:
         rows, status = got

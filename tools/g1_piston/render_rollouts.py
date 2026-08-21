@@ -47,6 +47,10 @@ BLEND_STEPS = int(os.environ.get("BLEND_STEPS", "0"))
 #: execution). Non-zero is a DIFFERENT EXECUTION MODE -- see
 #: docs/contracts/g1_piston_rl_induced_oscillation.json -- reported as its own arm.
 FILTER_HZ = float(os.environ.get("FILTER_HZ", "0"))
+#: "all" filters every dim; "hand" only dims 14-25, leaving the arm untouched -- the
+#: minimal intervention, since the measured pathology is confined to the hands and
+#: whole-action filtering lagged the reach enough to break grasp timing.
+FILTER_DIMS = os.environ.get("FILTER_DIMS", "all").lower()
 CONDS = [c for c in CONDS for _ in range(REPEATS)]
 MODE = os.environ.get("MODE", "deterministic").lower()
 TAG = os.environ.get("TAG", "run")
@@ -121,7 +125,9 @@ try:
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
     reward_fn = RW.PistonTaskReward(sc, jn)
-    act_filter = (AF.DemoEnvelopeFilter(dim=30, fc_hz=FILTER_HZ)
+    act_filter = (AF.DemoEnvelopeFilter(
+                      dim=30, fc_hz=FILTER_HZ,
+                      apply_dims=(AF.HAND_DIMS if FILTER_DIMS == "hand" else None))
                   if FILTER_HZ > 0 else None)
 
     mcfg = OmegaConf.load(CFGY)
@@ -370,6 +376,7 @@ try:
             "stochastic_is_independent_draw": (MODE == "stochastic"),
             "blend_steps": BLEND_STEPS,
             "filter_hz": FILTER_HZ,
+            "filter_dims": FILTER_DIMS,
             "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
             "piston_initial_xyz": [round(float(x), 5) for x in bar0],

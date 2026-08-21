@@ -82,10 +82,22 @@ class DemoEnvelopeFilter:
     """
 
     def __init__(self, dim: int = 30, fc_hz: float = DEMO_BANDWIDTH_HZ,
-                 dt: float = CONTROL_DT, max_step: float = DEMO_MAX_STEP):
+                 dt: float = CONTROL_DT, max_step: float = DEMO_MAX_STEP,
+                 apply_dims=None):
+        """``apply_dims``: optional iterable of dim indices to filter; all other dims
+        pass through untouched. The measured pathology is confined to the hand dims
+        (0.020 rad/step vs the arm's 0.0026, demo 0.0009), and filtering the arm adds
+        reach-phase lag that a pre-registered A/B showed breaks grasp timing (grasp
+        0.68 vs a baseline worst of 0.96). Hand-only application is therefore the
+        minimal intervention matched to the measurement."""
         if fc_hz <= 0:
             raise ValueError("fc_hz must be positive; use enabled=False to bypass")
         self.dim = int(dim)
+        if apply_dims is None:
+            self.apply_mask = np.ones(self.dim, dtype=bool)
+        else:
+            self.apply_mask = np.zeros(self.dim, dtype=bool)
+            self.apply_mask[list(apply_dims)] = True
         self.fc_hz = float(fc_hz)
         self.dt = float(dt)
         self.max_step = float(max_step)
@@ -118,7 +130,12 @@ class DemoEnvelopeFilter:
         self._s2 += a * (self._s1 - self._s2)
         step = np.clip(self._s2 - self._out, -self.max_step, self.max_step)
         self._out = self._out + step
-        return self._out.copy()
+        y = np.where(self.apply_mask, self._out, u)
+        # Track the raw command on pass-through dims so re-enabling later is seamless.
+        self._out = np.where(self.apply_mask, self._out, u)
+        self._s1 = np.where(self.apply_mask, self._s1, u)
+        self._s2 = np.where(self.apply_mask, self._s2, u)
+        return y.copy()
 
     def filter_chunk(self, chunk):
         """Filter a ``(H, dim)`` chunk sequentially, carrying state across calls."""
@@ -163,3 +180,7 @@ def temporal_smoothness_penalty(action_chunk, active_mask=None):
     if active_mask is not None:
         diff = diff[..., active_mask]
     return (diff ** 2).mean()
+
+
+#: The 12 hand dims of the 30-D action (both hands): where the measured pathology lives.
+HAND_DIMS = tuple(range(14, 26))

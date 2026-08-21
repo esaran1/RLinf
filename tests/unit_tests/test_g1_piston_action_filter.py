@@ -166,3 +166,22 @@ def test_smoothness_penalty_respects_the_active_mask():
     mask = torch.tensor([True, True, True, False])
     assert temporal_smoothness_penalty(chunk, mask).item() == 0.0
     assert temporal_smoothness_penalty(chunk).item() > 0.0
+
+
+def test_hand_only_filtering_leaves_the_arm_bit_exact():
+    """The regression fix: filtering all dims lagged the reach and broke grasp
+    (0.68 vs baseline worst 0.96). Hand-only mode must pass arm dims through
+    bit-exactly while still smoothing the hands."""
+    from rlinf.envs.isaaclab.tasks.g1_piston_action_filter import HAND_DIMS
+
+    rng = np.random.default_rng(2)
+    x = rng.normal(size=(120, 30))
+    f = DemoEnvelopeFilter(dim=30, apply_dims=HAND_DIMS)
+    y = f.filter_chunk(x)
+    arm = [i for i in range(30) if i not in HAND_DIMS]
+    assert np.array_equal(y[:, arm], x[:, arm])
+    assert not np.array_equal(y[:, list(HAND_DIMS)], x[:, list(HAND_DIMS)])
+    # and the hands are genuinely smoother
+    dh = np.abs(np.diff(y[:, list(HAND_DIMS)], axis=0)).mean()
+    dx = np.abs(np.diff(x[:, list(HAND_DIMS)], axis=0)).mean()
+    assert dh < 0.5 * dx

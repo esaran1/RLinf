@@ -89,10 +89,12 @@ def main():
     else:
         print("\nSFT filtered eval: not available yet")
 
-    p = f"{S}/handdyn_rlpd_filt.json"
+    # filt2 is the corrected probe; the original silently ignored FILTER_HZ and
+    # measured an unfiltered rollout. Refuse any probe that does not record the filter.
+    p = f"{S}/handdyn_rlpd_filt2.json"
     if os.path.exists(p):
         d = json.load(open(p))
-        if d.get("_status") == "OK":
+        if d.get("_status") == "OK" and d.get("filter_hz", 0) > 0:
             print(f"\nIN-SIM SMOOTHNESS, filtered (from the command probe):")
             print("  boundary %.4f  intra %.4f  boundary_max %.4f"
                   % (d["boundary_mean"], d["intra_chunk_mean"], d["boundary_max"]))

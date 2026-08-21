@@ -8,6 +8,24 @@ directory; nothing here is stronger than the data supports.
 ## Show this one video
 
 ```
+verified_results/videos_smoothtrain/comparison_415k_vs_smooth_continuation.mp4
+```
+
+Left: the RLPD@415k policy — hands oscillating at 43× the demonstrations' velocity,
+piston never leaves the holder. Right: the *same checkpoint* after 15k continuation
+steps with a CAPS smoothness penalty (λ=100) — visibly calmer, extracts the piston and
+moves it. A duration-matched λ=0 control changed nothing (penalty 2.17e-3 vs baseline
+1.88e-3), so the difference on screen is caused by the penalty, and it cost nothing:
+task metrics between the two continuations are indistinguishable.
+
+**What to say:** *"RL fine-tuning induced motor oscillation the demonstrations don't
+contain — we measured it, traced it to the missing smoothness term in the objective,
+and removed it at the source with a one-line penalty, validated against a matched
+control."*
+
+## The original contrast (second video)
+
+```
 verified_results/videos_smooth/comparison/untrained_success_vs_rl_grasp_only.mp4
 ```
 

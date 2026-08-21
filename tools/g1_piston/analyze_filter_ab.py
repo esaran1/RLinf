@@ -119,6 +119,34 @@ def main():
     else:
         print("\ncombo (hand filter + blend) eval: not available yet")
 
+    # Pre-registered BEFORE the fc=0.6 data existed (2026-08-20): after fc=1.2 removed
+    # the fast jitter, a slow 0.8 Hz +-0.17 rad finger wave remained (in-band, i.e.
+    # policy-predicted behaviour). fc=0.6 tests whether attenuating it costs grasp:
+    # slower finger closure may miss grasp timing exactly as arm lag did. Gate: grasp
+    # >= 0.92 to pass; carry judged against the same 8-run noise range.
+    got = load(f"{S}/runs/filter_ab/rlpd_415k_handfc06_n25.json", "deterministic")
+    if got:
+        rows, status = got
+        c = M.classify(rows)
+        print(f"\nRLPD@415k HAND FILTER fc=0.6 Hz + BLEND6, n={len(rows)}, "
+              f"status={status}")
+        print("  grasp %.2f  lift %.2f  carry %.2f  throw %.2f  succ %.2f  ret %.3f"
+              % (c["grasp_rate"], c["lift_rate"], c["carry_rate"], c["throw_rate"],
+                 c["full_success_rate"], c["mean_return"]))
+        gr, cr = c["grasp_rate"], c["carry_rate"]
+        if gr < BASE_GRASP_MIN:
+            print(f"  VERDICT: FAIL ({gr:.2f}) -- finger closure too slow for grasp; "
+                  "fc=1.2 hand-only remains the validated execution config")
+        else:
+            print(f"  VERDICT: PASS ({gr:.2f} vs baseline min 0.96) -- fc=0.6 is "
+                  "task-neutral and maximally calms the hands")
+        if cr > max(BASE_CARRY):
+            print("  carry: above the entire baseline range")
+        else:
+            print(f"  carry: {cr:.2f}, inside baseline noise [0.00, 0.36]")
+    else:
+        print("\nfc=0.6 hand filter eval: not available yet")
+
     got = load(f"{S}/runs/filter_ab/sft_stoch_filter12_n25.json", "stochastic")
     if got:
         rows, status = got

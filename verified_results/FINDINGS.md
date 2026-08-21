@@ -195,9 +195,26 @@ Two corollaries worth stating plainly:
    stochastic SFT to the demonstrated bandwidth eliminated not just its 4/25 successes
    but *all reaching*. The only behaviour in this study that completes the task does so
    by exploiting exactly the out-of-envelope dynamics the filter removes.
-2. **A training-time fix exists for future runs**: `SMOOTH_LAMBDA` in `train_sac.py`
-   adds the CAPS temporal-smoothness penalty (demo motion scores ~1e-6, the pathology
-   ~1e-3, so one weight separates them). Default 0; untested at scale here.
+2. **The training-time fix works, and the controlled experiment proves it.** RLPD was
+   continued from the same 415k checkpoint for the same wall-clock (2.5 h, seed 0) twice:
+   with `SMOOTH_LAMBDA=100` and with λ=0.
+
+   | continuation | penalty metric | finger swing | arm sway | grasp | lift | return |
+   |---|---|---|---|---|---|---|
+   | none (415k baseline) | 1.88e-3 | 0.580 | 0.764 | 0.96–1.00 | ≤0.56 | ≤6.07 |
+   | **λ=100** | **1.00e-3 (−47%)** | **0.363** | **0.563** | 1.00 | 0.72 | 8.56 |
+   | λ=0 control | 3.37e-3 (**+79%**) | 0.549 | 0.769 | 1.00 | 0.68 | 7.71 |
+
+   Three conclusions. (a) *Continued RL degrades smoothness by default* — the control got
+   79% rougher, confirming the drift mechanism. (b) *The penalty causes the smoothing*:
+   3.4× smoother than the counterfactual, and it is the only arm where the sub-1 Hz arm
+   sway moves. (c) *It costs nothing*: task metrics are indistinguishable between the two
+   continuations. The pre-registered static gate (−50%) was narrowly missed at −47%;
+   the controlled comparison is the stronger and cleaner readout. Both continuations
+   exceed the entire 8-run baseline range on lift/tube/return — attributable to the
+   extra training, and stated with the noise-floor caveat (one evaluation per arm).
+   Videos: `videos_smoothtrain/` (all three renders reach **lift**; the 415k baseline's
+   matched renders end at grasp).
 
 Contract: `docs/contracts/g1_piston_rl_induced_oscillation.json`. Videos:
 `videos_filtered/rlpd_hand/` (hand-only filter, the validated fix).

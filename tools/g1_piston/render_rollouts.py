@@ -43,6 +43,10 @@ NO_CAPTURE = os.environ.get("NO_CAPTURE", "0") == "1"
 #: EXECUTION MODE and must be reported as its own arm -- see
 #: docs/contracts/g1_piston_chunk_boundary_jitter.json.
 BLEND_STEPS = int(os.environ.get("BLEND_STEPS", "0"))
+#: Demonstration-envelope action filter cutoff (Hz). 0 disables (the study's frozen
+#: execution). Non-zero is a DIFFERENT EXECUTION MODE -- see
+#: docs/contracts/g1_piston_rl_induced_oscillation.json -- reported as its own arm.
+FILTER_HZ = float(os.environ.get("FILTER_HZ", "0"))
 CONDS = [c for c in CONDS for _ in range(REPEATS)]
 MODE = os.environ.get("MODE", "deterministic").lower()
 TAG = os.environ.get("TAG", "run")
@@ -98,6 +102,7 @@ try:
     RW = _load("g1r", RL + "g1_piston_reward.py")
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     CB = _load("g1cb", RL + "g1_piston_chunk_blend.py")
+    AF = _load("g1af", RL + "g1_piston_action_filter.py")
 
     from isaaclab.app import AppLauncher
     app = AppLauncher(headless=True, enable_cameras=True).app
@@ -116,6 +121,8 @@ try:
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
     reward_fn = RW.PistonTaskReward(sc, jn)
+    act_filter = (AF.DemoEnvelopeFilter(dim=30, fc_hz=FILTER_HZ)
+                  if FILTER_HZ > 0 else None)
 
     mcfg = OmegaConf.load(CFGY)
     from deployment.model_server.tools.image_tools import to_pil_preserve
@@ -204,6 +211,12 @@ try:
         Returns the final command issued, so the next chunk can ramp in from it.
         """
         phys = nrm.denormalize(norm_action.detach().cpu())
+        if act_filter is not None:
+            # Filter in physical action space, the units the demonstrations are in;
+            # the mapper and retargeter then see demonstration-envelope dynamics.
+            import torch as _tf
+            phys = _tf.as_tensor(act_filter.filter_chunk(phys.numpy()),
+                                 dtype=phys.dtype)
         cmd = retarget.apply(mapper.map(phys).to(env.device), phys.to(env.device))
         if BLEND_STEPS > 0 and prev_cmd is not None:
             import torch as _t
@@ -269,6 +282,7 @@ try:
         env.reset(seed=0)
         apply_reset_condition(env, cond)
         reward_fn.reset()
+        _ = act_filter.reset() if act_filter is not None else None
         bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
         frames, per_chunk = [], []
         ret, maxlift, stages = 0.0, 0.0, {}
@@ -355,6 +369,7 @@ try:
             # here is always recomputed from THIS rollout's trajectory.
             "stochastic_is_independent_draw": (MODE == "stochastic"),
             "blend_steps": BLEND_STEPS,
+            "filter_hz": FILTER_HZ,
             "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
             "piston_initial_xyz": [round(float(x), 5) for x in bar0],

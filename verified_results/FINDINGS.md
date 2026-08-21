@@ -173,7 +173,7 @@ noise floor of finding 1:
 | hand filter **0.6 Hz** + arm blend 6 | **1.00** | **PASS** — calmest validated config; finger range 1.32 → 0.31 rad, per-step 43× → 5.6× demos |
 
 In-sim with the hand-only filter: finger per-step motion 0.0398 → 0.0156 (2.6×
-smoother), total command range halved (1.32 → 0.68 rad), energy above 1 Hz cut from 32%
+smoother), total command range halved (1.32 → 0.68 rad), energy above 1 Hz cut from 39%
 to 10%. Carry 0.04, inside the noise range — the filter removes the fast pathology at
 zero task cost.
 
@@ -203,13 +203,15 @@ Two corollaries worth stating plainly:
    |---|---|---|---|---|---|---|
    | none (415k baseline) | 1.88e-3 | 0.580 | 0.764 | 0.96–1.00 | ≤0.56 | ≤6.07 |
    | **λ=100** | **1.00e-3 (−47%)** | **0.363** | **0.563** | 1.00 | 0.72 | 8.56 |
-   | λ=0 control | 3.37e-3 (**+79%**) | 0.549 | 0.769 | 1.00 | 0.68 | 7.71 |
+   | λ=0 control | 2.17e-3 | 0.571 | 0.736 | 1.00 | 0.68 | 7.71 |
 
-   Three conclusions. (a) *Continued RL degrades smoothness by default* — the control got
-   79% rougher, confirming the drift mechanism. (b) *The penalty causes the smoothing*:
-   3.4× smoother than the counterfactual, and it is the only arm where the sub-1 Hz arm
-   sway moves. (c) *It costs nothing*: task metrics are indistinguishable between the two
-   continuations. The pre-registered static gate (−50%) was narrowly missed at −47%;
+   (Audit note: the control row was first computed from a probe draw that truncated at
+   135 steps and read 3.37e-3 — a reach-phase-only figure, retracted; the row above is a
+   full-length 690-step re-probe.) Three conclusions. (a) *Continued RL does not fix the
+   oscillation on its own* — the control is indistinguishable from the baseline on every
+   smoothness measure. (b) *The penalty causes the smoothing*: 2.2× smoother than the
+   matched control, and it is the only arm where the sub-1 Hz arm sway moves. (c) *It
+   costs nothing*: task metrics are indistinguishable between the two continuations. The pre-registered static gate (−50%) was narrowly missed at −47%;
    the controlled comparison is the stronger and cleaner readout. Both continuations
    exceed the entire 8-run baseline range on lift/tube/return — attributable to the
    extra training, and stated with the noise-floor caveat (one evaluation per arm).

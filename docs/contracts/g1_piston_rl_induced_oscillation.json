@@ -87,7 +87,33 @@
     "filter": 0.0115
    },
    "note": "The filter works as designed mechanically (halves the pump, subsumes blending); its failures are task-level, not implementation-level."
+  },
+  "hand_filter_plus_blend6_rlpd_415k_det_n25": {
+   "file": "runs/filter_ab/rlpd_415k_handblend_n25.json",
+   "grasp": 0.96,
+   "lift": 0.12,
+   "carry": 0.12,
+   "throw": 0.0,
+   "success": 0.0,
+   "mean_return": 3.22,
+   "verdict": "PASS (pre-registered gate grasp >= 0.92). The combination of the hand-only demo-envelope filter (1.2 Hz) and 6-step arm chunk blending is task-neutral: grasp 0.96 inside the baseline range [0.96, 1.00], carry 0.12 inside noise. This is the PRESENTATION execution config: hands smoothed, arm boundary snap (up to 1 rad) ramped out."
   }
  },
- "conclusion": "Execution-layer fix validated: DemoEnvelopeFilter (f_c=1.2 Hz, slew 0.175/step) applied to the 12 hand dims only. Grasp preserved at 1.00 (n=25 det, frozen suite), carry inside noise, boundary jumps 0.90 -> 0.01 rad, per-step hand motion ~3x smoother. Full-dim filtering is REJECTED (arm lag breaks grasp: 0.68). Stochastic-SFT filtering is REJECTED (destroys the 0.16 success rate; those successes ride on high-frequency sampled noise). Training-time counterpart for future runs: SMOOTH_LAMBDA (CAPS L_T) in train_sac.py, default 0."
+ "conclusion": "Execution-layer fix validated: DemoEnvelopeFilter (f_c=1.2 Hz, slew 0.175/step) applied to the 12 hand dims only. Grasp preserved at 1.00 (n=25 det, frozen suite), carry inside noise, boundary jumps 0.90 -> 0.01 rad, per-step hand motion ~3x smoother. Full-dim filtering is REJECTED (arm lag breaks grasp: 0.68). Stochastic-SFT filtering is REJECTED (destroys the 0.16 success rate; those successes ride on high-frequency sampled noise). Training-time counterpart for future runs: SMOOTH_LAMBDA (CAPS L_T) in train_sac.py, default 0.",
+ "in_band_residual": {
+  "finding": "RL fine-tuning also induced SLOW (sub-1 Hz) oscillation, on the ARM as well as the fingers. Sub-1 Hz command sway, same condition: joint 12 SFT 0.43 -> RLPD 0.83 rad; joint 16 0.14 -> 0.60; joint 22 0.15 -> 0.66; joint 26 0.40 -> 1.03; joint 28 0.16 -> 0.71. SAC seed 2 is equal or worse (j16 1.66). The hand filter + blend leave it unchanged (in-band, arm unfiltered): visible residual motion in the filtered videos is this sway plus a 0.8 Hz +-0.17 rad finger flex.",
+  "implication": "Execution-layer filtering is structurally unable to remove it: it lives at 0.2-0.8 Hz where demonstrated reaching also lives, and the pre-registered full-dim A/B already showed arm filtering breaks grasp. The complete fix is training-time: CAPS smoothness penalty (SMOOTH_LAMBDA) or heavier demonstration replay (dose-response: RLPD 50% replay has ~3x less oscillation than SAC).",
+  "files": "handdyn_sft_cmd.npy vs blendcmd_b0_cmd.npy vs handdyn_rlpd_handblend_cmd.npy vs handdyn_sac2_cmd.npy"
+ },
+ "training_time_fix_experiment": {
+  "registered": "2026-08-21 00:35, before any data",
+  "design": "Continue RLPD from rlpd_ckpt_step415140.pt (WARM_CKPT) with SMOOTH_LAMBDA=100 (CAPS L_T on the deterministic squashed chunk, active dims), wall-clock bounded at 2.5 h, MAX_ENV_STEPS=120000, checkpoints every 15000 env steps. All other hyperparameters identical to the original RLPD run (demo_frac 0.5, UTD 0.5, batch 8, seed 0).",
+  "gates": {
+   "PASS": "deterministic-chunk smoothness penalty drops >= 50% from its warm-start value AND final-checkpoint grasp on the frozen suite >= 0.92 (n=25 det)",
+   "FAIL_behaviour": "grasp < 0.92 -- the penalty broke the behaviour",
+   "FAIL_ineffective": "penalty does not move -- the fix does not work at this scale/duration"
+  },
+  "rationale": "lambda=100 makes the measured pathology cost ~0.1-0.3 against actor-loss terms ~3 while demo-like motion costs ~1e-4. L_T mainly targets the fast pump; the sub-1 Hz sway has small per-step diffs and may move less -- report both.",
+  "status": "RUNNING (queued behind the fc=0.6 chain)"
+ }
 }

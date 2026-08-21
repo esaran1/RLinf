@@ -92,6 +92,33 @@ def main():
     else:
         print("\nhand-only filtered eval: not available yet")
 
+    # Pre-registered BEFORE the combo data existed (2026-08-20): the presentation
+    # config (hand filter 1.2 Hz + arm blend 6) passes only if grasp >= 0.92; carry
+    # is judged against the same 8-run noise range. Both components are individually
+    # task-validated; this gates the combination.
+    got = load(f"{S}/runs/filter_ab/rlpd_415k_handblend_n25.json", "deterministic")
+    if got:
+        rows, status = got
+        c = M.classify(rows)
+        print(f"\nRLPD@415k HAND FILTER + BLEND6 (presentation config), n={len(rows)}, "
+              f"status={status}")
+        print("  grasp %.2f  lift %.2f  carry %.2f  throw %.2f  succ %.2f  ret %.3f"
+              % (c["grasp_rate"], c["lift_rate"], c["carry_rate"], c["throw_rate"],
+                 c["full_success_rate"], c["mean_return"]))
+        gr, cr = c["grasp_rate"], c["carry_rate"]
+        if gr < BASE_GRASP_MIN:
+            print(f"  VERDICT: FAIL ({gr:.2f}) -- blending interacts with the hand "
+                  "filter; presentation videos must use hand-only filter without blend")
+        else:
+            print(f"  VERDICT: PASS ({gr:.2f} vs baseline min 0.96) -- the combination "
+                  "is task-neutral and is the presentation execution config")
+        if cr > max(BASE_CARRY):
+            print("  carry: above the entire baseline range")
+        else:
+            print(f"  carry: {cr:.2f}, inside baseline noise [0.00, 0.36]")
+    else:
+        print("\ncombo (hand filter + blend) eval: not available yet")
+
     got = load(f"{S}/runs/filter_ab/sft_stoch_filter12_n25.json", "stochastic")
     if got:
         rows, status = got

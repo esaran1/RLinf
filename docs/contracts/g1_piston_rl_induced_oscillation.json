@@ -1,44 +1,93 @@
 {
-  "id": "g1_piston_rl_induced_oscillation",
-  "recorded": "2026-08-20",
-  "severity": "ROOT CAUSE of the visible hand shaking -- and a candidate cause of the noise floor",
-  "claim": "RL fine-tuning induced a ~1.7 Hz open-close oscillation of the fingers that neither the demonstrations nor the SFT policy contain. The visible 'hand shaking' is not jitter, noise, or chunk-boundary jerk: it is the RL policy's predicted finger trajectory pumping ~0.6 rad every 30-step chunk.",
-  "measurement": {
-    "protocol": "same probe, same frozen condition 21, deterministic, full 690-step episode; finger joint 47 (1:1 with the policy's raw finger command via coupling=1.0)",
-    "finger_swing_per_chunk_rad": {
-      "demonstrations": 0.03,
-      "sft": 0.065,
-      "rlpd_415k": 0.58,
-      "sac_s2_690k": 1.594
-    },
-    "per_step_velocity": {
-      "demonstrations": 0.0009,
-      "sft": 0.0041,
-      "rlpd_415k": 0.0398,
-      "sac_s2_690k": 0.2225
-    },
-    "spectral": "92% of the RLPD finger-command energy sits below 2 Hz with the pump at ~1.7 Hz (once per 0.6 s chunk); sign-flip rate 0.12, i.e. smooth large swings, not high-frequency noise",
-    "demonstration_behaviour": "finger at 0.00 through the reach, closes 0 -> 1.30 rad over ~1 s, then holds rock-steady for the remainder of the episode",
-    "demo_bandwidth": "97.6% of demonstrated hand-signal energy below 1.0 Hz"
+ "id": "g1_piston_rl_induced_oscillation",
+ "recorded": "2026-08-20",
+ "severity": "ROOT CAUSE of the visible hand shaking -- and a candidate cause of the noise floor",
+ "claim": "RL fine-tuning induced a ~1.7 Hz open-close oscillation of the fingers that neither the demonstrations nor the SFT policy contain. The visible 'hand shaking' is not jitter, noise, or chunk-boundary jerk: it is the RL policy's predicted finger trajectory pumping ~0.6 rad every 30-step chunk.",
+ "measurement": {
+  "protocol": "same probe, same frozen condition 21, deterministic, full 690-step episode; finger joint 47 (1:1 with the policy's raw finger command via coupling=1.0)",
+  "finger_swing_per_chunk_rad": {
+   "demonstrations": 0.03,
+   "sft": 0.065,
+   "rlpd_415k": 0.58,
+   "sac_s2_690k": 1.594
   },
-  "attribution": "SFT swing 0.065 vs RLPD 0.580 under identical execution: the oscillation is CREATED by RL fine-tuning, not inherited. Mechanism consistent with the literature (CAPS, Mysore et al., ICRA 2021, arXiv:2012.06644): exploration noise (std 0.2) on the hand dims enters the replay buffer, the reward contains no action-smoothness term, and the actor update fits the roughness.",
-  "why_earlier_fixes_failed": {
-    "chunk_blending": "fixed the boundary discontinuity (0.90 -> 0.15 rad) but the pump lives INSIDE the chunk; A/B correctly showed no effect",
-    "why_it_looked_like_jitter": "the retargeter drives proximal+intermediate from one command (coupling 1.0), doubling the visual amplitude on the fingers"
+  "per_step_velocity": {
+   "demonstrations": 0.0009,
+   "sft": 0.0041,
+   "rlpd_415k": 0.0398,
+   "sac_s2_690k": 0.2225
   },
-  "connections": [
-    "Candidate cause of the post-grasp nondeterminism noise floor: a hand pumping 0.58 rad/chunk around a 20 mm barrel makes contact outcomes chaotic (carry Jaccard 0.066 across identical runs) while the pre-contact stage stays reproducible (grasp Jaccard 0.99).",
-    "Candidate cause of grasp-never-becomes-transport: the object is squeezed and released repeatedly mid-hold.",
-    "The SFT stochastic successes are consistent: a smooth hand plus sampled arm variation."
-  ],
-  "fixes": {
-    "execution_layer_now": "rlinf/envs/isaaclab/tasks/g1_piston_action_filter.py -- demonstration-envelope filter: causal 2nd-order low-pass at f_c=1.2 Hz + slew cap 0.175/step, every constant measured from the 11 demos (cutoff chosen as the highest halving the measured pump while tracking demos to <0.05 RMSE and closing a grasp to 90% in 0.52 s). Carries state across chunks, so it subsumes blending. 11 unit tests, incl. halving the swing on the real recorded commands.",
-    "training_time_future": "CAPS-style temporal smoothness penalty on consecutive actions in the SAC/RLPD actor loss; removes the pathology at the source but needs retraining (~11 h/arm)."
+  "spectral": "92% of the RLPD finger-command energy sits below 2 Hz with the pump at ~1.7 Hz (once per 0.6 s chunk); sign-flip rate 0.12, i.e. smooth large swings, not high-frequency noise",
+  "demonstration_behaviour": "finger at 0.00 through the reach, closes 0 -> 1.30 rad over ~1 s, then holds rock-steady for the remainder of the episode",
+  "demo_bandwidth": "97.6% of demonstrated hand-signal energy below 1.0 Hz"
+ },
+ "attribution": "SFT swing 0.065 vs RLPD 0.580 under identical execution: the oscillation is CREATED by RL fine-tuning, not inherited. Mechanism consistent with the literature (CAPS, Mysore et al., ICRA 2021, arXiv:2012.06644): exploration noise (std 0.2) on the hand dims enters the replay buffer, the reward contains no action-smoothness term, and the actor update fits the roughness.",
+ "why_earlier_fixes_failed": {
+  "chunk_blending": "fixed the boundary discontinuity (0.90 -> 0.15 rad) but the pump lives INSIDE the chunk; A/B correctly showed no effect",
+  "why_it_looked_like_jitter": "the retargeter drives proximal+intermediate from one command (coupling 1.0), doubling the visual amplitude on the fingers"
+ },
+ "connections": [
+  "Candidate cause of the post-grasp nondeterminism noise floor: a hand pumping 0.58 rad/chunk around a 20 mm barrel makes contact outcomes chaotic (carry Jaccard 0.066 across identical runs) while the pre-contact stage stays reproducible (grasp Jaccard 0.99).",
+  "Candidate cause of grasp-never-becomes-transport: the object is squeezed and released repeatedly mid-hold.",
+  "The SFT stochastic successes are consistent: a smooth hand plus sampled arm variation."
+ ],
+ "fixes": {
+  "execution_layer_now": "rlinf/envs/isaaclab/tasks/g1_piston_action_filter.py -- demonstration-envelope filter: causal 2nd-order low-pass at f_c=1.2 Hz + slew cap 0.175/step, every constant measured from the 11 demos (cutoff chosen as the highest halving the measured pump while tracking demos to <0.05 RMSE and closing a grasp to 90% in 0.52 s). Carries state across chunks, so it subsumes blending. 11 unit tests, incl. halving the swing on the real recorded commands.",
+  "training_time_future": "CAPS-style temporal smoothness penalty on consecutive actions in the SAC/RLPD actor loss; removes the pathology at the source but needs retraining (~11 h/arm)."
+ },
+ "validation_in_flight": null,
+ "dose_response": {
+  "observation": "SAC (no demonstration replay) oscillates 1.594 rad/chunk -- nearly the full finger range (limit 1.7) -- while RLPD (50% demonstration transitions per batch) oscillates 0.580, about 3x less, under identical execution and reward.",
+  "interpretation": "Demonstration replay partially protects action smoothness during RL fine-tuning. With no smoothness term in the reward and Gaussian exploration noise entering the replay, the demo fraction is the only thing anchoring the actor to demonstration-like action dynamics.",
+  "caveat": "n=1 checkpoint per algorithm at different training budgets (415k vs 690k); a training-time confound (budget) is not excluded. The earlier per-checkpoint probes suggest the oscillation grows with training in both algorithms."
+ },
+ "validation_results": {
+  "protocol": "Pre-registered before data: grasp below the baseline worst (0.96) = real regression; carry only counts outside the 8-run noise range [0.00, 0.36]; SFT stochastic success (0.16 in two independent draws) must survive.",
+  "full_dim_filter_rlpd_415k_det_n25": {
+   "file": "runs/filter_ab/rlpd_415k_filter12_n25.json",
+   "grasp": 0.68,
+   "lift": 0.04,
+   "carry": 0.0,
+   "throw": 0.04,
+   "success": 0.0,
+   "verdict": "REGRESSION. Grasp 0.68 is below every one of the 8 baseline runs (worst 0.96). The ~0.3 s filter lag on the ARM dims plausibly breaks reach/grasp timing. Carry 0.00 is inside the baseline noise range -- no resolvable effect."
   },
-  "validation_in_flight": "In-sim A/B: RLPD@415k, frozen 25 conditions, deterministic, FILTER on -- judged against the well-characterised 8-run unfiltered baseline distribution (grasp 0.995 +/- 0.014, carry 0.195 +/- 0.122). Questions: does grasp survive the ~0.3 s filter lag; does damping the pump move carry above the baseline range.",
-  "dose_response": {
-    "observation": "SAC (no demonstration replay) oscillates 1.594 rad/chunk -- nearly the full finger range (limit 1.7) -- while RLPD (50% demonstration transitions per batch) oscillates 0.580, about 3x less, under identical execution and reward.",
-    "interpretation": "Demonstration replay partially protects action smoothness during RL fine-tuning. With no smoothness term in the reward and Gaussian exploration noise entering the replay, the demo fraction is the only thing anchoring the actor to demonstration-like action dynamics.",
-    "caveat": "n=1 checkpoint per algorithm at different training budgets (415k vs 690k); a training-time confound (budget) is not excluded. The earlier per-checkpoint probes suggest the oscillation grows with training in both algorithms."
+  "full_dim_filter_sft_stochastic_n25": {
+   "file": "runs/filter_ab/sft_stoch_filter12_n25.json",
+   "success": 0.0,
+   "grasp": 0.0,
+   "reach_stochastic": 0.0,
+   "mean_return": -0.68,
+   "baseline": "0.16 success in each of two independent unfiltered draws (disjoint condition sets)",
+   "verdict": "The filter DESTROYS the SFT stochastic successes (0/25) and even eliminates reaching. Mechanistic implication: the SFT successes are driven by high-frequency components of the sampled actions -- the behaviour that completes the task lives ABOVE the demonstrated bandwidth. Do not use the full-dim filter for stochastic execution."
+  },
+  "hand_only_filter_rlpd_415k_det_n25": {
+   "file": "runs/filter_ab/rlpd_415k_handonly_n25.json",
+   "grasp": 1.0,
+   "lift": 0.04,
+   "carry": 0.04,
+   "throw": 0.0,
+   "success": 0.0,
+   "mean_return": 2.788,
+   "verdict": "PASS. Grasp 1.00 vs baseline range [0.96, 1.00]: filtering only the 12 hand dims (14-25, arm bit-exact) fully restores grasp. This confirms the full-dim regression was arm reach-phase lag, not the hand smoothing. Carry 0.04 is inside the 8-run noise range [0.00, 0.36] -- the filter neither helps nor hurts post-grasp outcomes resolvably. Hand-only is the deliverable execution-layer fix: task-neutral, removes the visible oscillation."
+  },
+  "in_sim_smoothness_probe_full_dim": {
+   "file": "handdyn_rlpd_filt2.json + handdyn_rlpd_filt2_cmd.npy (cond 21, RLPD@415k, det, filter 1.2 Hz all dims)",
+   "joint47_per_chunk_swing": {
+    "unfiltered": 0.58,
+    "filtered": 0.32
+   },
+   "joint47_per_step": {
+    "unfiltered": 0.0398,
+    "filtered": 0.0123
+   },
+   "boundary_max_jump_rad": {
+    "raw": 1.0,
+    "blend_only": 0.146,
+    "filter": 0.0115
+   },
+   "note": "The filter works as designed mechanically (halves the pump, subsumes blending); its failures are task-level, not implementation-level."
   }
+ },
+ "conclusion": "Execution-layer fix validated: DemoEnvelopeFilter (f_c=1.2 Hz, slew 0.175/step) applied to the 12 hand dims only. Grasp preserved at 1.00 (n=25 det, frozen suite), carry inside noise, boundary jumps 0.90 -> 0.01 rad, per-step hand motion ~3x smoother. Full-dim filtering is REJECTED (arm lag breaks grasp: 0.68). Stochastic-SFT filtering is REJECTED (destroys the 0.16 success rate; those successes ride on high-frequency sampled noise). Training-time counterpart for future runs: SMOOTH_LAMBDA (CAPS L_T) in train_sac.py, default 0."
 }

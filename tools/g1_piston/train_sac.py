@@ -43,6 +43,10 @@ UTD = float(os.environ.get("UTD", "0.5"))             # gradient updates per env
 #: evaluates ~1e-6 on demo-like motion and ~1e-3 on the pathology, so weights around
 #: 0.1-1.0 punish the pump without constraining demonstrated behaviour.
 SMOOTH_LAMBDA = float(os.environ.get("SMOOTH_LAMBDA", "0"))
+#: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
+#: networks are built; this dict is mutated in place so the emitted config sees it.
+WARM_CKPT = os.environ.get("WARM_CKPT", "")
+WARM_META = {"warm_ckpt": WARM_CKPT} if WARM_CKPT else {}
 BATCH = int(os.environ.get("BATCH", "8"))
 DEMO_FRAC = float(os.environ.get("DEMO_FRAC", "0.5")) # RLPD offline mix
 SEED = int(os.environ.get("SEED", "0"))
@@ -56,7 +60,7 @@ res = {
         "n_eval_conditions": N_EVAL_CONDITIONS,
         "n_eval_periodic": N_EVAL_PERIODIC, "reset_suite_seed": RESET_SUITE_SEED,
         "eval_stochastic": EVAL_STOCHASTIC,
-        "smooth_lambda": SMOOTH_LAMBDA,
+        "smooth_lambda": SMOOTH_LAMBDA, "warm_start": WARM_META,
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -184,6 +188,22 @@ try:
     ACTOR_LR = float(os.environ.get("ACTOR_LR", "3e-6"))
     ent = EntropyTemperature(initial_alpha=ALPHA_INIT, alpha_type="softplus",
                              device=DEV).to(DEV)
+
+    # Warm start from an existing RL checkpoint (continuation runs, e.g. adding the
+    # smoothness penalty to an already-trained policy). Loads all learned state --
+    # action head, critic, target, exploration log-std, alpha -- so optimisation
+    # resumes from the checkpoint's operating point rather than from SFT. Env-step
+    # counting restarts at 0 for the new run; the origin is recorded in the config.
+    if WARM_CKPT:
+        wc = torch.load(WARM_CKPT, map_location="cpu", weights_only=False)
+        model.action_model.load_state_dict(wc["action_model"])
+        critic.load_state_dict(wc["critic"])
+        target.load_state_dict(wc["target"])
+        with torch.no_grad():
+            actor_logstd.copy_(wc["actor_logstd"].to(DEV))
+        ent.load_state_dict(wc["alpha"])
+        WARM_META["warm_env_steps"] = int(wc.get("env_steps", -1))
+        WARM_META["warm_grad_updates"] = int(wc.get("grad_updates", -1))
     # ENTROPY REDUCTION CONVENTION (see tests/unit_tests/
     # test_g1_piston_sac_decision_variable.py, which pins this):
     #

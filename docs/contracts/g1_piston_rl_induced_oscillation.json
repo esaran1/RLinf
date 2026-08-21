@@ -5,8 +5,18 @@
   "claim": "RL fine-tuning induced a ~1.7 Hz open-close oscillation of the fingers that neither the demonstrations nor the SFT policy contain. The visible 'hand shaking' is not jitter, noise, or chunk-boundary jerk: it is the RL policy's predicted finger trajectory pumping ~0.6 rad every 30-step chunk.",
   "measurement": {
     "protocol": "same probe, same frozen condition 21, deterministic, full 690-step episode; finger joint 47 (1:1 with the policy's raw finger command via coupling=1.0)",
-    "finger_swing_per_chunk_rad": {"demonstrations": 0.03, "sft": 0.065, "rlpd_415k": 0.580},
-    "per_step_velocity": {"demonstrations": 0.0009, "sft": 0.0041, "rlpd_415k": 0.0398},
+    "finger_swing_per_chunk_rad": {
+      "demonstrations": 0.03,
+      "sft": 0.065,
+      "rlpd_415k": 0.58,
+      "sac_s2_690k": 1.594
+    },
+    "per_step_velocity": {
+      "demonstrations": 0.0009,
+      "sft": 0.0041,
+      "rlpd_415k": 0.0398,
+      "sac_s2_690k": 0.2225
+    },
     "spectral": "92% of the RLPD finger-command energy sits below 2 Hz with the pump at ~1.7 Hz (once per 0.6 s chunk); sign-flip rate 0.12, i.e. smooth large swings, not high-frequency noise",
     "demonstration_behaviour": "finger at 0.00 through the reach, closes 0 -> 1.30 rad over ~1 s, then holds rock-steady for the remainder of the episode",
     "demo_bandwidth": "97.6% of demonstrated hand-signal energy below 1.0 Hz"
@@ -25,5 +35,10 @@
     "execution_layer_now": "rlinf/envs/isaaclab/tasks/g1_piston_action_filter.py -- demonstration-envelope filter: causal 2nd-order low-pass at f_c=1.2 Hz + slew cap 0.175/step, every constant measured from the 11 demos (cutoff chosen as the highest halving the measured pump while tracking demos to <0.05 RMSE and closing a grasp to 90% in 0.52 s). Carries state across chunks, so it subsumes blending. 11 unit tests, incl. halving the swing on the real recorded commands.",
     "training_time_future": "CAPS-style temporal smoothness penalty on consecutive actions in the SAC/RLPD actor loss; removes the pathology at the source but needs retraining (~11 h/arm)."
   },
-  "validation_in_flight": "In-sim A/B: RLPD@415k, frozen 25 conditions, deterministic, FILTER on -- judged against the well-characterised 8-run unfiltered baseline distribution (grasp 0.995 +/- 0.014, carry 0.195 +/- 0.122). Questions: does grasp survive the ~0.3 s filter lag; does damping the pump move carry above the baseline range."
+  "validation_in_flight": "In-sim A/B: RLPD@415k, frozen 25 conditions, deterministic, FILTER on -- judged against the well-characterised 8-run unfiltered baseline distribution (grasp 0.995 +/- 0.014, carry 0.195 +/- 0.122). Questions: does grasp survive the ~0.3 s filter lag; does damping the pump move carry above the baseline range.",
+  "dose_response": {
+    "observation": "SAC (no demonstration replay) oscillates 1.594 rad/chunk -- nearly the full finger range (limit 1.7) -- while RLPD (50% demonstration transitions per batch) oscillates 0.580, about 3x less, under identical execution and reward.",
+    "interpretation": "Demonstration replay partially protects action smoothness during RL fine-tuning. With no smoothness term in the reward and Gaussian exploration noise entering the replay, the demo fraction is the only thing anchoring the actor to demonstration-like action dynamics.",
+    "caveat": "n=1 checkpoint per algorithm at different training budgets (415k vs 690k); a training-time confound (budget) is not excluded. The earlier per-checkpoint probes suggest the oscillation grows with training in both algorithms."
+  }
 }

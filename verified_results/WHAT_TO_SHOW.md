@@ -116,6 +116,19 @@ control that makes the carry result a measurement rather than a shrug.
 
 ---
 
+## The demonstrations themselves
+
+```
+verified_results/videos_demos/
+```
+
+Replays of the teleop demonstrations executed through the exact command path every
+policy video uses (mapper + frozen retargeter). Episode 0 reproduces its screening
+measurement exactly (0.297 m displacement). These are the smoothness and competence
+reference: what the policy was distilled from, and what RL's motion should be compared
+against. Note the screening finding: only 22 of 67 dataset episodes are executable
+under this embodiment — the dataset says 67/67 success, the simulator says 22/67.
+
 ## Supporting files
 
 | file | contents |

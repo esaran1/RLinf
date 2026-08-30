@@ -1,0 +1,11 @@
+{
+  "episode": 5,
+  "n_actions": 686,
+  "n_frames": 343,
+  "disp_m": 0.317,
+  "disp_xy_m": 0.3097,
+  "final_dz_m": 0.0678,
+  "video": "verified_results/videos_demos/demo_ep5_replay.mp4",
+  "command_path": "mapper+retargeter, identical to policy renders",
+  "source": "act_ep5.npy (recorded demonstration actions)"
+}

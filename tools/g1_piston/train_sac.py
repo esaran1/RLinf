@@ -546,23 +546,27 @@ try:
     if ALGO == "rlpd":
         # Fail loudly rather than train a critic on rewards from the wrong reward
         # version: it would look like a normal run and quietly produce a v1 policy.
+        # The buffer's rewards are baked in at BUILD time, so the version it was built
+        # with must equal the version being trained -- for EVERY version, not just v2.
+        # A mismatch trains the critic on targets from a different objective while the
+        # run looks entirely normal, so this fails closed.
         _marker = os.path.join(DEMO_DIR, "_build_status.json")
-        _built_v2 = False
+        _built = "v1"          # buffers predating the marker are v1 by construction
         if os.path.exists(_marker):
             try:
-                _built_v2 = (json.load(open(_marker)).get("reward_version")
-                             == "v2_functional")
+                _built = json.load(open(_marker)).get("reward_version", "v1")
             except Exception:
-                _built_v2 = False
-        if REWARD_V2 and not _built_v2:
+                _built = "v1"  # a corrupt marker must not read as a newer version
+        _want = ("v3_review_fixed" if REWARD_V3
+                 else "v2_functional" if REWARD_V2 else "v1")
+        # build_demo_buffer writes "v1"; older markers may say "v1_transport".
+        _norm = {"v1_transport": "v1"}
+        if _norm.get(_built, _built) != _want:
             raise SystemExit(
-                f"REWARD_V2=1 but the demo buffer at {DEMO_DIR} was not built with the "
-                "v2 reward. Rebuild it with tools/g1_piston/build_demo_buffer.py "
-                "(REWARD_V2=1) and point DEMO_DIR at the result.")
-        if _built_v2 and not REWARD_V2:
-            raise SystemExit(
-                f"The demo buffer at {DEMO_DIR} was built with the v2 reward but "
-                "REWARD_V2 is not set. Set REWARD_V2=1 or use the v1 buffer.")
+                f"Demo buffer reward version mismatch: training wants '{_want}' but the "
+                f"buffer at {DEMO_DIR} was built with '{_built}'. Rebuild it with "
+                f"tools/g1_piston/build_demo_buffer.py using the matching flag "
+                "(REWARD_V3=1 / REWARD_V2=1 / neither) and point DEMO_DIR at the result.")
         for fn in sorted(os.listdir(DEMO_DIR)):
             if not fn.endswith(".npz"): continue
             z = np.load(os.path.join(DEMO_DIR, fn))

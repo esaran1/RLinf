@@ -43,24 +43,52 @@ def buffer_is_v2(marker_path, read_json=json.load):
         return False
 
 
-def should_refuse(reward_v2: bool, built_v2: bool) -> bool:
-    """The trainer refuses exactly when the two versions disagree."""
-    return reward_v2 != built_v2
+#: Normalisation the trainer applies: build_demo_buffer writes "v1" but older markers
+#: may say "v1_transport".
+_NORM = {"v1_transport": "v1"}
 
 
-@pytest.mark.parametrize("reward_v2,built_v2,refuse", [
-    (True, False, True),    # v2 training against the shipped v1 buffer -- the bug
-    (False, True, True),    # v1 training against a v2 buffer -- also wrong
-    (True, True, False),    # matched v2
-    (False, False, False),  # matched v1 (the default path)
+def wanted_version(reward_v2: bool, reward_v3: bool) -> str:
+    """Mirror of the trainer's version selection (v3 takes precedence over v2)."""
+    return ("v3_review_fixed" if reward_v3
+            else "v2_functional" if reward_v2 else "v1")
+
+
+def should_refuse(reward_v2: bool, reward_v3: bool, built: str) -> bool:
+    """The trainer refuses whenever the built version differs from the trained one."""
+    return _NORM.get(built, built) != wanted_version(reward_v2, reward_v3)
+
+
+@pytest.mark.parametrize("reward_v2,reward_v3,built,refuse", [
+    # the original bug: v2 training against the shipped v1 buffer
+    (True, False, "v1", True),
+    (False, False, "v2_functional", True),      # v1 training against a v2 buffer
+    # the bug this audit found: a v2-only guard mishandles v3 in BOTH directions
+    (False, True, "v3_review_fixed", False),    # matched v3 must be ALLOWED
+    (False, True, "v1", True),                  # v3 training on a v1 buffer must refuse
+    (False, True, "v2_functional", True),       # v3 training on a v2 buffer must refuse
+    (False, False, "v3_review_fixed", True),    # v1 training on a v3 buffer must refuse
+    (True, False, "v3_review_fixed", True),     # v2 training on a v3 buffer must refuse
+    (True, True, "v3_review_fixed", False),     # v3 wins when both flags are set
+    (True, False, "v2_functional", False),      # matched v2
+    (False, False, "v1", False),                # matched v1 (the default path)
+    (False, False, "v1_transport", False),      # legacy marker spelling
 ])
-def test_version_mismatch_is_refused(reward_v2, built_v2, refuse):
-    assert should_refuse(reward_v2, built_v2) is refuse
+def test_version_mismatch_is_refused(reward_v2, reward_v3, built, refuse):
+    assert should_refuse(reward_v2, reward_v3, built) is refuse
 
 
 def test_marker_absent_reads_as_v1(tmp_path):
     """The shipped buffer predates the marker, so 'no marker' must mean v1."""
     assert buffer_is_v2(str(tmp_path / "missing.json")) is False
+
+
+def test_trainer_guard_covers_every_version_not_just_v2():
+    """Regression: the first guard hard-coded 'v2_functional', so a v3 run on a v3
+    buffer was wrongly refused and a v3 buffer under v1 training passed silently."""
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert "_want" in src and "v3_review_fixed" in src
+    assert "_built_v2" not in src, "guard still hard-codes the v2-only check"
 
 
 def test_marker_v2_is_detected(tmp_path):
@@ -86,8 +114,7 @@ def test_trainer_contains_the_guard():
     """Pin that the guard is actually wired into the trainer, not just tested here."""
     src = open("tools/g1_piston/train_sac.py").read()
     assert "_build_status.json" in src
-    assert "REWARD_V2 and not _built_v2" in src
-    assert "_built_v2 and not REWARD_V2" in src
+    assert "reward version mismatch" in src.lower()
 
 
 def test_demo_dir_is_configurable():

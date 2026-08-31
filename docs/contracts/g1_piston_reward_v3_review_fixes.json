@@ -82,5 +82,34 @@
   "validation": "On the same measured rollout the recalibrated predicate fires on 22 of 690 steps, and it rejects all 169 steps where the hand is near the axis but ABOVE the barrel's extent -- every one of which v1/v2 counted as a grasp. So the reviewer's original point stands and is now enforced correctly: the xy-only test was crediting hovers.",
   "regression_guard": "test_the_measured_geometry_satisfies_the_calibrated_predicate replays the real measured geometry through the predicate and fails if it ever becomes unsatisfiable again, or if it starts accepting the off-object hover case."
  },
- "implication_for_reported_grasp_rate": "The v1/v2 grasp_rate of ~1.00 reported throughout this study counts steps where the hand is near the barrel AXIS regardless of height. On the measured rollout 169 of the 191 qualifying steps (88%) have the hand OFF the object in z. The headline 'RL learned to grasp' claim should therefore be restated as 'RL learned to bring the hand to the barrel axis', pending re-scoring under the v3 predicate."
+ "implication_for_reported_grasp_rate": "The v1/v2 grasp_rate of ~1.00 reported throughout this study counts steps where the hand is near the barrel AXIS regardless of height. On the measured rollout 169 of the 191 qualifying steps (88%) have the hand OFF the object in z. The headline 'RL learned to grasp' claim should therefore be restated as 'RL learned to bring the hand to the barrel axis', pending re-scoring under the v3 predicate.",
+ "reward_validation_2026_08_31": {
+  "method": "tools/g1_piston/validate_reward.py on 11 demonstration replays, v1 and v3.",
+  "ranking": {
+   "v1": {
+    "corr_return_vs_stages": 0.9724,
+    "ordering_inversions": false
+   },
+   "v3": {
+    "corr_return_vs_stages": 0.9328,
+    "ordering_inversions": false
+   }
+  },
+  "discrimination_against_ground_truth": {
+   "ground_truth": "the manifest's executable/non-executable label (did the pick actually work)",
+   "v3_lift_confusion": {
+    "true_positive": 2,
+    "false_negative": 1,
+    "false_positive": 0,
+    "true_negative": 8
+   },
+   "reading": "v3 never credits a lift to a non-executable episode (zero false positives). It misses one executable episode (ep5), so it is conservative rather than permissive -- the safe direction for an RL objective, since a false positive teaches the policy that a failure is a success."
+  },
+  "plateau_removed": "The decisive difference. Under v1 the failed episodes that crush the plunger while the pipette stays socketed (10, 15, 20, 45, 55) scored ~2.95-3.00 with 'reach' and 'grasp' credited. Under v3 they score -0.09..-0.04 with ZERO stages, because an off-object hand is not a grasp. v1 therefore paid ~3.0 to any rollout that brought the hand near the barrel axis and then offered nothing until full transport at ~36: a wide flat plateau with a cliff at the end. That is a plausible mechanistic reason the RL policies plateaued at 'grasp' and never progressed, and it matches the measured bimodal return distribution (~2.95 vs ~36 with almost nothing between).",
+  "strictness_on_success": "v3 credits no success on any demonstration: ep0 and ep40 reach reach/grasp/lift/plate but not success, because v3 requires the pipette to be released and at rest inside a supported height band rather than merely hovering over the plate. Returns drop 35.6 -> 14.5 and 36.2 -> 15.7 accordingly.",
+  "mean_return_by_outcome": {
+   "v3_lifted": 15.11,
+   "v3_not_lifted": 1.44
+  }
+ }
 }

@@ -51,5 +51,36 @@
    "demo_buffer_guard_v2_only": "The guard hard-coded reward_version == 'v2_functional', so a matched v3 run was wrongly refused while a v3 buffer under v1 training passed silently. Now compares built-vs-trained for every version."
   },
   "execution_verification": "Verified by running, not by reading: all three rewards load and step through the tools' own import path; the critic accepts all four ACTION_BASIS/CRITIC_STATE combinations with correct widths; actor gradients reach all 30 horizon steps through the DCT basis; CriticStateBuilder resolves every hardcoded joint and body name against the real scene enumeration and produces the expected slot values."
- }
+ },
+ "grasp_predicate_calibration": {
+  "why": "The first v3 grasp test (3-D distance to the barrel CENTRE plus opposition of thumb and fingers about that centre) was designed from intuition. Before trusting it, it was measured against a real 690-step RLPD@415k rollout on the frozen condition.",
+  "measurement": {
+   "min_3d_distance_to_centre_m": {
+    "fingers": 0.0708,
+    "thumb": 0.0783
+   },
+   "threshold_that_had_been_set_m": 0.045,
+   "opposition_cosine": {
+    "min": 0.7543,
+    "median": 0.958,
+    "fraction_negative": 0.0
+   },
+   "radial_xy_distance_m": {
+    "fingers_min": 0.0314,
+    "fingers_median": 0.0541,
+    "thumb_min": 0.0107,
+    "thumb_median": 0.0332
+   },
+   "grasp_steps_of_690": {
+    "v1_v2_predicate": 191,
+    "v3_centre_based": 0,
+    "v3_recalibrated": 22
+   }
+  },
+  "finding": "Both original conditions were wrong for this object. (1) The barrel is a 0.19 m CYLINDER, so gripping it anywhere along its length puts the hand up to ~0.095 m from its centre -- a 0.045 m distance-to-centre threshold was unsatisfiable by construction, and the predicate scored 0 of 690 steps. (2) The Inspire hand grips a cylinder by curling the four fingers around it with the thumb bracing from the SAME side: the opposition cosine never went negative and the thumb sits closer to the axis than the fingers. 'Thumb opposite the fingers' describes a pinch, which is not this grasp.",
+  "recalibration": "Grasp now tests RADIAL distance to the barrel AXIS (the right measure for a cylinder) plus whether the contact height lies WITHIN the barrel's extent (|dz| < BARREL_HALF_H = 0.095), plus a closed-hand span. Opposition is retained in the info dict as a descriptive statistic but is no longer a gate.",
+  "validation": "On the same measured rollout the recalibrated predicate fires on 22 of 690 steps, and it rejects all 169 steps where the hand is near the axis but ABOVE the barrel's extent -- every one of which v1/v2 counted as a grasp. So the reviewer's original point stands and is now enforced correctly: the xy-only test was crediting hovers.",
+  "regression_guard": "test_the_measured_geometry_satisfies_the_calibrated_predicate replays the real measured geometry through the predicate and fails if it ever becomes unsatisfiable again, or if it starts accepting the off-object hover case."
+ },
+ "implication_for_reported_grasp_rate": "The v1/v2 grasp_rate of ~1.00 reported throughout this study counts steps where the hand is near the barrel AXIS regardless of height. On the measured rollout 169 of the 191 qualifying steps (88%) have the hand OFF the object in z. The headline 'RL learned to grasp' claim should therefore be restated as 'RL learned to bring the hand to the barrel axis', pending re-scoring under the v3 predicate."
 }

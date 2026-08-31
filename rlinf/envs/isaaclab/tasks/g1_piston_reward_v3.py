@@ -73,13 +73,29 @@ from __future__ import annotations
 import numpy as np
 
 # --- grasp geometry, in metres --------------------------------------------------------
-#: Full 3-D fingertip-to-barrel distance counted as "at the barrel".
+# CALIBRATED FROM MEASUREMENT, not from intuition. A first version of v3 tested 3-D
+# distance to the barrel's CENTRE plus "opposition about the centre". Measuring the real
+# geometry over a 690-step RLPD rollout showed both are wrong for this object:
+#
+#   * the barrel is a 0.19 m CYLINDER. Gripping it anywhere along its length puts the
+#     hand up to ~0.095 m from the centre, so distance-to-centre never fell below 0.071
+#     (fingers) or 0.078 (thumb) -- a 0.045 threshold was unsatisfiable by construction.
+#   * the Inspire hand grips a cylinder by CURLING the four fingers around it with the
+#     thumb bracing from the same side; measured opposition cosine never went negative
+#     (min 0.754), and the thumb sits CLOSER to the axis (xy 0.033) than the fingers
+#     (0.054). "Thumb opposite the fingers about the centre" describes a pinch, not this
+#     grasp.
+#
+# The correct measures for a long cylinder are RADIAL distance to its AXIS and whether
+# the contact height lies WITHIN the barrel's extent. Both are kept strict enough to
+# reject the hover that the original xy-only test accepted, because a hover fails the
+# height-extent test.
+#: Radial (xy) fingertip distance to the barrel axis counted as "at the barrel".
 GRASP_RADIUS = 0.045
-#: Fingertips must also be within this height offset of the barrel centre. Blocks the
-#: "hovering high above the pipette" degenerate reach that an xy-only test accepted.
-GRASP_DZ = 0.075
-#: Maximum thumb-to-finger separation for a pinch. Together with the opposition test,
-#: this is the geometric stand-in for contact (no contact sensors exist in this scene).
+#: Half-height of the barrel; contact must occur within this of the centre in z, i.e.
+#: on the object itself rather than above or below it. Barrel height is 0.19 m.
+BARREL_HALF_H = 0.095
+#: Maximum thumb-to-finger separation consistent with a closed hand on the barrel.
 GRASP_SPAN = 0.11
 
 # --- lift / transport ----------------------------------------------------------------
@@ -200,21 +216,29 @@ class PistonTaskRewardV3:
         if self._rest_z is None:
             self._rest_z = float(barrel[2])
 
-        # --- reviewer point 1: full 3-D distances, height gate, opposition ---------
+        # --- reviewer point 1: radial distance to the AXIS + on-object height ------
+        # (See the constants block for why distance-to-centre and opposition-about-
+        # centre were measured to be the wrong tests for a 0.19 m cylinder.)
         finger_c = fing.mean(axis=0)
-        finger_d = float(np.mean(np.linalg.norm(fing - barrel, axis=1)))   # 3-D
-        thumb_d = float(np.linalg.norm(thumb - barrel))                    # 3-D
+        finger_r = float(np.mean(np.linalg.norm((fing - barrel)[:, :2], axis=1)))
+        thumb_r = float(np.linalg.norm((thumb - barrel)[:2]))
         finger_dz = float(abs(finger_c[2] - barrel[2]))
+        thumb_dz = float(abs(thumb[2] - barrel[2]))
         span = float(np.linalg.norm(thumb - finger_c))
+        # Retained for reporting: it characterises the grasp even though it is not a
+        # gate, and it is what showed the pinch model to be wrong here.
         v_thumb = thumb - barrel
         v_fing = finger_c - barrel
         nt, nf = np.linalg.norm(v_thumb), np.linalg.norm(v_fing)
-        opposition = float(np.dot(v_thumb, v_fing) / (nt * nf)) if nt > 1e-9 and nf > 1e-9 else 1.0
+        opposition = (float(np.dot(v_thumb, v_fing) / (nt * nf))
+                      if nt > 1e-9 and nf > 1e-9 else 1.0)
 
-        near_3d = (finger_d < GRASP_RADIUS) and (thumb_d < GRASP_RADIUS)
-        height_ok = finger_dz < GRASP_DZ
-        opposed = (opposition < 0.0) and (span < GRASP_SPAN)
-        grasped = bool(near_3d and height_ok and opposed)
+        near_axis = (finger_r < GRASP_RADIUS) and (thumb_r < GRASP_RADIUS)
+        # ON the object, not above or below it: this is what rejects a hover, and it is
+        # the condition the original xy-only v1/v2 test was missing.
+        on_object = (finger_dz < BARREL_HALF_H) and (thumb_dz < BARREL_HALF_H)
+        closed = span < GRASP_SPAN
+        grasped = bool(near_axis and on_object and closed)
 
         lift = float(barrel[2] - self._rest_z)
         d_tube_xy = float(np.linalg.norm((barrel - tube)[:2]))
@@ -234,7 +258,9 @@ class PistonTaskRewardV3:
         reward = -STEP_COST
 
         # --- continuous, best-so-far approach, on 3-D distance --------------------
-        approach = 0.5 * (finger_d + thumb_d)
+        # Approach shaping combines radial closing with getting ON the object in z.
+        # Radial alone would pay a hovering hand the full approach reward.
+        approach = 0.5 * (finger_r + thumb_r) + 0.5 * max(finger_dz - BARREL_HALF_H, 0.0)
         if self._best_approach is None:
             self._best_approach = approach
         if approach < self._best_approach:
@@ -296,7 +322,7 @@ class PistonTaskRewardV3:
                 self._stages[name] = True
                 reward += STAGE_BONUS[name]
 
-        fire("reach", near_3d and height_ok)
+        fire("reach", near_axis and on_object)
         fire("grasp", grasped)
         # reviewer point 2: positive condition -- held AND high AND slow.
         fire("lift", grasped and lift > LIFT_H and speed < BALLISTIC_SPEED)
@@ -322,9 +348,10 @@ class PistonTaskRewardV3:
             "stages": dict(self._stages),
             "grasped": bool(grasped),
             "grasp_is_geometric_proxy": True,
-            "finger_dist_3d": finger_d,
-            "thumb_dist_3d": thumb_d,
+            "finger_radial": finger_r,
+            "thumb_radial": thumb_r,
             "finger_dz": finger_dz,
+            "thumb_dz": thumb_dz,
             "grasp_span": span,
             "opposition_cos": opposition,
             "lift": lift,

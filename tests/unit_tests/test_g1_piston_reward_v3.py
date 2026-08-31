@@ -25,8 +25,13 @@ Each test names the reviewer point it guards:
 import numpy as np
 import pytest
 
+SCRATCH = ("/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/"
+           "c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad")
+
 from rlinf.envs.isaaclab.tasks.g1_piston_reward_v3 import (
+    BARREL_HALF_H,
     GRASP_RADIUS,
+    GRASP_SPAN,
     JERK_PENALTY_CAP,
     PLATE_REST_DZ,
     REST_STEPS,
@@ -151,7 +156,9 @@ def hold_still(sc, r, n):
 
 # ---------------------------------------------------------------- point 1 ----
 def test_hovering_above_the_pipette_is_not_a_grasp():
-    """An xy-only distance test scored this as reach+grasp."""
+    """An xy-only distance test scored this as reach+grasp; the on-object height test
+    is what rejects it. On the real rollout this case occurs on 169 of 690 steps,
+    every one of which v1/v2 counted as a grasp."""
     sc = FakeScene()
     r = rw(sc)
     sc.hover_above(0.20)
@@ -160,24 +167,53 @@ def test_hovering_above_the_pipette_is_not_a_grasp():
     assert info["stages"]["reach"] is False
 
 
-def test_same_side_fingers_are_not_a_grasp():
-    """Both digits on one side is contact-implausible; opposition must be required."""
+def test_a_same_side_hand_on_the_barrel_is_a_grasp_because_that_is_how_it_grips():
+    """Calibrated from measurement, and it overturned an assumption.
+
+    An earlier v3 required the thumb to OPPOSE the fingers about the barrel centre --
+    a pinch. Measuring a real 690-step RLPD rollout showed the Inspire hand never does
+    that on this object: the opposition cosine never went negative (min 0.754) and the
+    thumb sits CLOSER to the axis (xy 0.033) than the fingers (0.054). It grips a
+    cylinder by curling the fingers around it with the thumb bracing from the same
+    side. Requiring opposition made the grasp predicate unsatisfiable -- 0 of 690 steps.
+    So same-side digits ON the barrel must count as a grasp.
+    """
     sc = FakeScene()
     r = rw(sc)
     sc.same_side()
     _, info = r.step()
-    assert info["opposition_cos"] > 0.0
-    assert info["stages"]["grasp"] is False
+    assert info["opposition_cos"] > 0.0        # same side, as the real hand does
+    assert info["stages"]["grasp"] is True
 
 
-def test_opposing_pinch_at_barrel_height_is_a_grasp():
+def test_a_hand_on_the_barrel_at_barrel_height_is_a_grasp():
     sc = FakeScene()
     r = rw(sc)
     sc.grip()
     _, info = r.step()
-    assert info["opposition_cos"] < 0.0
-    assert info["finger_dist_3d"] < GRASP_RADIUS
+    assert info["finger_radial"] < GRASP_RADIUS
+    assert info["finger_dz"] < BARREL_HALF_H
     assert info["stages"]["grasp"] is True
+
+
+def test_the_measured_geometry_satisfies_the_calibrated_predicate():
+    """Guards against re-introducing an unsatisfiable threshold: replay the real
+    measured geometry (RLPD@415k, 690 steps) through the predicate and require that it
+    fires on some steps and is rejected on the off-object ones."""
+    import os
+
+    import numpy as np
+    rows = os.path.join(SCRATCH, "graspgeom_rlpd415k_rows.npy")
+    if not os.path.exists(rows):
+        pytest.skip("measured grasp geometry not on this machine")
+    R = np.load(rows)                       # fd3, td3, fxy, txy, dz, span, opp
+    fxy, txy, dz, span = R[:, 2], R[:, 3], R[:, 4], R[:, 5]
+    fires = (fxy < GRASP_RADIUS) & (txy < GRASP_RADIUS) & (dz < BARREL_HALF_H) & (span < GRASP_SPAN)
+    assert fires.sum() > 0, "grasp predicate is unsatisfiable on real measured geometry"
+    # And the hover case -- near the axis but off the object in z -- must be rejected.
+    hover = (fxy < GRASP_RADIUS) & (dz >= BARREL_HALF_H)
+    assert hover.sum() > 0                  # the data contains such steps
+    assert not (hover & fires).any()         # none of them are scored as a grasp
 
 
 def test_grasp_is_labelled_a_geometric_proxy():

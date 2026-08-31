@@ -140,11 +140,31 @@ try:
 
     import glob
 
+    # SRCDIR may be either a directory of act_ep*.npy recordings or an existing demo
+    # buffer of ep*.npz files. This matters: only 3 of the 22 EXECUTABLE episodes have
+    # a local act_ep recording, so sourcing from act_ep*.npy alone would rebuild an
+    # 11-episode buffer, 8 of them non-executable failures, and would silently drop
+    # ep46 -- the only demonstration of a genuine grasped press in the whole dataset.
+    npz_src = sorted(glob.glob(os.path.join(SRCDIR, "ep*.npz")))
+    npy_src = sorted(glob.glob(os.path.join(SRCDIR, "act_ep*.npy")))
+    if npz_src:
+        SOURCE = "buffer"
+        avail = {int(os.path.basename(f)[2:5]): f for f in npz_src}
+    elif npy_src:
+        SOURCE = "recordings"
+        avail = {int(os.path.basename(f).split("act_ep")[1].split(".npy")[0]): f
+                 for f in npy_src}
+    else:
+        raise SystemExit(f"no ep*.npz or act_ep*.npy found in {SRCDIR}")
     if os.environ.get("EPISODES"):
         eps = [int(x) for x in os.environ["EPISODES"].split(",") if x.strip()]
+        missing = [e for e in eps if e not in avail]
+        if missing:
+            raise SystemExit(f"requested episodes absent from {SRCDIR}: {missing}")
     else:
-        eps = sorted(int(os.path.basename(p).split("act_ep")[1].split(".npy")[0])
-                     for p in glob.glob(os.path.join(SRCDIR, "act_ep*.npy")))
+        eps = sorted(avail)
+    res["source_kind"] = SOURCE
+    res["source_dir"] = SRCDIR
     res["requested_episodes"] = eps
     emit()
 
@@ -152,7 +172,12 @@ try:
         return sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()[..., :3]
 
     for ep in eps:
-        A = np.load(os.path.join(SRCDIR, f"act_ep{ep}.npy"))       # (T, 30) physical
+        if SOURCE == "buffer":
+            # Stored chunks are PHYSICAL (verified); flatten back to a step sequence.
+            _a = np.load(avail[ep])["actions"]
+            A = _a.reshape(-1, _a.shape[-1])
+        else:
+            A = np.load(avail[ep])                                  # (T, 30) physical
         env.reset(seed=0)
         reward_fn.reset()
         imgs, acts, rews, states = [], [], [], []

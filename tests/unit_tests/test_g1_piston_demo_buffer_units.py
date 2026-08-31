@@ -106,3 +106,34 @@ def test_builder_and_trainer_agree_on_episode_progress_scale():
     assert "CriticStateBuilder(sc, max_chunks=EP_CHUNKS)" in t
     assert 'EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))' in b
     assert 'EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))' in t
+
+
+def test_builder_can_source_from_an_existing_buffer():
+    """Only 3 of the 22 EXECUTABLE episodes have a local act_ep*.npy recording.
+
+    Sourcing a rebuild from act_ep*.npy alone would produce an 11-episode buffer, 8 of
+    them non-executable failures, and would silently drop ep46 -- the only demonstration
+    of a genuine grasped press in the dataset. The builder must therefore accept an
+    existing ep*.npz buffer as its action source.
+    """
+    src = open("tools/g1_piston/build_demo_buffer.py").read()
+    assert 'glob.glob(os.path.join(SRCDIR, "ep*.npz"))' in src
+    assert 'SOURCE = "buffer"' in src
+    assert "source_kind" in src
+
+
+def test_builder_refuses_missing_requested_episodes():
+    """A silently short buffer is worse than a failure: RLPD would train on whatever
+    subset happened to be present."""
+    src = open("tools/g1_piston/build_demo_buffer.py").read()
+    assert "requested episodes absent from" in src
+
+
+@pytest.mark.skipif(not os.path.exists(f"{BUFFER}/ep046.npz"),
+                    reason="demo buffer not on this machine")
+def test_the_functional_press_episode_is_present_in_the_source_buffer():
+    """ep46 is the single episode demonstrating the functional act; a rebuild that
+    loses it discards the entire imitation prior for pressing."""
+    a = np.load(f"{BUFFER}/ep046.npz")["actions"]
+    assert a.shape[1:] == (30, 30)
+    assert len(glob.glob(f"{BUFFER}/*.npz")) == 22

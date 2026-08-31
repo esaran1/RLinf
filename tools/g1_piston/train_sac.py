@@ -43,6 +43,11 @@ UTD = float(os.environ.get("UTD", "0.5"))             # gradient updates per env
 #: evaluates ~1e-6 on demo-like motion and ~1e-3 on the pathology, so weights around
 #: 0.1-1.0 punish the pump without constraining demonstrated behaviour.
 SMOOTH_LAMBDA = float(os.environ.get("SMOOTH_LAMBDA", "0"))
+#: Train against the FUNCTIONAL pipette reward (v2): the plunger -- the object's
+#: prismatic PistonJoint -- must actually be depressed, and the v1 lift/throw exploit
+#: is closed. v1 (transport-only) stays the default so prior runs reproduce exactly.
+#: See docs/contracts/g1_piston_plunger_dof.json.
+REWARD_V2 = os.environ.get("REWARD_V2", "0") == "1"
 #: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
 #: networks are built; this dict is mutated in place so the emitted config sees it.
 WARM_CKPT = os.environ.get("WARM_CKPT", "")
@@ -61,6 +66,7 @@ res = {
         "n_eval_periodic": N_EVAL_PERIODIC, "reset_suite_seed": RESET_SUITE_SEED,
         "eval_stochastic": EVAL_STOCHASTIC,
         "smooth_lambda": SMOOTH_LAMBDA, "warm_start": WARM_META,
+        "reward_version": "v2_functional" if REWARD_V2 else "v1_transport",
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -95,6 +101,7 @@ try:
     Mapper = _load("g1a", RL + "g1_piston_action.py").G1PistonActionMapper
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
+    RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     AFLT = _load("g1af", RL + "g1_piston_action_filter.py")
 
@@ -113,7 +120,8 @@ try:
     sc = env.scene
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = RW.PistonTaskReward(sc, jn)
+    reward_fn = (RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
+                 else RW.PistonTaskReward(sc, jn))
     res["sim_ok"] = True; emit()
 
     # ---------------- policy ----------------
@@ -359,6 +367,7 @@ try:
         reward_fn.reset()
         bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
         ret = 0.0; maxlift = 0.0; stages = {}; frames = []
+        maxpress = 0.0; maxpress_aligned = 0.0   # plunger, v2 only (0.0 under v1)
         for _ in range(EP_CHUNKS):
             img = get_img()
             if save_frames: frames.append(img)
@@ -370,6 +379,9 @@ try:
                 stages[k] = stages.get(k, False) or v
             bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
             maxlift = max(maxlift, float(bar[2] - bar0[2]))
+            maxpress = max(maxpress, float(info.get("max_press_m", 0.0)))
+            maxpress_aligned = max(maxpress_aligned,
+                                   float(info.get("max_press_aligned_m", 0.0)))
             if done: break
         bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
         return {
@@ -383,6 +395,9 @@ try:
                 np.linalg.norm((bar - bar0)[:2])), 4),
             "final_dz_m": round(float(bar[2] - bar0[2]), 4),
             "max_lift_m": round(maxlift, 4),
+            # Plunger depression, the functional act (v2 reward only; 0.0 under v1).
+            "max_press_m": round(maxpress, 5),
+            "max_press_aligned_m": round(maxpress_aligned, 5),
             "stages": {k: bool(v) for k, v in stages.items()},
         }, frames
 

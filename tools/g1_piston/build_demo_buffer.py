@@ -52,12 +52,16 @@ import numpy as np
 OUTDIR = os.environ["OUTDIR"]
 SRCDIR = os.environ["SRCDIR"]
 REWARD_V2 = os.environ.get("REWARD_V2", "0") == "1"
+REWARD_V3 = os.environ.get("REWARD_V3", "0") == "1"
 OVERWRITE = os.environ.get("OVERWRITE", "0") == "1"
 STATUS = os.environ.get("OUTF", os.path.join(OUTDIR, "_build_status.json"))
 #: Action chunk length, matching the policy's horizon and the shipped buffer layout.
 H = 30
 
-res = {"_status": "RUNNING", "reward_version": "v2_functional" if REWARD_V2 else "v1",
+res = {"_status": "RUNNING",
+       "reward_version": ("v3_review_fixed" if REWARD_V3
+                          else "v2_functional" if REWARD_V2 else "v1"),
+       "has_critic_state": True,
        "episodes": []}
 
 
@@ -94,6 +98,8 @@ try:
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
     RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
+    RW3 = _load("g1r3", RL + "g1_piston_reward_v3.py") if REWARD_V3 else None
+    CST = _load("g1cs", RL + "g1_piston_critic_state.py")
 
     from isaaclab.app import AppLauncher
 
@@ -115,8 +121,12 @@ try:
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn)
     retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = (RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
+    reward_fn = (RW3.PistonTaskRewardV3(sc, jn) if REWARD_V3
+                 else RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
                  else RW.PistonTaskReward(sc, jn))
+    # Record the privileged critic state alongside each transition, so a run with
+    # CRITIC_STATE=1 can use RLPD's offline half instead of being blocked by it.
+    csb = CST.CriticStateBuilder(sc, max_chunks=max(1, H))
 
     STATS = ("/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1/"
              "dataset_statistics.json")
@@ -139,13 +149,15 @@ try:
         A = np.load(os.path.join(SRCDIR, f"act_ep{ep}.npy"))       # (T, 30) physical
         env.reset(seed=0)
         reward_fn.reset()
-        imgs, acts, rews = [], [], []
+        imgs, acts, rews, states = [], [], [], []
+        csb.reset()
         n_chunks = len(A) // H
         stages_seen = {}
         max_press = 0.0
         for c in range(n_chunks):
             chunk = A[c * H:(c + 1) * H]                            # (H, 30) physical
             imgs.append(grab().astype(np.uint8))
+            states.append(csb.build(stages=stages_seen, chunk=c))
             # Store the NORMALIZED chunk: that is the space the policy acts in, and the
             # space the shipped buffer used.
             acts.append(nrm.normalize(torch.as_tensor(chunk, dtype=torch.float32))
@@ -166,11 +178,13 @@ try:
             rews.append(np.float32(total_r))
         # One trailing observation so (s, a, r, s') pairs can be formed for every chunk.
         imgs.append(grab().astype(np.uint8))
+        states.append(csb.build(stages=stages_seen, chunk=n_chunks))
         acts.append(acts[-1])
         rews.append(np.float32(0.0))
         out = os.path.join(OUTDIR, f"ep{ep:03d}.npz")
         np.savez_compressed(out, images=np.stack(imgs),
-                            actions=np.stack(acts), rewards=np.stack(rews))
+                            actions=np.stack(acts), rewards=np.stack(rews),
+                            critic_state=np.stack(states).astype(np.float32))
         rec = {"episode": ep, "chunks": n_chunks, "return": round(float(sum(rews)), 3),
                "max_press_m": round(max_press, 5),
                "stages": {k: bool(v) for k, v in stages_seen.items()},

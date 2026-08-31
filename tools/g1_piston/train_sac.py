@@ -48,6 +48,17 @@ SMOOTH_LAMBDA = float(os.environ.get("SMOOTH_LAMBDA", "0"))
 #: is closed. v1 (transport-only) stays the default so prior runs reproduce exactly.
 #: See docs/contracts/g1_piston_plunger_dof.json.
 REWARD_V2 = os.environ.get("REWARD_V2", "0") == "1"
+#: Reward v3 (review fixes: 3-D grasp with opposition, exploit-free success, object-jerk
+#: penalty). Supersedes v2; see docs/contracts/g1_piston_reward_v3_review_fixes.json.
+REWARD_V3 = os.environ.get("REWARD_V3", "0") == "1"
+#: Feed the critic the action chunk in a truncated temporal (DCT) basis instead of 900
+#: raw scalars: measured ~8 -> ~41 transitions per critic input dimension, retaining
+#: 99.9994% of trajectory energy on real demonstrations. Critic-side only; the executed
+#: action is unchanged. See g1_piston_action_basis.py.
+ACTION_BASIS = os.environ.get("ACTION_BASIS", "0") == "1"
+#: Give the critic privileged proprioception + object state + phase one-hot alongside
+#: the VLM feature (asymmetric actor-critic; the actor still sees only RGB).
+CRITIC_STATE = os.environ.get("CRITIC_STATE", "0") == "1"
 #: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
 #: networks are built; this dict is mutated in place so the emitted config sees it.
 WARM_CKPT = os.environ.get("WARM_CKPT", "")
@@ -69,7 +80,9 @@ res = {
         "n_eval_periodic": N_EVAL_PERIODIC, "reset_suite_seed": RESET_SUITE_SEED,
         "eval_stochastic": EVAL_STOCHASTIC,
         "smooth_lambda": SMOOTH_LAMBDA, "warm_start": WARM_META,
-        "reward_version": "v2_functional" if REWARD_V2 else "v1_transport",
+        "reward_version": ("v3_review_fixed" if REWARD_V3
+                           else "v2_functional" if REWARD_V2 else "v1_transport"),
+        "action_basis": bool(ACTION_BASIS), "critic_state": bool(CRITIC_STATE),
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -105,6 +118,9 @@ try:
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
     RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
+    RW3 = _load("g1r3", RL + "g1_piston_reward_v3.py") if REWARD_V3 else None
+    ABAS = _load("g1ab", RL + "g1_piston_action_basis.py") if ACTION_BASIS else None
+    CST = _load("g1cs", RL + "g1_piston_critic_state.py") if CRITIC_STATE else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     AFLT = _load("g1af", RL + "g1_piston_action_filter.py")
 
@@ -123,8 +139,10 @@ try:
     sc = env.scene
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = (RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
+    reward_fn = (RW3.PistonTaskRewardV3(sc, jn) if REWARD_V3
+                 else RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
                  else RW.PistonTaskReward(sc, jn))
+    critic_state = CST.CriticStateBuilder(sc, max_chunks=EP_CHUNKS) if CRITIC_STATE else None
     res["sim_ok"] = True; emit()
 
     # ---------------- policy ----------------
@@ -173,8 +191,17 @@ try:
     INIT_LOGSTD = float(os.environ.get("INIT_LOGSTD", math.log(RLSP.TARGET_ENTROPY_STD)))
     actor_logstd = torch.nn.Parameter(torch.full((30,), INIT_LOGSTD, device=DEV))
 
-    critic = MultiQHead(HID, 30 * H, [256, 256], num_q_heads=2).to(DEV)
-    target = MultiQHead(HID, 30 * H, [256, 256], num_q_heads=2).to(DEV)
+    # Critic action-input width: 900 raw, or 180 in the truncated temporal basis.
+    A_IN = ABAS.critic_input_dim() if ACTION_BASIS else 30 * H
+    # Privileged state is concatenated onto the VLM feature (asymmetric actor-critic).
+    C_IN = HID + (CST.STATE_DIM if CRITIC_STATE else 0)
+    critic = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=2).to(DEV)
+    target = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=2).to(DEV)
+
+    def critic_action(a):
+        """Map a raw action chunk [B,H,30] to the critic's action input [B,A_IN]."""
+        return (ABAS.flatten(ABAS.project(a)) if ACTION_BASIS
+                else a.reshape(a.shape[0], -1))
     target.load_state_dict(critic.state_dict())
     for p in target.parameters(): p.requires_grad_(False)
 
@@ -237,7 +264,23 @@ try:
     opt_critic = torch.optim.Adam(critic.parameters(), lr=3e-4)
     opt_alpha = torch.optim.Adam(ent.parameters(), lr=ALPHA_LR)
 
-    GAMMA = 0.99 ** H       # chunk-level discount (one transition = H actions)
+    # DISCOUNT (review point 3). One RL transition is a whole H=30-step chunk, so the
+    # per-step convention gamma=0.99 compounds to 0.99^30 = 0.7397 PER CHUNK. Over a
+    # 23-chunk episode that discounts the terminal reward to 0.7397^23 = 0.001 -- one
+    # tenth of one percent -- so from the first chunk the success bonus is numerically
+    # invisible and the agent is trained to be almost purely myopic. On a long-horizon
+    # task whose payoff is entirely terminal (dispense, then place), that alone would
+    # prevent the behaviour from ever being learned.
+    #
+    # GAMMA_CHUNK is therefore specified directly at the chunk level, where the decision
+    # actually happens, instead of being derived from a per-step number. The default
+    # 0.98 keeps 0.98^23 = 0.63 of the terminal reward visible at episode start
+    # (equivalent per-step gamma 0.99933). Set GAMMA_CHUNK to override.
+    GAMMA = float(os.environ.get("GAMMA_CHUNK", "0.98"))
+    if not 0.0 < GAMMA < 1.0:
+        raise SystemExit(f"GAMMA_CHUNK must be in (0,1), got {GAMMA}")
+    #: Terminal-reward credit surviving to the first chunk, recorded for auditability.
+    TERMINAL_CREDIT = GAMMA ** EP_CHUNKS
     TAU = 0.005
 
     # Disjoint TRAIN / EVAL initial conditions. The task's own reset is deterministic, so
@@ -249,6 +292,8 @@ try:
     res["setup"] = {
         "hidden": HID, "action_horizon": H, "n_active_dims": N_ACTIVE,
         "target_entropy": TARGET_ENTROPY, "gamma_chunk": round(GAMMA, 5),
+        "terminal_credit_at_episode_start": round(TERMINAL_CREDIT, 5),
+        "equivalent_per_step_gamma": round(GAMMA ** (1.0 / H), 6),
         "oft_params": int(sum(p.numel() for p in model.action_model.parameters())),
         "critic_params": int(sum(p.numel() for p in critic.parameters())),
     }
@@ -496,6 +541,8 @@ try:
     # ---------------- replay buffers ----------------
     online = deque(maxlen=20000)     # (feat, mean_action, action, reward, next_feat, done)
     demo = []
+    #: Privileged critic state per demo transition, when the buffer provides it.
+    demo_state, demo_next_state = {}, {}
     if ALGO == "rlpd":
         # Fail loudly rather than train a critic on rewards from the wrong reward
         # version: it would look like a normal run and quietly produce a v1 policy.
@@ -520,7 +567,15 @@ try:
             if not fn.endswith(".npz"): continue
             z = np.load(os.path.join(DEMO_DIR, fn))
             imgs, acts, rews = z["images"], z["actions"], z["rewards"]
+            cstates = z["critic_state"] if "critic_state" in z.files else None
+            if CRITIC_STATE and cstates is None:
+                raise SystemExit(
+                    f"CRITIC_STATE=1 but {fn} carries no critic_state array. Rebuild "
+                    "the buffer with tools/g1_piston/build_demo_buffer.py.")
             for i in range(len(acts) - 1):
+                if cstates is not None:
+                    demo_state[len(demo)] = cstates[i]
+                    demo_next_state[len(demo)] = cstates[i + 1]
                 demo.append((imgs[i], acts[i], float(rews[i]), imgs[i + 1], False))
         res["demo_transitions"] = len(demo)
         res["demo_episodes"] = len([f for f in os.listdir(DEMO_DIR) if f.endswith(".npz")])
@@ -540,8 +595,26 @@ try:
             if idx not in demo_feat_cache:
                 aq, f = vlm_encode(img)
                 naq, nf = vlm_encode(nimg)
+                # The shipped demo buffer stores images, actions and rewards but NOT
+                # simulator state, so the privileged critic vector cannot be
+                # reconstructed for demonstration transitions. Feeding zeros would be
+                # worse than useless -- the critic would learn that "all-zero state"
+                # means "demonstration-quality return", a shortcut it could exploit on
+                # online data too. Instead the demo buffer must be rebuilt WITH state
+                # (build_demo_buffer.py records it), and until then CRITIC_STATE and
+                # RLPD are mutually exclusive rather than silently mismatched.
+                dcs, dncs = None, None
+                if critic_state is not None:
+                    dcs = demo_state.get(idx)
+                    dncs = demo_next_state.get(idx)
+                    if dcs is None or dncs is None:
+                        raise SystemExit(
+                            "CRITIC_STATE=1 needs a demo buffer built with simulator "
+                            "state. Rebuild with tools/g1_piston/build_demo_buffer.py "
+                            "(it records critic_state) and point DEMO_DIR at it.")
                 demo_feat_cache[idx] = store(
-                    f, aq, torch.tensor(act, dtype=torch.float32), r, nf, naq, d)
+                    f, aq, torch.tensor(act, dtype=torch.float32), r, nf, naq, d,
+                    cs=dcs, ncs=dncs)
             out.append(demo_feat_cache[idx])
         return out
 
@@ -559,7 +632,19 @@ try:
         dones = torch.tensor([x[6] for x in items], dtype=torch.bool, device=DEV).unsqueeze(-1)
         return feats, aqs, acts, rews, nfeats, naqs, dones
 
-    def store(feat, aq, action, reward, nfeat, naq, done):
+    def _fuse(feat, cs):
+        """Concatenate the privileged critic state onto the VLM feature.
+
+        Done at STORE time so the replay format, collate, and every consumer stay
+        unchanged, and so a stored transition always carries the state that produced
+        it -- there is no way for a later change to silently re-pair them.
+        """
+        if cs is None:
+            return feat
+        v = torch.as_tensor(cs, dtype=feat.dtype, device=feat.device).view(1, -1)
+        return torch.cat([feat, v], dim=-1)
+
+    def store(feat, aq, action, reward, nfeat, naq, done, cs=None, ncs=None):
         """Build one replay entry, holding the big tensors in float16 on CPU.
 
         The action queries dominate the footprint (H x HID = 30 x 2048 per state, twice
@@ -568,6 +653,7 @@ try:
         VLM, so half precision costs nothing that training can observe.
         """
         h = torch.float16
+        feat, nfeat = _fuse(feat, cs), _fuse(nfeat, ncs)
         return (feat.squeeze(0).to("cpu", dtype=h), aq.squeeze(0).to("cpu", dtype=h),
                 action.detach().to("cpu", dtype=h), float(reward),
                 nfeat.squeeze(0).to("cpu", dtype=h), naq.squeeze(0).to("cpu", dtype=h),
@@ -583,13 +669,13 @@ try:
             # next action from the CURRENT policy at the sampled next states
             nmean = head_mean(naqs).float()
             na, nlp = sample_action(nmean, actor_logstd)
-            qn = target(nfeats, na.reshape(B, -1))
+            qn = target(nfeats, critic_action(na))
             qmin = qn.min(dim=1, keepdim=True)[0]
             alpha = ent.compute_alpha().detach()
             # mean over the horizon: per-control-action entropy scale (see TARGET_ENTROPY)
             qmin = qmin - alpha * nlp.mean(dim=-1, keepdim=True)
             tq = rews + (~dones) * GAMMA * qmin
-        q = critic(feats, acts.reshape(B, -1))
+        q = critic(feats, critic_action(acts))
         closs = F.mse_loss(q, tq.expand_as(q))
         opt_critic.zero_grad(); closs.backward()
         cgn = torch.nn.utils.clip_grad_norm_(critic.parameters(), 10.0)
@@ -598,7 +684,7 @@ try:
         # --- actor: gradient flows head_mean -> rsample -> critic ---
         mean_b = head_mean(aqs).float()                 # differentiable in OFT head
         a, lp = sample_action(mean_b, actor_logstd)
-        qpi = critic(feats, a.reshape(B, -1)).min(dim=1, keepdim=True)[0]
+        qpi = critic(feats, critic_action(a)).min(dim=1, keepdim=True)[0]
         alpha = ent.compute_alpha().detach()
         logp_chunk = lp.mean(dim=-1, keepdim=True)      # per control action
         entropy_term = alpha * logp_chunk
@@ -673,6 +759,10 @@ try:
         ep_ret = 0.0; ep_stages = {}; maxlift = 0.0
         img = get_img()
         feat, mean, aq = vlm_feature_and_mean(img)
+        if critic_state is not None:
+            critic_state.reset()
+        cs = (critic_state.build(stages=ep_stages, chunk=0)
+              if critic_state is not None else None)
 
         for c in range(EP_CHUNKS):
             a, _ = sample_action(mean, actor_logstd)          # stochastic: explore
@@ -680,13 +770,16 @@ try:
             env_steps += H * 2
             nimg = get_img()
             nfeat, nmean, naq = vlm_feature_and_mean(nimg)
-            online.append(store(feat, aq, a[0], r, nfeat, naq, done))
+            ncs = (critic_state.build(stages=info.get("stages", {}), chunk=c + 1)
+                   if critic_state is not None else None)
+            online.append(store(feat, aq, a[0], r, nfeat, naq, done, cs=cs, ncs=ncs))
             ep_ret += r
             for k, v in info.get("stages", {}).items():
                 ep_stages[k] = ep_stages.get(k, False) or v
             bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
             maxlift = max(maxlift, float(bar[2] - bar0[2]))
             feat, mean, aq = nfeat, nmean, naq
+            cs = ncs
 
             # --- gradient updates (UTD ratio) ---
             if len(online) >= BATCH:

@@ -1,0 +1,43 @@
+{
+ "id": "g1_piston_rl_setup_review",
+ "recorded": "2026-08-31",
+ "source": "External review of the RL setup (algorithm, action space, discount, critic, dataset, reward).",
+ "points": {
+  "action_space_900d": {
+   "claim": "900-D action space is shockingly high for SAC given the data size; the critic cannot estimate value and the actor exploits critic error.",
+   "verified": "CONFIRMED AND QUANTIFIED. Action = 30 dims x 30 horizon = 900, fed to the critic as a flat vector (MultiQHead(HID, 30*H, ...)). Available data at the analysed checkpoint: ~6919 online chunks + 467 demo chunks = ~7386 transitions -> 8.2 samples per action dimension. SAC's actor objective is to maximise the critic, so it climbs exactly the interpolation error of a critic fitted that sparsely.",
+   "fix": "g1_piston_action_basis.py: fixed orthonormal DCT-II projection of each joint's 30-step trajectory onto 6 smooth components. Critic action input 900 -> 180 (8.2 -> 41 samples per dim). Measured on 245 real demonstration chunks: 99.9994% retained energy, RMSE 0.002 rad. Linear, fixed, no parameters, applied ONLY to the critic's view -- the actor still emits and the robot still executes the full chunk, so the policy class and deployment are unchanged.",
+   "status": "IMPLEMENTED (ACTION_BASIS=1), 13 tests"
+  },
+  "dimensions_not_independent": {
+   "claim": "Action dimensions are not independent; they depend on hand/arm configuration and time. PPO / Diffusion RL may be needed.",
+   "verified": "CORRECT and only PARTLY addressed. The policy is a diagonal-covariance squashed Gaussian over 900 scalars, which is a factorised distribution: it cannot represent correlations between joints or across time within a chunk. The DCT basis fixes the CRITIC's view (low-order coefficients ARE the temporal structure) but does not change the policy class.",
+   "honest_limitation": "A factorised Gaussian over action chunks remains the actor. Making the policy itself structured is a policy-class change -- PPO with a structured/autoregressive head, or a diffusion/flow-matching policy (e.g. Chi et al., Diffusion Policy, RSS 2023; Ren et al., DPPO, 2024) -- which is a re-architecture, not a parameter change, and is NOT claimed to be done here.",
+   "status": "PARTIAL: critic-side fixed; actor-side recorded as an open architectural item."
+  },
+  "discount_too_small": {
+   "claim": "gamma too small: 0.99^30 = 0.74 per chunk, and 0.74^20 = 0.25 of terminal reward seen at the start.",
+   "verified": "CONFIRMED, and worse than stated for the actual episode length. GAMMA was literally 0.99 ** H with H=30 -> 0.7397 per chunk. Episodes are EP_CHUNKS=23, so terminal credit at episode start was 0.7397^23 = 0.0010 -- one tenth of one percent, i.e. numerically invisible. On a task whose payoff is entirely terminal this alone prevents the behaviour from being learned.",
+   "fix": "The discount is now specified directly at the chunk level, where the decision happens: GAMMA_CHUNK, default 0.98 -> 0.98^23 = 0.63 of terminal reward visible at episode start (equivalent per-step gamma 0.99933). The run config records gamma_chunk, terminal_credit_at_episode_start and equivalent_per_step_gamma.",
+   "status": "FIXED"
+  },
+  "critic_needs_state_and_phase": {
+   "claim": "Critic should have access to proprioceptive state and phase label; pure RGB is too weak.",
+   "verified": "CONFIRMED: the critic saw only the frozen VLM's pooled feature of a single 424x240 RGB frame. That cannot disambiguate joint configuration behind occlusion, a few millimetres of plunger travel inside the grip, or -- decisively -- WHICH STAGE the episode is in. Reward is stage-gated, so the same image carries different value depending on which stages already fired; inferring that from one frame is impossible in principle.",
+   "fix": "g1_piston_critic_state.py: privileged vector of right arm+hand joint positions and velocities, fingertip/thumb offsets in the barrel frame, barrel and rod pose and velocity, plunger position and velocity, barrel relative to tube and pot, an 8-way phase one-hot, and normalized episode progress. Standard asymmetric actor-critic (Pinto et al. 2017): the actor still sees only RGB, so deployment is unchanged; the critic is discarded at deployment so privilege is free.",
+   "status": "IMPLEMENTED (CRITIC_STATE=1)"
+  },
+  "dataset_does_not_succeed": {
+   "claim": "Dataset seems to not succeed.",
+   "verified": "CONFIRMED, on two independent axes already measured in this study. (1) Under the embodiment, only 22 of 67 dataset episodes are executable at all (g1_piston_demo_screen_manifest.json) -- the dataset labels all 67 as success. (2) Under the FUNCTIONAL predicate, only 3 of 11 replayed demonstrations depress the plunger past half travel; the rest show only passive gripping compliance (g1_piston_plunger_dof.json). So the demonstrations are weak supervision for the task as named, which is consistent with SFT scoring 0.00 deterministic success.",
+   "consequence": "RLPD's offline half is a weak prior for the functional act, and the press must largely be discovered from reward. Recorded rather than papered over."
+  },
+  "reward_unreasonable": {
+   "claim": "Reward setting is not reasonable (xy-only grasp, throwable lift, sky success, no smoothness, stale validation).",
+   "verified": "CONFIRMED on every sub-point; see g1_piston_reward_v3_review_fixes.json for the per-point evidence, including a direct reproduction of the sky-throw success under both v1 and v2.",
+   "status": "FIXED in reward v3 (REWARD_V3=1), 18 tests."
+  }
+ },
+ "net_effect": "Before: a 900-D critic input at 8 samples/dim, terminal credit 0.001, an RGB-only critic, and a reward that awarded success to a pipette floating 0.8 m in the air. After: 180-D critic input at 41 samples/dim, terminal credit 0.63, a critic with proprioception and phase, and a reward requiring a genuine 3-D opposed grasp, a plunger press, and a released at-rest placement inside a supported height band.",
+ "not_claimed": "The actor remains a factorised Gaussian over chunks. Whether PPO or a diffusion policy would outperform this SAC/RLPD setup on this task is untested here and is stated as an open question, not a result."
+}

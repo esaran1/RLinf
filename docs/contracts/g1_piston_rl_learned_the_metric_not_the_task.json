@@ -47,5 +47,35 @@
  "restatement_of_the_studys_claim": "'RL took grasp from 0.02 to ~1.00' should be restated as 'RL took xy-axis alignment with a closed hand from ~0 to ~1.00, while moving the hand off the object in z'. The improvement is real and reproducible, but it is not a grasp.",
  "consistency_with_other_findings": "Explains why grasps never survived into transport (the noise-floor study), why the demonstrations' 'pressing' episodes are the failures (a hand off-body crushes the plunger while the pipette stays socketed), and why returns were bimodal with nothing between grasp and transport.",
  "fix": "Reward v3 tests radial distance to the barrel AXIS *and* contact height within the barrel's extent, so the height drift is no longer free. See g1_piston_reward_v3_review_fixes.json.",
- "files": "graspgeom_sft.json, graspgeom_rlpd415k.json, and their *_rows.npy per-step arrays."
+ "files": "graspgeom_sft.json, graspgeom_rlpd415k.json, and their *_rows.npy per-step arrays.",
+ "frozen_suite_confirmation_2026_08_31": {
+  "method": "The SAME checkpoint (rlpd_ckpt_step415140) on the SAME frozen 25-condition suite, deterministic, scored under both predicates. The geometry finding was previously based on one 690-step rollout; this is the population measurement.",
+  "v1_predicate_8_run_range": {
+   "grasp": "0.96 - 1.00",
+   "lift": "0.20 - 0.56",
+   "mean_return": "3.21 - 6.07",
+   "full_success": 0.0
+  },
+  "v3_predicate_measured": {
+   "reach": 0.2,
+   "grasp": 0.2,
+   "lift": 0.0,
+   "tube": 0.0,
+   "plate": 0.0,
+   "press": 0.04,
+   "dispense": 0.0,
+   "full_success": 0.0,
+   "mean_return": 0.549
+  },
+  "headline": "grasp falls from 0.96-1.00 to 0.20 on identical conditions. Roughly four of every five 'grasps' the old metric credited were the hand near the barrel axis but OFF the object in z. lift falls from 0.20-0.56 to 0.00: with a geometrically valid grasp required, the policy never lifts the pipette at all.",
+  "functional_act": {
+   "press_rate": 0.04,
+   "dispense_rate": 0.0,
+   "deepest_plunger_any_episode_mm": 28.6,
+   "mean_plunger_while_grasped_mm": 0.52,
+   "reading": "The single press that fires is dominated by the same failure mode found in the demonstrations: the hand compresses the plunger without a valid grasp. Mean depth while genuinely grasped is 0.52 mm of 40 mm travel, i.e. the policy essentially never actuates the plunger under control."
+  },
+  "why_this_is_the_load_bearing_number": "Every prior claim in this study about RL 'learning to grasp' rested on the v1 rate. Measured against the object's actual geometry on the same frozen suite, the trained policy grasps on 1 in 5 conditions and lifts on none. The improvement over SFT reported earlier was an improvement in satisfying the metric, not in performing the task.",
+  "status": "This is the warm-start baseline for the pre-registered v3 retrain; both arms share this predicate."
+ }
 }

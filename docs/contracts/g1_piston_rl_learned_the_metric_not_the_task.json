@@ -1,0 +1,51 @@
+{
+ "id": "g1_piston_rl_learned_the_metric_not_the_task",
+ "recorded": "2026-08-31",
+ "severity": "HEADLINE FINDING -- reframes the study's central 'RL learned to grasp' claim",
+ "claim": "RL fine-tuning did not learn to grasp the pipette. It learned to satisfy the v1/v2 grasp METRIC, which measured only xy distance to the barrel axis. Measured against the object's actual geometry, the RL policy moved its hand FURTHER from the barrel body than the untrained SFT policy while squeezing harder.",
+ "measurement": {
+  "method": "d435-frame-independent body positions logged every simulator step over a full 690-step episode on the same frozen condition (eval cond 21), for SFT and RLPD@415k.",
+  "medians": {
+   "finger_radial_to_axis_m": {
+    "sft": 0.0676,
+    "rlpd": 0.0541,
+    "direction": "closer to the axis"
+   },
+   "thumb_radial_to_axis_m": {
+    "sft": 0.0724,
+    "rlpd": 0.0332,
+    "direction": "much closer to the axis"
+   },
+   "height_offset_dz_m": {
+    "sft": 0.0207,
+    "rlpd": 0.1023,
+    "direction": "5x WORSE -- further off the object"
+   },
+   "hand_span_m": {
+    "sft": 0.1182,
+    "rlpd": 0.0393,
+    "direction": "3x tighter -- hand closed hard"
+   }
+  },
+  "condition_satisfaction_over_690_steps": {
+   "sft": {
+    "finger_near_axis": "0.0%",
+    "thumb_near_axis": "15.4%",
+    "on_object_in_z": "100.0%",
+    "hand_closed": "20.3%"
+   },
+   "rlpd": {
+    "finger_near_axis": "27.7%",
+    "thumb_near_axis": "83.8%",
+    "on_object_in_z": "31.7%",
+    "hand_closed": "100.0%"
+   }
+  }
+ },
+ "interpretation": "The SFT policy keeps the hand at the right HEIGHT (on-object 100% of steps) but never closes it or aligns it radially. RL inverted this: it closed the hand completely (100% of steps) and drove it onto the barrel axis, but drifted the hand ~8 cm along the barrel's length, off the body. Since v1/v2 tested only xy distance, that configuration scored a perfect grasp. Under the geometrically correct predicate it scores 22/690 steps for RLPD and 0/690 for SFT.",
+ "why_this_is_the_expected_outcome": "The reward defined 'grasp' as xy proximity, so gradient ascent found the cheapest way to satisfy xy proximity -- squeeze and align radially -- with no term opposing the height drift. This is specification gaming in its purest form: the policy optimised exactly what was measured.",
+ "restatement_of_the_studys_claim": "'RL took grasp from 0.02 to ~1.00' should be restated as 'RL took xy-axis alignment with a closed hand from ~0 to ~1.00, while moving the hand off the object in z'. The improvement is real and reproducible, but it is not a grasp.",
+ "consistency_with_other_findings": "Explains why grasps never survived into transport (the noise-floor study), why the demonstrations' 'pressing' episodes are the failures (a hand off-body crushes the plunger while the pipette stays socketed), and why returns were bimodal with nothing between grasp and transport.",
+ "fix": "Reward v3 tests radial distance to the barrel AXIS *and* contact height within the barrel's extent, so the height drift is no longer free. See g1_piston_reward_v3_review_fixes.json.",
+ "files": "graspgeom_sft.json, graspgeom_rlpd415k.json, and their *_rows.npy per-step arrays."
+}

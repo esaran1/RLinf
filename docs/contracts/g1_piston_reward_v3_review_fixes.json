@@ -1,0 +1,34 @@
+{
+ "id": "g1_piston_reward_v3_review_fixes",
+ "recorded": "2026-08-31",
+ "severity": "CRITICAL -- v1 and v2 both award success to a pipette thrown into the air",
+ "source": "External review of the reward and RL setup.",
+ "points": {
+  "1_reach_grasp_xy_only": {
+   "claim": "Reach/grasp used only x,y; z and contact ignored.",
+   "verified": "CONFIRMED in code: v1/v2 computed fingertip-barrel distance as norm((fing-barrel)[:, :2]) -- the xy projection. A hand hovering 20 cm above the pipette scored a perfect reach, and grasp required only that fingers and thumb be near the AXIS, not near the object and not on opposite sides of it.",
+   "fix": "v3 uses full 3-D distance, adds a height gate (GRASP_DZ=0.075) and an OPPOSITION test (thumb and finger-group offset vectors must have negative dot product, and span < GRASP_SPAN). The scene ships NO contact sensors (verified by enumerating every scene entity), so v3 does not claim to read contact forces; it uses the strongest measured geometric proxy and labels it as such via info['grasp_is_geometric_proxy']."
+  },
+  "2_lift_by_throwing": {
+   "claim": "'lift' only tested height, so throwing the pipette upward satisfied it.",
+   "verified": "CONFIRMED for v1. v2 added a negative ballistic-speed test.",
+   "fix": "v3 makes the condition positive: lift fires only when the pipette is GRASPED (3-D, opposing) AND above LIFT_H AND slow. A thrown object fails the grasp conjunct the moment it leaves the hand."
+  },
+  "3_success_in_the_sky": {
+   "claim": "Success is reached when the pipette is thrown upward and velocity=0 in the sky.",
+   "verified": "CONFIRMED AND REPRODUCED. v1/v2 tested 'over the pot in xy, above PLATE_Z=0.95, and |dz| < 2e-3 between consecutive steps'. At a throw's apex vertical velocity passes through zero, satisfying 'settled' in mid-air. Direct demonstration: a pipette placed at z=1.60 (about 0.8 m above the pot), released, motionless, scores success=True under BOTH the v1 and v2 predicates.",
+   "fix": "v3 requires the pipette to be at rest AND supported AND released: speed below REST_SPEED for REST_STEPS=10 CONSECUTIVE steps (a single zero-crossing cannot satisfy a window), height inside a resting BAND relative to the pot (PLATE_REST_DZ=(0.05,0.22), so mid-air fails), and not currently grasped."
+  },
+  "4_no_smoothness_term": {
+   "claim": "You may need a smoothing term to punish high-frequency motion.",
+   "verified": "CONFIRMED: no reward-side smoothness term existed in v1 or v2.",
+   "fix": "v3 adds a bounded penalty on the OBJECT's jerk while held (W_JERK, capped at JERK_PENALTY_CAP per step so it can never dominate task reward, and applied only while held so free-space motion is untaxed). This complements the training-time CAPS action penalty (SMOOTH_LAMBDA), which is validated separately in g1_piston_rl_induced_oscillation.json."
+  },
+  "5_stale_reward_validation": {
+   "claim": "Reward validation seems to be outdated.",
+   "verified": "CONFIRMED: the only reward validation on record lives in g1_piston_demo_screen_manifest.json and was computed under the v1 transport-only predicate, before the plunger DoF was discovered.",
+   "fix": "tools/g1_piston/validate_reward.py re-derives validation per reward version."
+  }
+ },
+ "status": "v3 implemented; 18 tests pin every fix, including a test that reproduces the sky-throw exploit and asserts v3 rejects it."
+}

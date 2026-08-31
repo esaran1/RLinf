@@ -239,6 +239,7 @@ try:
             _ = act_filter.reset() if act_filter is not None else None
             bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
             ret, maxlift, stages = 0.0, 0.0, {}
+            maxpress = 0.0; maxpress_grasped = 0.0
             acts = []
             prev_cmd = None
             for _ in range(EP_CHUNKS):
@@ -252,6 +253,13 @@ try:
                     stages[k] = stages.get(k, False) or v
                 bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
                 maxlift = max(maxlift, float(bar[2] - bar0[2]))
+                # Plunger depth is the CONTINUOUS signal behind the press stage: it
+                # shows whether the policy is approaching a press even on episodes
+                # where the stage never fires. 0.0 under v1/v2, which do not read it.
+                maxpress = max(maxpress, float(info.get("max_press_m", 0.0)))
+                if info.get("grasped"):
+                    maxpress_grasped = max(maxpress_grasped,
+                                           float(info.get("max_press_m", 0.0)))
                 if done:
                     break
             bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
@@ -266,6 +274,8 @@ try:
                              np.linalg.norm((bar - bar0)[:2])), 4),
                          "final_dz_m": round(float(bar[2] - bar0[2]), 4),
                          "max_lift_m": round(maxlift, 4),
+                         "max_press_m": round(maxpress, 5),
+                         "max_press_grasped_m": round(maxpress_grasped, 5),
                          "action_variance": round(av, 5),
                          "stages": {k: bool(v) for k, v in stages.items()}})
             res["progress"] = {"mode": "det" if deterministic else "stoch",
@@ -290,11 +300,20 @@ try:
             "full_success_rate": rate("success"), "reach_rate": rate("reach"),
             "grasp_rate": rate("grasp"), "lift_rate": rate("lift"),
             "plate_rate": rate("plate"), "tube_rate": rate("tube"),
+            # The functional-act stages exist only under reward v3. Reporting them
+            # unconditionally (0.0 under v1/v2, which never set them) keeps the schema
+            # stable across arms; without these the two stages v3 exists to measure
+            # would be invisible in the results.
+            "press_rate": rate("press"), "dispense_rate": rate("dispense"),
             "ci95": {k: wilson(k) for k in
-                     ("success", "reach", "grasp", "lift", "plate", "tube")},
+                     ("success", "reach", "grasp", "lift", "plate", "tube",
+                      "press", "dispense")},
             "mean_return": round(float(np.mean([r["return"] for r in rows])), 3),
             "mean_disp_m": round(float(np.mean([r["disp_m"] for r in rows])), 4),
             "mean_max_lift_m": round(float(np.mean([r["max_lift_m"] for r in rows])), 4),
+            "mean_max_press_m": round(float(np.mean([r.get("max_press_m", 0.0) for r in rows])), 5),
+            "max_press_m_any": round(float(np.max([r.get("max_press_m", 0.0) for r in rows])), 5),
+            "mean_max_press_grasped_m": round(float(np.mean([r.get("max_press_grasped_m", 0.0) for r in rows])), 5),
             "mean_action_variance": round(
                 float(np.mean([r["action_variance"] for r in rows])), 5),
             "per_condition": rows,

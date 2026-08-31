@@ -28,7 +28,8 @@ mapper+retargeter (the same command path as every policy rollout), scores it wit
 requested reward version, and writes chunk-level transitions in the shipped format:
 
     images   (N, H, W, 3) uint8    observation at the start of each chunk
-    actions  (N, 30, 30) float32   the normalized action chunk executed
+    actions  (N, 30, 30) float32   the PHYSICAL action chunk executed (matching the
+                                   shipped buffer's convention -- verified, not assumed)
     rewards  (N,) float32          summed reward over the chunk, under REWARD_V2
 
 Environment:
@@ -158,10 +159,12 @@ try:
             chunk = A[c * H:(c + 1) * H]                            # (H, 30) physical
             imgs.append(grab().astype(np.uint8))
             states.append(csb.build(stages=stages_seen, chunk=c))
-            # Store the NORMALIZED chunk: that is the space the policy acts in, and the
-            # space the shipped buffer used.
-            acts.append(nrm.normalize(torch.as_tensor(chunk, dtype=torch.float32))
-                        .numpy().astype(np.float32))
+            # Store the PHYSICAL chunk. Verified against the shipped buffer: its
+            # ep000.npz actions match act_ep0.npy exactly (max deviation 0.0000),
+            # whereas treating them as normalized and denormalizing deviates by up to
+            # 0.86 rad. A rebuilt buffer must use the same convention or every RLPD
+            # offline sample is silently wrong.
+            acts.append(np.asarray(chunk, dtype=np.float32))
             total_r = 0.0
             for t in range(H):
                 phys = torch.as_tensor(chunk[t], dtype=torch.float32).unsqueeze(0)

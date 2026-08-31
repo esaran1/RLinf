@@ -1,0 +1,35 @@
+{
+ "id": "g1_piston_plunger_dof",
+ "recorded": "2026-08-31",
+ "severity": "ROOT CAUSE of 'the policy never presses the plunger' -- the reward never asked it to",
+ "claim": "The scene's `object` is not a passive cylinder: it is an IsaacLab Articulation whose prismatic `PistonJoint` IS the pipette plunger. The v1 reward reads only rigid-body positions (body_pos_w) and never reads joint_pos, so depressing the plunger -- the functional act the task is named for -- was never measured, never rewarded, and never required for 'success'.",
+ "discovery": "Found by direct scene enumeration after a visual observation that the policy 'is not pressing the plunger'. The observation was correct and the metric was blind to it.",
+ "scene_facts": {
+  "object_type": "Articulation",
+  "body_names": [
+   "Rod",
+   "Barrel"
+  ],
+  "Rod": "the PLUNGER; also the articulation ROOT link (the part the robot grasps)",
+  "Barrel": "the pipette body; the rod slides through its bore",
+  "joint_names": [
+   "PistonJoint"
+  ],
+  "joint_type": "prismatic",
+  "travel_m": [
+   0.0,
+   0.04
+  ],
+  "spring_stiffness_N_per_m": 150.0,
+  "spring_damping_Ns_per_m": 12.0,
+  "drive": "passive spring+damper with rest target 0.0 -- returns to rest when released",
+  "visual_asset": "Micropipette01.obj",
+  "rest_rod_minus_barrel_z_m": 0.03,
+  "source": "tasks/common_scene/piston_object.py and base_scene_pickplace_pistoncfg.py (upstream sim)"
+ },
+ "what_v1_scored": "reach, grasp, lift, tube-proximity, plate-proximity, settle -- all from positions. v1 'success' = pipette carried over the pot and settled. Neither insertion nor plunger actuation is tested. Consistent with the manifest: every screened demonstration scores success:True with tube:False.",
+ "consequence_for_rl": "The RL policies optimised exactly what was scored. A reward with no plunger term provides no gradient toward pressing the plunger, so the absence of pressing in the learned policy is expected behaviour, not a training failure.",
+ "validity_of_prior_results": "All v1 numbers remain valid UNDER THE V1 PREDICATE (transport-based). v1 is frozen, not edited, so every prior claim stays reproducible; v2 is a separate module and every rollout can be scored under both.",
+ "fix": "rlinf/envs/isaaclab/tasks/g1_piston_reward_v2.py: adds press (plunger > 50% travel while held) and dispense (press while aligned over the tube) stages, tightens the tube stage to a real insertion tolerance with a height gate, and closes the v1 lift exploit with a ballistic-speed test. Plunger shaping is best-so-far so the spring-loaded joint cannot be pumped for reward (pinned by test_pumping_the_spring_loaded_plunger_cannot_farm_reward).",
+ "demonstration_measurement": "IN PROGRESS -- replaying all 11 demo episodes logging PistonJoint position."
+}

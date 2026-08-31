@@ -43,5 +43,25 @@
    "mechanism": "Deep plunger compression in this data is a SYMPTOM OF FAILURE, not of dispensing: when the grasp does not close correctly the fingers crush the plunger down while the pipette stays socketed. A successful pick shows LESS compression, because the hand lifts the object rather than pressing it into its holder.",
    "implication": "No demonstration in the executable set performs a deliberate dispense. RLPD demo replay therefore supplies NO prior for the functional act -- it must be discovered from reward alone. It also means a naive 'reward deep plunger travel' term would reward the failure mode, which is why the v3 press stage additionally requires a LIVE grasp and the dispense stage requires being aligned over the tube while holding it."
   }
+ },
+ "buffer_measurement_2026_08_31": {
+  "method": "Replayed all 22 executable episodes of the RLPD demo buffer -- the set training actually samples from -- through the frozen mapper+retargeter, logging PistonJoint position and scoring under reward v3. Supersedes the earlier act_ep*.npy sample, which was a spread across all 67 dataset episodes of which only 3 were executable.",
+  "units_correction": "A first pass denormalized the buffer's stored chunks and produced 'zero stages on all 22' -- an artifact that happened to match the prior expectation. The buffer stores PHYSICAL actions (verified: exact match to the recorded demonstrations, max deviation 0.0000). Corrected before reporting.",
+  "results": {
+   "n_episodes": 22,
+   "v3_grasp": 20,
+   "v3_lift": 16,
+   "v3_dispense": 0,
+   "v3_success": 0,
+   "plunger_press_median_frac": 0.341,
+   "plunger_press_max_frac": 0.5987,
+   "n_press_over_50pct_of_travel": 1,
+   "n_press_over_50pct_WHILE_GRASPED": 1,
+   "the_one": "ep46: plunger 60% of travel reached WHILE genuinely grasped (0.0239 m), the only episode to fire the v3 press stage. v3 return 29.51, roughly double any other episode."
+  },
+  "corrected_finding": "The training data DOES contain one genuine press. Exactly 1 of 22 executable episodes (ep46) depresses the plunger past half travel while the pipette is actually held, and it is the only episode that fires v3's press stage. No episode reaches dispense (press while aligned over the tube) or v3 success.",
+  "contrast_with_the_earlier_reading": "The earlier act_ep sample suggested the deepest presses were failure-mode crushing by non-executable episodes. That remains true of THAT sample, but it does not generalise: on the executable set, presses occur while grasped, and ep46 is a real press. Both the original claim and its first correction were drawn from an unrepresentative sample.",
+  "implication_for_rl": "RLPD demo replay supplies a WEAK BUT NONZERO prior for the functional act: 1/22 episodes (4.5%) demonstrates a genuine grasped press, so roughly 1 in 22 offline samples carries the behaviour. That is thin but not absent, which is a materially better starting point than 'must be discovered from reward alone'. Dispense (press while aligned over the tube) is demonstrated by no episode and must still be discovered.",
+  "v3_sanity": "v3 credits grasp on 20/22 and lift on 16/22 executable episodes, confirming the recalibrated predicate is neither degenerate nor permissive on real successful data."
  }
 }

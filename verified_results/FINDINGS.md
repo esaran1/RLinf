@@ -230,6 +230,91 @@ Contract: `docs/contracts/g1_piston_rl_induced_oscillation.json`. Videos:
 
 ---
 
+## 6. The task is a micropipette, and v1 never scored the plunger
+
+The scene's `object` is not a passive cylinder. It is an IsaacLab **Articulation** whose
+prismatic `PistonJoint` **is the pipette plunger**:
+
+| | |
+|---|---|
+| `Rod` | the plunger, and the articulation root (what the robot grasps) |
+| `Barrel` | the pipette body; the rod slides through its bore |
+| joint | prismatic, travel **0 – 0.04 m**, passive spring 150 N/m + damper 12 N·s/m |
+| visual asset | `Micropipette01.obj` |
+
+**The v1 reward reads only rigid-body positions and never reads `joint_pos`.** So v1
+"success" means only: the pipette was carried over the pot and allowed to settle.
+Depressing the plunger — the functional act the task is named for — was never measured,
+never rewarded, and never required. The task prompt asks the robot to "inject it into
+the tube"; v1 scored only the transport clause, which is also why **every** screened
+demonstration records `success: True` with `tube: False`.
+
+This means the RL policies did not fail to learn the task. They optimised exactly what
+was scored. A reward with no plunger term provides no gradient toward pressing, so the
+absence of pressing is expected behaviour, not a training failure.
+
+### Do the demonstrations press it?
+
+All 11 recorded demonstrations replayed through the frozen retargeter, logging the joint:
+
+| plunger depth | episodes | reading |
+|---|---|---|
+| 55–60% of travel | **10, 15, 45** | genuine press |
+| 22–46% | the other 8 | passive spring compression from gripping |
+
+Rod–barrel separation corroborates independently: pressing episodes compress to 6–8 mm,
+non-pressing sit at 18–21 mm.
+
+**The mechanism matters more than the count.** Pressing and non-pressing demonstrations
+issue *near-identical* commands — same thumb and finger ranges and maxima, arm
+trajectories differing by 0.02–0.05 rad on average. The press is therefore
+**contact-sensitive, not a distinct commanded motion**: whether the plunger goes down
+depends on exactly how the hand closes on it. So the policy cannot copy a "press action"
+from the data — there isn't one to copy. It has to discover the grip geometry that
+produces compression, which is precisely what a reward on measured plunger depth
+optimises, and why more imitation would not have fixed this.
+
+### The fix
+
+`g1_piston_reward_v2.py` scores the functional task: `press` (plunger past 50% of travel
+while held) and `dispense` (press *while aligned over the tube*), a tightened tube stage
+with a height gate, and a ballistic-speed test that closes the v1 throw exploit. Plunger
+shaping is best-so-far, so the spring-loaded joint cannot be pumped for reward (pinned by
+a test running 20 pump cycles). v1 is **frozen, not edited**, so every prior number stays
+reproducible under its own predicate, and any rollout can be scored under both.
+
+One trap found and closed on the way: RLPD fills half of every batch from a demo buffer
+whose rewards are baked in at build time. Training v2 against the shipped v1 buffer would
+have taught the critic that a trajectory never touching the plunger is worth full credit —
+cancelling the press signal while the run looked normal for hours. `build_demo_buffer.py`
+regenerates the buffer per reward version and the trainer now refuses any mismatch.
+
+Contract: `docs/contracts/g1_piston_plunger_dof.json`.
+
+---
+
+## 7. The "camera shake" is refuted
+
+Direct logging of the ego camera's body (`d435_link`) over a full 1380-step episode:
+
+| policy | camera travel, whole episode | per step |
+|---|---|---|
+| SFT | 10.06 mm | 0.0093 mm |
+| RLPD @415k | 11.86 mm | 0.0140 mm |
+| smoothness-trained | 12.58 mm | 0.0185 mm |
+
+Hundredths of a millimetre per step cannot be seen. An earlier pixel measurement appeared
+to show RL shaking the background 1.9× more than demos; that sample region was
+contaminated by the robot's own arm passing through it (30× more motion there than in
+genuinely static regions). On verified-static regions the residual is codec noise, and the
+ordering contradicts the hypothesis outright — the *smoothest* policy scores highest.
+
+What reads as camera shake is the arm and hands moving jerkily inside a stable frame:
+finding 5's oscillation, already addressed at the source. Contract:
+`docs/contracts/g1_piston_camera_shake_refuted.json`.
+
+---
+
 ## Recommendation
 
 **Do not** resume the three remaining training seeds for a carry-based comparison: ~32

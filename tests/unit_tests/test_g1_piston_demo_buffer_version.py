@@ -121,3 +121,21 @@ def test_demo_dir_is_configurable():
     """A v2 run must be able to point at a different buffer directory."""
     src = open("tools/g1_piston/train_sac.py").read()
     assert 'DEMO_DIR = os.environ.get("DEMO_DIR"' in src
+
+
+def test_warm_start_reinitialises_the_critic_when_its_width_changes():
+    """ACTION_BASIS and CRITIC_STATE change the critic's input width, so a checkpoint
+    predating them cannot be loaded (2048+900 = 2948 versus 2048+68+180 = 2296).
+
+    The policy must still transfer -- it carries the learned behaviour and its shape is
+    independent of critic conditioning -- while the critic starts fresh. Padding or
+    truncating the first layer would be worse than a fresh init, because the surviving
+    weights would be indexed against a different feature layout and the actor maximises
+    whatever the critic says.
+    """
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert "critic_transferred" in src
+    assert "critic_reinit_reason" in src
+    # The policy transfer must NOT be inside the width-conditional branch.
+    head = src.split("want = critic.state_dict()")[0]
+    assert "model.action_model.load_state_dict(wc[\"action_model\"])" in head

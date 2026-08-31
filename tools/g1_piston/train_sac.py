@@ -234,12 +234,32 @@ try:
     # counting restarts at 0 for the new run; the origin is recorded in the config.
     if WARM_CKPT:
         wc = torch.load(WARM_CKPT, map_location="cpu", weights_only=False)
+        # The POLICY always transfers: it is what carries the learned behaviour, and its
+        # shape does not depend on how the critic is conditioned.
         model.action_model.load_state_dict(wc["action_model"])
-        critic.load_state_dict(wc["critic"])
-        target.load_state_dict(wc["target"])
         with torch.no_grad():
             actor_logstd.copy_(wc["actor_logstd"].to(DEV))
         ent.load_state_dict(wc["alpha"])
+        # The CRITIC only transfers when its input space is unchanged. ACTION_BASIS and
+        # CRITIC_STATE alter that width (2048+900 = 2948 raw, versus 2048+68+180 = 2296
+        # with both on), so a checkpoint predating them cannot be loaded -- and padding
+        # or truncating the first layer would be worse than starting fresh, because the
+        # surviving weights would be indexed against a different feature layout.
+        # A fresh critic is also the correct choice on the merits: it is refitted from
+        # the replay buffer within a few hundred updates, whereas a mis-indexed one
+        # would emit confident nonsense that the actor would then maximise.
+        want = critic.state_dict()["qs.0.net.0.weight"].shape
+        got = wc["critic"]["qs.0.net.0.weight"].shape
+        if want == got:
+            critic.load_state_dict(wc["critic"])
+            target.load_state_dict(wc["target"])
+            WARM_META["critic_transferred"] = True
+        else:
+            target.load_state_dict(critic.state_dict())
+            WARM_META["critic_transferred"] = False
+            WARM_META["critic_reinit_reason"] = (
+                f"critic input width changed {tuple(got)} -> {tuple(want)} "
+                "(ACTION_BASIS / CRITIC_STATE); policy and alpha still transferred")
         WARM_META["warm_env_steps"] = int(wc.get("env_steps", -1))
         WARM_META["warm_grad_updates"] = int(wc.get("grad_updates", -1))
     # ENTROPY REDUCTION CONVENTION (see tests/unit_tests/

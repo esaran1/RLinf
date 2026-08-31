@@ -46,7 +46,13 @@
   "dataset_does_not_succeed": {
    "claim": "Dataset seems to not succeed.",
    "verified": "CONFIRMED, on two independent axes already measured in this study. (1) Under the embodiment, only 22 of 67 dataset episodes are executable at all (g1_piston_demo_screen_manifest.json) -- the dataset labels all 67 as success. (2) Under the FUNCTIONAL predicate, only 3 of 11 replayed demonstrations depress the plunger past half travel; the rest show only passive gripping compliance (g1_piston_plunger_dof.json). So the demonstrations are weak supervision for the task as named, which is consistent with SFT scoring 0.00 deterministic success.",
-   "consequence": "RLPD's offline half is a weak prior for the functional act, and the press must largely be discovered from reward. Recorded rather than papered over."
+   "consequence": "RLPD's offline half is a weak prior for the functional act, and the press must largely be discovered from reward. Recorded rather than papered over.",
+   "reward_validation_2026_08_31": {
+    "method": "tools/g1_piston/validate_reward.py, v1 reward, 11 demonstration replays.",
+    "reproducibility": "The fresh replay reproduces the recorded manifest almost exactly (e.g. ep0 35.63 vs 35.65, ep40 36.20 vs 36.05); only ep60 differs materially (12.94 vs 2.96), consistent with the documented contact nondeterminism. The reward pipeline is reproducible.",
+    "ranking_quality": "Return correlates 0.972 with the number of stages achieved and there are NO stage ordering inversions across any episode, so v1 does rank behaviour monotonically by task progress -- it is a usable objective FOR THE TRANSPORT TASK it encodes. Its defect is what it omits (the plunger) and the exploits it admits, not its ranking.",
+    "bimodality": "Returns are strongly bimodal: 35.6-36.2 for the three that complete transport, ~2.95-3.00 for the seven that only reach and grasp, one at 12.94. There is little gradient between 'grasped' and 'transported', which is consistent with the flat learning observed."
+   }
   },
   "reward_unreasonable": {
    "claim": "Reward setting is not reasonable (xy-only grasp, throwable lift, sky success, no smoothness, stale validation).",

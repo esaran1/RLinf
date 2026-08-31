@@ -1,0 +1,393 @@
+{
+  "_status": "RUNNING",
+  "chunks_done": 23,
+  "episode": 46,
+  "video": "/home/jren313/research/starvla_rl/RLinf/verified_results/videos_demos/demo_ep46_functional_press.mp4",
+  "n_frames": 345,
+  "plunger_max_m": 0.01945,
+  "plunger_max_frac": 0.4863,
+  "v3_return": 16.59,
+  "stages": {
+    "reach": true,
+    "grasp": true,
+    "lift": true,
+    "tube": false,
+    "press": false,
+    "dispense": false,
+    "plate": true,
+    "success": false
+  },
+  "trajectory": [
+    {
+      "chunk": 0,
+      "plunger_m": 0.00817,
+      "plunger_frac": 0.2043,
+      "cum_return": 0.01,
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 1,
+      "plunger_m": 0.00817,
+      "plunger_frac": 0.2044,
+      "cum_return": 0.079,
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 2,
+      "plunger_m": 0.00818,
+      "plunger_frac": 0.2044,
+      "cum_return": 0.097,
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 3,
+      "plunger_m": 0.00819,
+      "plunger_frac": 0.2048,
+      "cum_return": 0.072,
+      "stages": {
+        "reach": false,
+        "grasp": false,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 4,
+      "plunger_m": 0.00831,
+      "plunger_frac": 0.2077,
+      "cum_return": 3.066,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 5,
+      "plunger_m": 0.00739,
+      "plunger_frac": 0.1849,
+      "cum_return": 3.041,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 6,
+      "plunger_m": 0.00868,
+      "plunger_frac": 0.217,
+      "cum_return": 3.037,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 7,
+      "plunger_m": 0.00553,
+      "plunger_frac": 0.1382,
+      "cum_return": 3.026,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 8,
+      "plunger_m": 0.00248,
+      "plunger_frac": 0.062,
+      "cum_return": 2.996,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 9,
+      "plunger_m": 0.0,
+      "plunger_frac": 0.0,
+      "cum_return": 2.966,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 10,
+      "plunger_m": 0.0,
+      "plunger_frac": 0.0,
+      "cum_return": 2.936,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 11,
+      "plunger_m": 0.00201,
+      "plunger_frac": 0.0501,
+      "cum_return": 2.906,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 12,
+      "plunger_m": 0.00261,
+      "plunger_frac": 0.0653,
+      "cum_return": 2.876,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 13,
+      "plunger_m": 0.0192,
+      "plunger_frac": 0.48,
+      "cum_return": 4.681,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": false,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": false,
+        "success": false
+      }
+    },
+    {
+      "chunk": 14,
+      "plunger_m": 0.00808,
+      "plunger_frac": 0.2019,
+      "cum_return": 16.787,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 15,
+      "plunger_m": 0.00761,
+      "plunger_frac": 0.1902,
+      "cum_return": 16.699,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 16,
+      "plunger_m": 0.00758,
+      "plunger_frac": 0.1896,
+      "cum_return": 16.699,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 17,
+      "plunger_m": 0.00761,
+      "plunger_frac": 0.1902,
+      "cum_return": 16.74,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 18,
+      "plunger_m": 0.00757,
+      "plunger_frac": 0.1894,
+      "cum_return": 16.71,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 19,
+      "plunger_m": 0.00757,
+      "plunger_frac": 0.1893,
+      "cum_return": 16.68,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 20,
+      "plunger_m": 0.00755,
+      "plunger_frac": 0.1888,
+      "cum_return": 16.65,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 21,
+      "plunger_m": 0.00759,
+      "plunger_frac": 0.1897,
+      "cum_return": 16.62,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    },
+    {
+      "chunk": 22,
+      "plunger_m": 0.00758,
+      "plunger_frac": 0.1894,
+      "cum_return": 16.59,
+      "stages": {
+        "reach": true,
+        "grasp": true,
+        "lift": true,
+        "tube": false,
+        "press": false,
+        "dispense": false,
+        "plate": true,
+        "success": false
+      }
+    }
+  ],
+  "source": "demo_buffer/ep046.npz (PHYSICAL actions)",
+  "command_path": "mapper+retargeter, identical to policy renders",
+  "reward_version": "v3_review_fixed"
+}

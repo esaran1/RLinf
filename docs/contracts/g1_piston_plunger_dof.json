@@ -63,5 +63,14 @@
   "contrast_with_the_earlier_reading": "The earlier act_ep sample suggested the deepest presses were failure-mode crushing by non-executable episodes. That remains true of THAT sample, but it does not generalise: on the executable set, presses occur while grasped, and ep46 is a real press. Both the original claim and its first correction were drawn from an unrepresentative sample.",
   "implication_for_rl": "RLPD demo replay supplies a WEAK BUT NONZERO prior for the functional act: 1/22 episodes (4.5%) demonstrates a genuine grasped press, so roughly 1 in 22 offline samples carries the behaviour. That is thin but not absent, which is a materially better starting point than 'must be discovered from reward alone'. Dispense (press while aligned over the tube) is demonstrated by no episode and must still be discovered.",
   "v3_sanity": "v3 credits grasp on 20/22 and lift on 16/22 executable episodes, confirming the recalibrated predicate is neither degenerate nor permissive on real successful data."
+ },
+ "ep46_press_is_not_reproducible": {
+  "recorded": "2026-08-31, on replaying ep46 a second time to render it",
+  "what_was_claimed": "Earlier this session: 'ep46 is the only genuine grasped press in the dataset -- 0.024 m, 60% of travel, the one episode firing v3's press stage.' It was presented as the single imitation prior for the functional act.",
+  "second_replay": "Same episode, same stored actions, same mapper+retargeter command path: plunger peak 19.4 mm (48.6% of travel), press stage does NOT fire, v3 return 16.59 -- versus 23.9 mm (59.9%), press True, return 29.51 in the first replay.",
+  "mechanism": "Both replays show the same shape: the plunger sits near 8 mm for the whole episode and spikes for ONE chunk (chunk 13). That single-chunk transient peaks either side of the 20 mm threshold depending on contact nondeterminism -- the same per-run variability already documented for post-grasp outcomes in g1_piston_post_grasp_nondeterminism.json.",
+  "corrected_status": "There is NO reproducible demonstration of a deliberate plunger press anywhere in the dataset. ep46's press is a threshold-straddling transient, not a demonstrated behaviour. The count '1 of 22 episodes presses' is a single-draw artifact and must not be quoted as a property of the data.",
+  "implication": "The imitation prior for the functional act is effectively ZERO, not 1/22. Any press or dispense the retrain produces must be discovered from reward. This strengthens the pre-registered expectation that dispense stays 0.00 and makes that outcome the predicted result rather than a disappointment.",
+  "method_note": "Caught only because the episode was replayed a second time to render it. Single-replay measurements of post-grasp quantities are not trustworthy in this setup -- the noise-floor study established exactly this, and the plunger is subject to it too."
  }
 }

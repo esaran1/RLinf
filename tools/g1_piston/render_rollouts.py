@@ -45,6 +45,11 @@ NO_CAPTURE = os.environ.get("NO_CAPTURE", "0") == "1"
 IGNORE_DONE = os.environ.get("IGNORE_DONE", "0") == "1"
 #: Log per-step object pose and termination flags without changing rollout behaviour.
 LOG_STEPS = os.environ.get("LOG_STEPS", "0") == "1" or IGNORE_DONE
+#: Log the head-camera body pose per step, to separate genuine camera shake (the ego
+#: camera rides on d435_link, which moves with the torso) from render artefacts.
+LOG_CAMERA = os.environ.get("LOG_CAMERA", "0") == "1"
+#: Score the functional pipette task (plunger) instead of transport-only v1.
+REWARD_V2 = os.environ.get("REWARD_V2", "0") == "1"
 #: Control steps over which a new chunk ramps in from the previous chunk's last command.
 #: 0 (the default) reproduces the study's execution exactly. Non-zero is a DIFFERENT
 #: EXECUTION MODE and must be reported as its own arm -- see
@@ -111,6 +116,11 @@ try:
     Mapper = _load("g1a", RL + "g1_piston_action.py").G1PistonActionMapper
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
+    # REWARD_V2=1 scores the FUNCTIONAL pipette task: the plunger (the object's
+    # prismatic PistonJoint) must actually be depressed. v1 scores transport only and
+    # stays the default so every prior result remains reproducible. See
+    # docs/contracts/g1_piston_plunger_dof.json.
+    RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     CB = _load("g1cb", RL + "g1_piston_chunk_blend.py")
     AF = _load("g1af", RL + "g1_piston_action_filter.py")
@@ -131,7 +141,8 @@ try:
     sc = env.scene
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = RW.PistonTaskReward(sc, jn)
+    reward_fn = (RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
+                 else RW.PistonTaskReward(sc, jn))
     act_filter = (AF.DemoEnvelopeFilter(
                       dim=30, fc_hz=FILTER_HZ,
                       apply_dims=(AF.HAND_DIMS if FILTER_DIMS == "hand" else None))
@@ -219,6 +230,8 @@ try:
         return a.reshape(b, c, d)
 
     step_log = []  # per-step object pose + termination flags, IGNORE_DONE only
+    cam_log = []   # per-step head-camera pose (LOG_CAMERA)
+    _CAM_IDX = list(sc["robot"].data.body_names).index("d435_link")
 
     def run_chunk(norm_action, frames, grab, prev_cmd=None):
         """Identical to eval_checkpoint.run_chunk, plus frame capture and optional blend.
@@ -242,6 +255,12 @@ try:
             a = cmd[t].unsqueeze(0)
             for _hold in range(2):
                 _, _, te, tr, _ = env.step(a)
+                if LOG_CAMERA:
+                    _bp = sc["robot"].data.body_pos_w[0]
+                    _bq = sc["robot"].data.body_quat_w[0]
+                    cam_log.append(
+                        [round(float(x), 6) for x in _bp[_CAM_IDX].cpu().numpy()]
+                        + [round(float(x), 6) for x in _bq[_CAM_IDX].cpu().numpy()])
                 if LOG_STEPS:
                     step_log.append({
                         "root": [round(float(x), 4) for x in
@@ -309,6 +328,7 @@ try:
         frames, per_chunk = [], []
         sim_done_chunk = None
         step_log.clear()
+        cam_log.clear()
         ret, maxlift, stages = 0.0, 0.0, {}
         deterministic = (MODE == "deterministic")
         prev_cmd = None
@@ -398,10 +418,12 @@ try:
             "blend_steps": BLEND_STEPS,
             "filter_hz": FILTER_HZ,
             "filter_dims": FILTER_DIMS,
+            "reward_version": "v2_functional" if REWARD_V2 else "v1_transport",
             "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
             "sim_done_chunk": sim_done_chunk,
             "step_log": list(step_log) if LOG_STEPS else None,
+            "camera_log": list(cam_log) if LOG_CAMERA else None,
             "piston_initial_xyz": [round(float(x), 5) for x in bar0],
             "piston_final_xyz": [round(float(x), 5) for x in bar],
             "row": row, "trajectory": per_chunk,

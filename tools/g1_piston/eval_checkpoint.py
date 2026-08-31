@@ -29,6 +29,8 @@ OUT = os.environ["OUTF"]
 CKPT_PATH = os.environ["CKPT"]
 RUN_DIR = os.environ.get("RUN_DIR", "/tmp")
 N_EVAL = int(os.environ.get("N_EVAL", "25"))
+#: Score the functional pipette task (plunger) instead of transport-only v1.
+REWARD_V2 = os.environ.get("REWARD_V2", "0") == "1"
 RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817"))
 EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))
 SEED = int(os.environ.get("SEED", "0"))
@@ -52,7 +54,8 @@ FILTER_DIMS = os.environ.get("FILTER_DIMS", "all").lower()
 
 os.makedirs(RUN_DIR, exist_ok=True)
 res = {"checkpoint": CKPT_PATH, "n_eval": N_EVAL, "modes": {},
-       "blend_steps": BLEND_STEPS, "filter_hz": FILTER_HZ, "filter_dims": FILTER_DIMS}
+       "blend_steps": BLEND_STEPS, "filter_hz": FILTER_HZ, "filter_dims": FILTER_DIMS,
+       "reward_version": "v2_functional" if REWARD_V2 else "v1_transport"}
 
 
 def emit(s="RUNNING"):
@@ -87,6 +90,11 @@ try:
     Mapper = _load("g1a", RL + "g1_piston_action.py").G1PistonActionMapper
     HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
     RW = _load("g1r", RL + "g1_piston_reward.py")
+    # REWARD_V2=1 scores the FUNCTIONAL pipette task: the plunger (the object's
+    # prismatic PistonJoint) must actually be depressed. v1 scores transport only and
+    # stays the default so every prior result remains reproducible. See
+    # docs/contracts/g1_piston_plunger_dof.json.
+    RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     CB = _load("g1cb", RL + "g1_piston_chunk_blend.py")
     AF = _load("g1af", RL + "g1_piston_action_filter.py")
@@ -107,7 +115,8 @@ try:
     sc = env.scene
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = RW.PistonTaskReward(sc, jn)
+    reward_fn = (RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
+                 else RW.PistonTaskReward(sc, jn))
     act_filter = (AF.DemoEnvelopeFilter(
                       dim=30, fc_hz=FILTER_HZ,
                       apply_dims=(AF.HAND_DIMS if FILTER_DIMS == "hand" else None))

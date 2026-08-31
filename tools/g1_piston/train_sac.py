@@ -56,7 +56,10 @@ BATCH = int(os.environ.get("BATCH", "8"))
 DEMO_FRAC = float(os.environ.get("DEMO_FRAC", "0.5")) # RLPD offline mix
 SEED = int(os.environ.get("SEED", "0"))
 EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))    # 23 chunks x 30 x 2 = 1380 env steps
-DEMO_DIR = "/home/jren313/research/starvla_rl/demo_buffer"
+#: RLPD's offline half. The buffer's rewards are baked in at BUILD time, so a run
+#: using REWARD_V2 must point at a buffer rebuilt under v2 (see build_demo_buffer.py);
+#: otherwise half of every batch carries v1 targets and cancels the v2 press signal.
+DEMO_DIR = os.environ.get("DEMO_DIR", "/home/jren313/research/starvla_rl/demo_buffer")
 
 os.makedirs(RUN_DIR, exist_ok=True)
 res = {
@@ -494,6 +497,25 @@ try:
     online = deque(maxlen=20000)     # (feat, mean_action, action, reward, next_feat, done)
     demo = []
     if ALGO == "rlpd":
+        # Fail loudly rather than train a critic on rewards from the wrong reward
+        # version: it would look like a normal run and quietly produce a v1 policy.
+        _marker = os.path.join(DEMO_DIR, "_build_status.json")
+        _built_v2 = False
+        if os.path.exists(_marker):
+            try:
+                _built_v2 = (json.load(open(_marker)).get("reward_version")
+                             == "v2_functional")
+            except Exception:
+                _built_v2 = False
+        if REWARD_V2 and not _built_v2:
+            raise SystemExit(
+                f"REWARD_V2=1 but the demo buffer at {DEMO_DIR} was not built with the "
+                "v2 reward. Rebuild it with tools/g1_piston/build_demo_buffer.py "
+                "(REWARD_V2=1) and point DEMO_DIR at the result.")
+        if _built_v2 and not REWARD_V2:
+            raise SystemExit(
+                f"The demo buffer at {DEMO_DIR} was built with the v2 reward but "
+                "REWARD_V2 is not set. Set REWARD_V2=1 or use the v1 buffer.")
         for fn in sorted(os.listdir(DEMO_DIR)):
             if not fn.endswith(".npz"): continue
             z = np.load(os.path.join(DEMO_DIR, fn))

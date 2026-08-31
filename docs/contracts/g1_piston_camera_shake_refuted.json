@@ -1,0 +1,26 @@
+{
+ "id": "g1_piston_camera_shake_refuted",
+ "recorded": "2026-08-31",
+ "status": "REFUTED",
+ "hypothesis": "The videos look 'camera-shaky', so the ego camera (mounted on d435_link) is physically wobbling from arm reaction forces through the fixed-base robot, feeding motion blur back into the policy's own observations.",
+ "why_it_was_plausible": "The waist is frozen in the action space, so the camera cannot be commanded to move; any camera motion would have to be physical. An initial pixel measurement appeared to show RL policies moving the background 1.9x more than demonstration replays.",
+ "measurement": {
+  "method": "Logged the d435_link body pose every simulator step over a full 23-chunk episode (1380 steps) on the same frozen condition, under three policies (LOG_CAMERA=1 in render_rollouts.py).",
+  "sft": {
+   "total_travel_mm": 10.06,
+   "mean_step_mm": 0.0093,
+   "p95_step_mm": 0.0478
+  },
+  "rlpd415k": {
+   "total_travel_mm": 11.86,
+   "mean_step_mm": 0.014,
+   "p95_step_mm": 0.0519
+  },
+  "ratio": "RLPD moves the camera 1.51x more per step than SFT"
+ },
+ "verdict": "REFUTED. The camera moves ~0.014 mm per step and ~12 mm over an entire episode. That is orders of magnitude too small to be visible. The 1.5x ratio is real but irrelevant at this scale.",
+ "error_in_the_original_measurement": "The 'static background' sample region was contaminated by the robot's own arm passing through it: that region shows 30x more motion (mean diff 30.5 levels, 38% of pixels changing) than genuinely static regions (0.5 levels, ~1% of pixels). It was measuring the arm, not the background.",
+ "corrected_measurement": "On verified-static regions only: demo 0.303, RLPD 0.575, smoothness-trained 0.547, SFT 0.941 grey levels/frame -- consistent with codec noise, and the ordering does not support the hypothesis (SFT, the smoothest policy, scores highest).",
+ "actual_explanation": "What reads as 'camera shake' is the robot's ARM AND HANDS moving jerkily within a stable frame -- the RL-induced oscillation documented in g1_piston_rl_induced_oscillation.json, already addressed at the source by the CAPS smoothness penalty.",
+ "consequence": "No observation-feedback pathology exists; no separate fix is needed."
+}

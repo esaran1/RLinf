@@ -30,5 +30,26 @@
    "fix": "tools/g1_piston/validate_reward.py re-derives validation per reward version."
   }
  },
- "status": "v3 implemented; 18 tests pin every fix, including a test that reproduces the sky-throw exploit and asserts v3 rejects it."
+ "status": "v3 implemented; 18 tests pin every fix, including a test that reproduces the sky-throw exploit and asserts v3 rejects it.",
+ "self_audit_findings": {
+  "method": "Adversarial probing of v3 itself after implementing the review fixes.",
+  "exploit_found_and_fixed": {
+   "name": "press-after-release farming",
+   "mechanism": "`grasp` is a LATCHED stage. Gating the plunger shaping term and the press/dispense stages on the latched stage let a policy grasp once, release the pipette, and then drive the plunger down by any other means -- e.g. pressing it against the table -- while the term kept paying.",
+   "measured": "18.00 reward farmed across four presses after releasing.",
+   "fix": "Gate the plunger shaping term and the press/dispense stages on the LIVE `grasped` predicate instead of the latched stage. Post-fix the same sequence pays -0.004.",
+   "test": "test_pressing_after_release_cannot_farm_reward"
+  },
+  "probes_that_passed": {
+   "approach_oscillation": "30 approach/retreat cycles: cycle 1 pays 3.958 (one-time approach shaping plus reach and grasp bonuses), cycles 2-30 pay -0.002 each, i.e. only the step cost. Best-so-far shaping holds.",
+   "transport_oscillation": "20 toward/away-from-pot cycles while held: total -2.200 (net negative).",
+   "reach_without_opposition": "Fingers and thumb on the same side at 0.044 m: reach and grasp both refused.",
+   "jerk_avoidance": "Releasing avoids the jerk penalty (0.100 -> 0.000) but forfeits lift, press and success, so it is not a profitable deviation."
+  },
+  "wiring_defects_found_and_fixed": {
+   "v3_not_in_eval_or_render": "REWARD_V3 was wired into train_sac.py only, so a v3-trained policy could not be scored or filmed under v3 -- evaluation would have silently fallen back to the exploitable v1/v2 predicate. Now wired into eval_checkpoint.py and render_rollouts.py.",
+   "demo_buffer_guard_v2_only": "The guard hard-coded reward_version == 'v2_functional', so a matched v3 run was wrongly refused while a v3 buffer under v1 training passed silently. Now compares built-vs-trained for every version."
+  },
+  "execution_verification": "Verified by running, not by reading: all three rewards load and step through the tools' own import path; the critic accepts all four ACTION_BASIS/CRITIC_STATE combinations with correct widths; actor gradients reach all 30 horizon steps through the DCT basis; CriticStateBuilder resolves every hardcoded joint and body name against the real scene enumeration and produces the expected slot values."
+ }
 }

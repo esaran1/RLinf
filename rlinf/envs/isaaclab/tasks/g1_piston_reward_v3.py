@@ -255,8 +255,12 @@ class PistonTaskRewardV3:
                 reward += W_ALIGN * (self._best_align - d_tube_xy)
                 self._best_align = d_tube_xy
 
-        # --- plunger, best-so-far, only while grasped -----------------------------
-        if self._stages["grasp"]:
+        # --- plunger, best-so-far, only while ACTUALLY holding it ------------------
+        # Gate on the LIVE grasp, not the latched stage. The latched form is farmable:
+        # grasp once (latching the stage), release, then drive the plunger down by any
+        # other means -- pushing it against the table -- and the term keeps paying.
+        # Measured on the latched version: 18.0 reward farmed after releasing.
+        if grasped:
             if self._best_press is None:
                 self._best_press = press
             if press > self._best_press:
@@ -297,8 +301,10 @@ class PistonTaskRewardV3:
         # reviewer point 2: positive condition -- held AND high AND slow.
         fire("lift", grasped and lift > LIFT_H and speed < BALLISTIC_SPEED)
         fire("tube", aligned_over_tube)
-        fire("press", self._stages["grasp"] and press > PRESS_DEPTH)
-        fire("dispense", aligned_over_tube and press > PRESS_DEPTH)
+        # Same reasoning as the shaping term: the press only counts if the pipette is
+        # being held at the moment it is depressed.
+        fire("press", grasped and press > PRESS_DEPTH)
+        fire("dispense", aligned_over_tube and grasped and press > PRESS_DEPTH)
         fire("plate", self._stages["lift"] and d_pot_xy < PLATE_NEAR)
 
         # Success: dispensed, then placed over the plate, at rest, supported, released.

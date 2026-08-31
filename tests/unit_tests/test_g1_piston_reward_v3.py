@@ -364,3 +364,58 @@ def test_supported_band_rejects_midair_and_sunken(dz, expected):
     sc.place(sc.pot[:2], sc.pot[2] + dz, gripping=False)
     _, info = r.step()
     assert info["supported"] is expected
+
+
+# ------------------------------------------------- self-audit exploit probes ----
+def test_pressing_after_release_cannot_farm_reward():
+    """Found by adversarial self-audit of v3, not by review.
+
+    ``grasp`` is a latched stage, so gating the plunger term on the LATCHED stage let a
+    policy grasp once, drop the pipette, and then drive the plunger down by any other
+    means (pushing it against the table) while the term kept paying. Measured on the
+    latched version: 18.0 reward farmed after releasing. The term must gate on the LIVE
+    grasp instead.
+    """
+    sc = FakeScene()
+    r = rw(sc)
+    sc.grip()
+    r.step()
+    assert r._stages["grasp"] is True          # latched, as intended
+    sc.release()
+    r.step()
+    total = 0.0
+    for p in (0.01, 0.02, 0.03, 0.04):
+        sc.press = p
+        rew, info = r.step()
+        total += rew
+    assert info["grasped"] is False
+    assert info["stages"]["press"] is False
+    assert total <= 0.0, total
+
+
+def test_dispense_requires_actually_holding_the_pipette():
+    """A pipette resting in the tube with the plunger pushed by something else is not
+    a dispense."""
+    sc = FakeScene()
+    r = rw(sc)
+    sc.grip()
+    r.step()
+    glide(sc, r, (0.0, 0.0), 0.89 + 0.10)
+    glide(sc, r, sc.tube[:2], sc.tube[2] + 0.03)
+    sc.release()
+    r.step()
+    sc.press = 0.035
+    _, info = r.step()
+    assert info["stages"]["dispense"] is False
+
+
+def test_press_still_credited_when_genuinely_held():
+    """The gate must not break the legitimate path."""
+    sc = FakeScene()
+    r = rw(sc)
+    sc.grip()
+    r.step()
+    sc.press = 0.03
+    rew, info = r.step()
+    assert info["stages"]["press"] is True
+    assert rew > 0.0

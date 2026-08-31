@@ -1,0 +1,38 @@
+{
+ "id": "g1_piston_v3_retrain_preregistration",
+ "recorded": "2026-08-31, BEFORE the retrain data exists",
+ "purpose": "Pre-register the configuration, hypotheses and decision rules for the RL run that follows the review fixes, so the result cannot be reinterpreted after the fact.",
+ "configuration": {
+  "reward": "v3 (REWARD_V3=1) -- functional pipette task, exploit-free success, measured grasp geometry",
+  "algorithm": "RLPD warm-started from rlpd_ckpt_step415140.pt",
+  "gamma_chunk": 0.98,
+  "terminal_credit_at_episode_start": 0.63,
+  "action_basis": "ACTION_BASIS=1 -- critic sees 180 DCT coefficients, not 900 raw scalars",
+  "critic_state": "CRITIC_STATE=1 -- proprioception, object and plunger state, phase one-hot",
+  "smooth_lambda": 100,
+  "demo_buffer": "MUST be rebuilt under v3 with recorded critic state; the trainer refuses a mismatch"
+ },
+ "what_changed_since_the_last_run": [
+  "gamma: terminal credit 0.001 -> 0.63 (the previous run was effectively myopic)",
+  "critic action input: 900 -> 180 dims (8.2 -> 41 transitions per input dimension)",
+  "critic conditioning: RGB only -> RGB + proprioception + object/plunger state + phase",
+  "reward: transport-only, with a success predicate a mid-air throw satisfied -> functional pipette task",
+  "reward plateau: v1 paid ~3.0 for an off-object hand near the axis; v3 pays ~0"
+ ],
+ "hypotheses": {
+  "H1_plateau_removal": "Removing v1's ~3.0 flat plateau for an off-object hand gives the policy a gradient it previously lacked, so v3 'grasp' rate should RISE above the 3.2% of steps measured on the warm-start checkpoint.",
+  "H2_dispense_is_discovery_not_imitation": "No executable demonstration dispenses (pending confirmation from the buffer probe), so any press/dispense the policy achieves is discovered from reward, not imitated. Prior expectation is therefore LOW: dispense may well stay at 0.00 within a wall-clock-bounded run.",
+  "H3_smoothness": "SMOOTH_LAMBDA=100 reproduces the previously validated result: the CAPS penalty roughly halves the oscillation at no task cost."
+ },
+ "decision_rules": {
+  "primary_readout": "v3 stage rates on the frozen 25-condition suite: reach, grasp, lift, tube, press, dispense, plate, success. Reported for the warm-start checkpoint AND the retrained checkpoint under the SAME v3 predicate.",
+  "success_criterion": "A run counts as progress if v3 grasp or lift rises beyond the 8-run noise floor established for this setup. Post-grasp metrics are NOT resolvable from a single evaluation (documented: carry spans 0.00-0.36 across identical repeats), so any single-run post-grasp claim must be reported with that caveat.",
+  "failure_is_reportable": "If dispense stays 0.00, that is the honest result and will be reported as such: it would show the functional act is not reachable from this initialisation within the compute budget, which is a finding about the task and the data, not a bug to hide.",
+  "no_reward_tuning_after_seeing_results": "v3's thresholds are fixed by measurement (see g1_piston_reward_v3_review_fixes.json). They will not be adjusted to make the numbers look better; any future change must be justified by a new measurement and recorded."
+ },
+ "known_limitations_carried_in": [
+  "The actor remains a diagonal-covariance Gaussian over 900 scalars; real chunks live on a ~16-dim manifold. A structured or diffusion policy is the recommended next architecture and is NOT tested here.",
+  "The grasp predicate is a geometric proxy: this scene ships no contact sensors.",
+  "Only 22 of 67 dataset episodes are executable under this embodiment, and the SFT initialisation scores 0.00 deterministic success."
+ ]
+}

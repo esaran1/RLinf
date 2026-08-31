@@ -127,7 +127,12 @@ try:
                  else RW.PistonTaskReward(sc, jn))
     # Record the privileged critic state alongside each transition, so a run with
     # CRITIC_STATE=1 can use RLPD's offline half instead of being blocked by it.
-    csb = CST.CriticStateBuilder(sc, max_chunks=max(1, H))
+    # max_chunks normalises episode_progress. It MUST match the trainer's EP_CHUNKS, or
+    # demonstration transitions carry a different progress scale than online ones and the
+    # critic sees two conventions for one feature. H is the chunk LENGTH (30), not the
+    # episode length -- using it here was a latent mismatch.
+    EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))
+    csb = CST.CriticStateBuilder(sc, max_chunks=EP_CHUNKS)
 
     STATS = ("/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1/"
              "dataset_statistics.json")

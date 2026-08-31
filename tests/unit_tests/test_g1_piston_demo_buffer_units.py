@@ -90,3 +90,19 @@ def test_every_buffer_episode_is_in_the_expected_range():
         assert a.min() > -3.0 and a.max() < 3.0
         # Physical hand commands reach the 1.7 rad finger limit; normalized would not.
         assert a.max() > 1.0, os.path.basename(fp)
+
+
+def test_builder_and_trainer_agree_on_episode_progress_scale():
+    """episode_progress is chunk/max_chunks. The builder and the trainer must use the
+    SAME max_chunks, or demonstration transitions carry a different progress scale than
+    online ones and the critic sees two conventions for one feature.
+
+    The builder originally passed the chunk LENGTH (H=30) where the episode length
+    (EP_CHUNKS=23) was meant.
+    """
+    b = open("tools/g1_piston/build_demo_buffer.py").read()
+    t = open("tools/g1_piston/train_sac.py").read()
+    assert "CriticStateBuilder(sc, max_chunks=EP_CHUNKS)" in b
+    assert "CriticStateBuilder(sc, max_chunks=EP_CHUNKS)" in t
+    assert 'EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))' in b
+    assert 'EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))' in t

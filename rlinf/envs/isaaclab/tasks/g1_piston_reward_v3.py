@@ -123,8 +123,22 @@ PLATE_REST_DZ = (0.05, 0.22)
 # --- plunger --------------------------------------------------------------------------
 #: Full travel of the prismatic joint, measured from the scene.
 PLUNGER_TRAVEL = 0.04
-#: Fraction of travel counted as a deliberate press (gripping compliance is ~25%).
-PRESS_FRAC = 0.50
+#: Fraction of travel counted as a deliberate press.
+#:
+#: CALIBRATION NOTE. This threshold cannot be fitted to the demonstrations, because the
+#: demonstrations contain no deliberate press. Measured across all 22 executable
+#: episodes, plunger peaks form ONE continuous band from 8.4 to 23.9 mm (median 13.6)
+#: with a largest internal gap of 4.4 mm -- incidental compression from gripping, with
+#: no separable mode. Worse, replaying a single episode twice moves its peak across
+#: 20.0 mm (ep46: 23.9 mm then 19.4 mm), so any threshold inside that band produces a
+#: press count that is pure contact noise.
+#:
+#: The threshold is therefore set from the OBJECT, not the data: a press must clear the
+#: entire demonstrated band of incidental compression, so that firing it requires
+#: actuation the demonstrations never produce. 0.70 of travel = 28.0 mm, comfortably
+#: above the 23.9 mm maximum ever observed and above the flip zone. This makes the press
+#: stage a claim about the policy doing something new, which is what the stage is for.
+PRESS_FRAC = 0.70
 #: Absolute press threshold, metres.
 PRESS_DEPTH = PLUNGER_TRAVEL * PRESS_FRAC
 

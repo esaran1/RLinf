@@ -111,5 +111,13 @@
    "v3_lifted": 15.11,
    "v3_not_lifted": 1.44
   }
+ },
+ "press_threshold_recalibration": {
+  "recorded": "2026-08-31, after ep46 proved non-reproducible",
+  "problem": "PRESS_FRAC was 0.50 (20.0 mm of 40 mm travel), chosen as 'half of travel' -- a round number, not a measured separation. Measuring all 22 executable demonstrations showed plunger peaks form ONE continuous band from 8.4 to 23.9 mm (median 13.6) with a largest internal gap of 4.4 mm. 8 of 22 episodes sit within 5 mm of the 20 mm threshold, and replaying one episode twice moved its peak from 23.9 to 19.4 mm. Any threshold inside that band therefore produces a press count that is contact noise.",
+  "why_it_cannot_be_fitted": "There is no deliberate press in the demonstrations to calibrate against. The distribution is incidental compression from gripping, with no second mode to separate.",
+  "resolution": "Set the threshold from the OBJECT rather than the data: PRESS_FRAC = 0.70 (28.0 mm), above the 23.9 mm maximum ever observed and clear of the flip zone. Firing the press stage now requires actuation the demonstrations never produce, which is what the stage is meant to claim.",
+  "consequence_for_the_retrain": "The v3 baseline's press_rate of 0.04 was measured under the old 20 mm threshold and is itself a single-draw number in the noise band; it should be read as 0.00. Under the recalibrated threshold both arms are scored consistently, and a nonzero press rate would be genuine evidence of new behaviour.",
+  "guards": "test_press_threshold_clears_the_demonstrated_compression_band, test_press_threshold_is_not_silently_loosened"
  }
 }

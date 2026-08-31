@@ -455,3 +455,36 @@ def test_press_still_credited_when_genuinely_held():
     rew, info = r.step()
     assert info["stages"]["press"] is True
     assert rew > 0.0
+
+
+def test_press_threshold_clears_the_demonstrated_compression_band():
+    """The press threshold cannot be fitted to the demonstrations, so it is set from the
+    object instead -- and must stay above everything the demonstrations ever reach.
+
+    Measured across all 22 executable episodes, plunger peaks form one continuous band
+    from 8.4 to 23.9 mm (median 13.6) with a largest internal gap of 4.4 mm: incidental
+    compression from gripping, with no separable 'press' mode. Replaying one episode
+    twice moved its peak from 23.9 to 19.4 mm, so any threshold inside that band yields
+    a press count that is contact noise rather than behaviour.
+
+    A press must therefore require actuation the demonstrations never produce.
+    """
+    from rlinf.envs.isaaclab.tasks.g1_piston_reward_v3 import (
+        PLUNGER_TRAVEL,
+        PRESS_DEPTH,
+    )
+
+    deepest_demonstrated_m = 0.0239      # ep46, the maximum over 22 executable episodes
+    assert PRESS_DEPTH > deepest_demonstrated_m, (
+        "press threshold sits inside the band of incidental gripping compression, so "
+        "the press rate would measure contact noise")
+    # And it must remain physically reachable: the joint only travels 40 mm.
+    assert PRESS_DEPTH < PLUNGER_TRAVEL
+
+
+def test_press_threshold_is_not_silently_loosened():
+    """Guards the calibration itself: lowering this back into the demonstrated band
+    would restore a noise-driven press rate without any test failing on behaviour."""
+    from rlinf.envs.isaaclab.tasks.g1_piston_reward_v3 import PRESS_FRAC
+
+    assert PRESS_FRAC >= 0.70, "press fraction lowered below its calibrated value"

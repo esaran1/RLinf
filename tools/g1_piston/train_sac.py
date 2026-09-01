@@ -59,6 +59,13 @@ ACTION_BASIS = os.environ.get("ACTION_BASIS", "0") == "1"
 #: Give the critic privileged proprioception + object state + phase one-hot alongside
 #: the VLM feature (asymmetric actor-critic; the actor still sees only RGB).
 CRITIC_STATE = os.environ.get("CRITIC_STATE", "0") == "1"
+#: Draw exploration noise with TEMPORAL CORRELATION instead of 900 independent scalars.
+#: Measured on the demonstrations: i.i.d. noise at std 0.20 perturbs consecutive steps by
+#: 0.2257 rad against the data's own 0.0011 (209x) and puts 80% of its energy in temporal
+#: components the task never uses. Correlated noise at the SAME per-step scale cuts the
+#: jitter 10.2x and places ~100% of the energy in the subspace the demonstrations occupy.
+#: See g1_piston_correlated_policy.py.
+CORRELATED_NOISE = os.environ.get("CORRELATED_NOISE", "0") == "1"
 #: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
 #: networks are built; this dict is mutated in place so the emitted config sees it.
 WARM_CKPT = os.environ.get("WARM_CKPT", "")
@@ -83,6 +90,7 @@ res = {
         "reward_version": ("v3_review_fixed" if REWARD_V3
                            else "v2_functional" if REWARD_V2 else "v1_transport"),
         "action_basis": bool(ACTION_BASIS), "critic_state": bool(CRITIC_STATE),
+        "correlated_noise": bool(CORRELATED_NOISE),
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -121,6 +129,7 @@ try:
     RW3 = _load("g1r3", RL + "g1_piston_reward_v3.py") if REWARD_V3 else None
     ABAS = _load("g1ab", RL + "g1_piston_action_basis.py") if ACTION_BASIS else None
     CST = _load("g1cs", RL + "g1_piston_critic_state.py") if CRITIC_STATE else None
+    CNZ = _load("g1cn", RL + "g1_piston_correlated_policy.py") if CORRELATED_NOISE else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     AFLT = _load("g1af", RL + "g1_piston_action_filter.py")
 
@@ -197,6 +206,10 @@ try:
     C_IN = HID + (CST.STATE_DIM if CRITIC_STATE else 0)
     critic = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=2).to(DEV)
     target = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=2).to(DEV)
+
+    # Correlated exploration sampler. Built once; carries the fixed DCT basis.
+    corr_noise = (CNZ.CorrelatedChunkNoise(horizon=H, dims=30, device=DEV)
+                  if CORRELATED_NOISE else None)
 
     def critic_action(a):
         """Map a raw action chunk [B,H,30] to the critic's action input [B,A_IN]."""
@@ -375,6 +388,25 @@ try:
             shift = (ACTION_HIGH + ACTION_LOW) / 2.0
             a = torch.tanh(flat) * scale + shift
             lp = torch.zeros(b * c, device=flat.device)
+        elif corr_noise is not None:
+            # Correlated exploration: sample low-dimensional coefficients and expand
+            # them into a temporally smooth chunk, then squash. The pre-squash sample
+            # is Gaussian with a structured covariance, so this remains an exact
+            # reparameterised draw; the entropy term uses the whitened coefficients'
+            # density, which is what the temperature should regulate.
+            std_d = torch.exp(logstd)                       # [30]
+            zc = torch.randn(b, corr_noise.n_basis, d, device=flat.device)
+            eps = corr_noise.expand(zc, std_d)              # [b, H, 30]
+            pre = flat.reshape(b, c, d) + eps
+            scale = (ACTION_HIGH - ACTION_LOW) / 2.0
+            shift = (ACTION_HIGH + ACTION_LOW) / 2.0
+            a = (torch.tanh(pre) * scale + shift).reshape(b * c, d)
+            # Per-control-action log-prob on the same scale as the i.i.d. path: the
+            # coefficient density spread over the horizon, plus the tanh Jacobian on the
+            # active dims (the term that actually depends on the sample).
+            jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * ACT_MASK).sum(dim=-1)
+            lp = (CNZ.CorrelatedChunkNoise.logprob_z(zc).unsqueeze(-1) / c) - jac
+            lp = lp.reshape(b * c)
         else:
             std = torch.exp(logstd).view(1, -1).expand_as(flat)
             dist = SquashedNormal(flat, std, low=ACTION_LOW, high=ACTION_HIGH)

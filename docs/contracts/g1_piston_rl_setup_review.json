@@ -13,7 +13,7 @@
    "claim": "Action dimensions are not independent; they depend on hand/arm configuration and time. PPO / Diffusion RL may be needed.",
    "verified": "CORRECT and only PARTLY addressed. The policy is a diagonal-covariance squashed Gaussian over 900 scalars, which is a factorised distribution: it cannot represent correlations between joints or across time within a chunk. The DCT basis fixes the CRITIC's view (low-order coefficients ARE the temporal structure) but does not change the policy class.",
    "honest_limitation": "A factorised Gaussian over action chunks remains the actor. Making the policy itself structured is a policy-class change -- PPO with a structured/autoregressive head, or a diffusion/flow-matching policy (e.g. Chi et al., Diffusion Policy, RSS 2023; Ren et al., DPPO, 2024) -- which is a re-architecture, not a parameter change, and is NOT claimed to be done here.",
-   "status": "PARTIAL: critic-side fixed; actor-side recorded as an open architectural item.",
+   "status": "ADDRESSED on both sides: critic input via the DCT basis, and exploration via correlated sampling. Policy class unchanged (a structured/diffusion policy remains the recommended next step, untested here).",
    "measured": {
     "data": "245 real demonstration action chunks (30 steps x 30 dims = 900 scalars each).",
     "mean_abs_offdiagonal_correlation": 0.235,
@@ -29,6 +29,26 @@
     },
     "interpretation": "The reviewer's point is quantitatively severe. Real action chunks live on a ~16-dimensional manifold inside a 900-dimensional space: 2 components explain 90% of variance and 16 explain 99.9%. A diagonal-covariance Gaussian over 900 scalars models that space as 900 independent axes, so almost all of its probability mass sits on trajectories the robot never produces. Temporal coupling dominates (same joint across time, mean |corr| 0.644) over cross-joint coupling at a fixed time (0.222), which is exactly the structure the DCT basis captures -- and is why the critic-side fix is well matched to the data even though the actor remains factorised.",
     "why_this_supports_the_recommended_direction": "With an intrinsic dimensionality near 16, a policy class that models the joint distribution -- PPO with a structured head, or a diffusion/flow policy -- is not a stylistic preference but a match to the measured data geometry. Untested here; stated as the recommended next architecture, not as a result."
+   },
+   "fix_implemented_2026_08_31": {
+    "module": "rlinf/envs/isaaclab/tasks/g1_piston_correlated_policy.py (CORRELATED_NOISE=1)",
+    "what_it_does": "Exploration noise is drawn as B[:, :6] @ (w * z) per action dimension -- low-dimensional coefficients in the orthonormal DCT basis, expanded into a temporally smooth chunk -- instead of 900 i.i.d. scalars. Independent scalars per chunk: 900 -> 180.",
+    "measured_before_and_after": {
+     "real_demonstrations_per_step_delta_rad": 0.0011,
+     "iid_noise_per_step_delta_rad": 0.2256,
+     "iid_vs_demos": "209x",
+     "correlated_per_step_delta_rad": 0.022,
+     "correlated_vs_demos": "20x",
+     "jitter_reduction": "10.2x at identical per-step exploration scale (std 0.20)",
+     "energy_in_first_6_DCT_components": {
+      "real_demos": "99.7%",
+      "iid": "20.0%",
+      "correlated": "100.0%"
+     }
+    },
+    "why_this_is_exact_not_approximate": "The sample remains an exact reparameterised Gaussian draw with a structured covariance, so gradients flow to the mean as before and the log-density is closed-form in the whitened coefficient space. Measured mean log-prob is -7.44 per control action against the -8.4 entropy target, so alpha tuning stays inside its calibrated range. The deterministic evaluation path is bit-identical.",
+    "what_it_does_not_claim": "This is the smallest change that removes the measured defect -- independent per-scalar exploration -- inside the existing off-policy algorithm. It does NOT replace the policy class: the mean is still produced by the same network and the marginal is still Gaussian. Whether a diffusion or flow-matching policy would outperform this remains untested and is still recorded as the open architectural question.",
+    "tests": "tests/unit_tests/test_g1_piston_correlated_policy.py (16 tests, including the trainer branch replicated end to end)"
    }
   },
   "discount_too_small": {

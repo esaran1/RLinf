@@ -66,5 +66,33 @@
    "RUN_INIT_EVAL": "Allows skipping the step-0 evaluations when the warm-start checkpoint has already been scored under the same predicate, freeing ~1150 chunk rollouts."
   },
   "method_note": "Two throughput projections in this project have now been wrong in the same way -- extrapolating from a measured piece rather than the measured whole. Any future throughput claim should be validated by a short end-to-end run before a long one is launched."
+ },
+ "end_to_end_validation_2026_08_31": {
+  "method": "Following the method note added after run 2 -- validate a throughput claim with a short END-TO-END run before launching a long one -- a 20-minute probe was run with the fixes on (PREWARM_DEMO_CACHE=1, RUN_INIT_EVAL=0, UTD=8) and the real loop timed.",
+  "measured": {
+   "demo_cache_prewarm_s": 135.4,
+   "demo_cache_entries": 489,
+   "updates_in_first_300s": 75,
+   "seconds_per_update_after_prewarm": 2.19
+  },
+  "comparison_same_3h_budget": {
+   "run_1_utd_0.5_no_fixes": {
+    "updates": 150,
+    "s_per_update": 72.0
+   },
+   "run_2_utd_8_no_fixes": {
+    "updates": 125,
+    "s_per_update": 86.4,
+    "checkpoint": "none"
+   },
+   "with_fixes_utd_8": {
+    "projected_updates": 4859,
+    "s_per_update": 2.19,
+    "note": "projection now rests on an end-to-end measurement of the real loop, not on a component timing"
+   }
+  },
+  "improvement": "33x faster per gradient update than run 1, 39x faster than run 2.",
+  "interpretation": "The two costs identified were the whole story: demonstration VLM cache misses inside the update loop, and 1150 step-0 evaluation rollouts before any training. With both removed, a 3-hour budget supports roughly 4900 gradient updates -- more than the 2983 the original 415k checkpoint accumulated over ~50 hours.",
+  "critic_health_during_the_probe": "critic_loss 1.04 -> 0.053 -> 0.052 over the first 75 updates: settling, not diverging. Contrast run 1, which ended at 8.39 and rising."
  }
 }

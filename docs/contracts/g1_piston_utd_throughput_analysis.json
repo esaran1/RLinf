@@ -115,5 +115,49 @@
    "still_a_large_improvement": "Run 1 achieved 150 updates and run 2 achieved 125 in the same budget, so 1800-2900 is a 12-19x improvement and comparable to the 2983 updates the original 415k checkpoint accumulated over ~50 hours.",
    "method_note": "Third time this project has had to correct a throughput projection. The rule now applied: quote the MARGINAL rate from a steady-state window, never a cumulative rate that still contains one-time costs."
   }
+ },
+ "clean_probe_all_three_fixes": {
+  "config": "PREWARM_DEMO_CACHE=1, RUN_INIT_EVAL=0, FIRST_EVAL_AT_ZERO=0, UTD=8",
+  "third_cost_found": "A step-0 PERIODIC evaluation also fired regardless of EVAL_EVERY, because next_eval started at 0. That is 25 conditions x 23 chunks = 575 rollouts. The first probe spent its ENTIRE 20-minute budget inside it -- updates frozen at 125 for 15 minutes -- which is what identified it. The code comment had flagged this as removable once the original SAC/RLPD arms finished; they had.",
+  "measured": {
+   "demo_cache_prewarm_s": 134.8,
+   "prewarm_reproducibility": "134.8 vs 135.4 across two probes",
+   "updates_in_481s": 225,
+   "s_per_update_after_prewarm": 1.54,
+   "projected_updates_3h": 6931
+  },
+  "progression_of_the_three_projections": {
+   "1st_component_timing": "4.66 ms critic MLP -> predicted 3000 updates. WRONG: excluded VLM encodes.",
+   "2nd_cumulative_rate": "2.19 s/update at 300 s -> predicted 4859. WRONG: still contained the amortised prewarm.",
+   "3rd_clean_end_to_end": "1.54 s/update over 225 updates with all three fixes -> ~6900 in 3 h.",
+   "discipline_adopted": "quote a marginal or post-amortisation rate from a steady-state window, measured end to end."
+  },
+  "critic_health_during_the_probe": {
+   "critic_loss_series": [
+    1.025,
+    0.04,
+    0.058,
+    2.475,
+    0.377,
+    0.963,
+    0.344,
+    0.209,
+    4.653,
+    0.464
+   ],
+   "q_mean_series": [
+    0.19,
+    0.312,
+    0.477,
+    0.578,
+    0.869,
+    0.652,
+    1.0,
+    0.604,
+    1.444,
+    1.374
+   ],
+   "reading": "Spiky but MEAN-REVERTING: every spike recovers (2.48 -> 0.38, 4.65 -> 0.46). Run 1 by contrast ended at 8.39 and rising with no recovery. Q_mean climbing 0.19 -> 1.37 is the thing to watch in the full run: with a fresh critic it can be genuine value learning or the onset of overestimation, and 250 updates cannot distinguish them."
+  }
  }
 }

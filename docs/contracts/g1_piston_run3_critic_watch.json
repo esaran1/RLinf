@@ -1,0 +1,34 @@
+{
+ "id": "g1_piston_run3_critic_watch",
+ "recorded": "2026-08-31, DURING the run, before its outcome is known",
+ "why": "The pre-registration named high-UTD critic overestimation as the primary risk and said critic health must be reported BEFORE any policy claim. This records the assessment at ~900 updates so it cannot be reinterpreted once the task numbers arrive.",
+ "observed_at_900_updates": {
+  "critic_median_first_half": 0.657,
+  "critic_median_second_half": 1.308,
+  "median_ratio": 1.991,
+  "q_median_first_half": 0.85,
+  "q_median_second_half": 1.572,
+  "max_critic_loss": 30.08,
+  "by_quartile": {
+   "critic_median": [
+    0.48,
+    0.657,
+    1.308,
+    0.99
+   ],
+   "q_median": [
+    0.549,
+    1.121,
+    1.309,
+    2.323
+   ]
+  }
+ },
+ "the_ambiguity": "Both halves of the pre-registered overestimation signature are present: the critic-loss median roughly doubled AND q_median is climbing. But two things cut the other way. (1) The critic-loss median FELL in the final quartile (1.308 -> 0.990), so the loss is not monotonically worsening. (2) The Q magnitude is plausible on its own terms: v3's stage bonuses total ~81, and with gamma_chunk 0.98 over 23 chunks a policy that reliably reaches 'grasp' is worth roughly 3. Observed q_mean of 2-3 is therefore consistent with a critic learning the true value of a grasping policy, not obviously with runaway inflation.",
+ "what_would_settle_it": {
+  "overestimation": "Q keeps climbing past ~10 (far above any achievable v3 return) while grasp/lift stay flat.",
+  "value_learning": "Q plateaus near the achievable return AND the evaluations show grasp or lift rising.",
+  "note": "The first periodic evaluation lands at env_steps 20000; until then no task number exists."
+ },
+ "commitment": "If Q exceeds the achievable-return scale with flat task metrics, this is reported as overestimation and NO claim is made about the reward or discount fixes -- exactly as pre-registered. The assessment above was written before the task numbers existed."
+}

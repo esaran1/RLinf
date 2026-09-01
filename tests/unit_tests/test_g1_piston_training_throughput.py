@@ -83,3 +83,24 @@ def test_measured_costs_are_documented_at_the_call_site():
     The measured numbers must live next to the code that depends on them."""
     assert "107.5 ms" in SRC
     assert "UTD 8" in SRC
+
+
+def test_first_periodic_eval_no_longer_fires_at_step_zero_by_default():
+    """`next_eval = 0` made the first training episode trip an extra 25-condition sweep
+    (575 chunk rollouts, ~24 min). That was deliberately retained while the original
+    SAC and RLPD arms were running -- matched evaluation cadence mattered more than the
+    time -- and the note in the code said to change it once they finished. They have.
+
+    With the prewarm and skipped init evals in place, a 3-hour run is dominated by
+    simulator time, so this sweep is now a large fraction of the budget.
+    """
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert "next_eval = 0 if FIRST_EVAL_AT_ZERO else EVAL_EVERY" in src
+    assert 'os.environ.get("FIRST_EVAL_AT_ZERO", "0")' in src
+
+
+def test_the_original_cadence_is_still_reproducible():
+    """Anyone reproducing the original arms must be able to restore the old behaviour."""
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert "FIRST_EVAL_AT_ZERO=1 restores" in src
+    assert '"first_eval_at_zero": bool(FIRST_EVAL_AT_ZERO),' in src

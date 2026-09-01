@@ -74,6 +74,10 @@ PREWARM_DEMO_CACHE = os.environ.get("PREWARM_DEMO_CACHE", "1") == "1"
 #: single gradient step. When the warm-start checkpoint has already been scored under the
 #: same predicate, that is ~1150 rollouts of pure duplication.
 RUN_INIT_EVAL = os.environ.get("RUN_INIT_EVAL", "1") == "1"
+#: Run the first periodic evaluation at env_steps 0 (the original SAC/RLPD comparison's
+#: cadence) instead of waiting for EVAL_EVERY. Costs a 25-condition sweep (~24 min)
+#: before training has meaningfully begun; retained only for reproducing those arms.
+FIRST_EVAL_AT_ZERO = os.environ.get("FIRST_EVAL_AT_ZERO", "0") == "1"
 #: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
 #: networks are built; this dict is mutated in place so the emitted config sees it.
 WARM_CKPT = os.environ.get("WARM_CKPT", "")
@@ -101,6 +105,7 @@ res = {
         "correlated_noise": bool(CORRELATED_NOISE),
         "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
         "run_init_eval": bool(RUN_INIT_EVAL),
+        "first_eval_at_zero": bool(FIRST_EVAL_AT_ZERO),
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -798,17 +803,20 @@ try:
     # ---------------- training loop ----------------
     env_steps = 0; grad_updates = 0; episode = 0
     n_online_samples = 0; n_demo_samples = 0
-    # NOTE (deliberate, do not "fix" mid-experiment): ``next_eval`` starts at 0, so the
-    # first training episode trips the periodic branch immediately (env_steps 1380 >= 0)
-    # and runs one extra 25-condition sweep before settling onto the intended schedule
-    # (138000, 276000, ...). That costs ~24 min per arm and yields a harmless extra
-    # early data point.
+    # ``next_eval`` starts at 0, so the first training episode trips the periodic branch
+    # immediately (env_steps 1380 >= 0) and runs an extra 25-condition sweep -- ~24 min --
+    # before settling onto the intended schedule.
     #
-    # It is left as-is for the SAC/RLPD comparison because the running SAC arm loaded
-    # this file at startup: changing it now would give RLPD a different evaluation
-    # cadence than SAC, and matched conditions matter more than 24 minutes. Set this to
-    # EVAL_EVERY once both arms of the current comparison have finished.
-    next_eval = 0
+    # That was deliberately retained while the SAC and RLPD arms of the original
+    # comparison were running, because the SAC arm had already loaded this file and
+    # matched evaluation cadence mattered more than the time. THAT COMPARISON IS
+    # FINISHED, and the note said to set this to EVAL_EVERY once it was.
+    #
+    # It matters far more now: with the demo-cache prewarm and skipped init evals, a
+    # 3-hour run is dominated by simulator time (~830 ms/step), and this sweep alone is
+    # 25 conditions x 23 chunks = 575 chunk rollouts of it. FIRST_EVAL_AT_ZERO=1 restores
+    # the old behaviour for anyone reproducing the original arms.
+    next_eval = 0 if FIRST_EVAL_AT_ZERO else EVAL_EVERY
 
     # Pre-warm the demonstration VLM cache BEFORE training. Measured: one vlm_encode
     # costs 107.5 ms, a demo cache MISS costs two of them, and RLPD draws BATCH*DEMO_FRAC

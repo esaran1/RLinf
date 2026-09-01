@@ -93,6 +93,27 @@
   },
   "improvement": "33x faster per gradient update than run 1, 39x faster than run 2.",
   "interpretation": "The two costs identified were the whole story: demonstration VLM cache misses inside the update loop, and 1150 step-0 evaluation rollouts before any training. With both removed, a 3-hour budget supports roughly 4900 gradient updates -- more than the 2983 the original 415k checkpoint accumulated over ~50 hours.",
-  "critic_health_during_the_probe": "critic_loss 1.04 -> 0.053 -> 0.052 over the first 75 updates: settling, not diverging. Contrast run 1, which ended at 8.39 and rising."
+  "critic_health_during_the_probe": "critic_loss 1.04 -> 0.053 -> 0.052 over the first 75 updates: settling, not diverging. Contrast run 1, which ended at 8.39 and rising.",
+  "revision_at_600s": {
+   "why": "The 300 s sample gave 2.19 s/update; the 600 s sample gives a MARGINAL rate of 6.0 s/update (cumulative 3.72). Projecting from the earlier figure would have repeated the exact error this contract already documents twice.",
+   "decomposition_per_25_updates": {
+    "chunk_decisions": 3,
+    "simulator_steps": 180,
+    "vlm_encodes": 3,
+    "vlm_time_s": 0.3,
+    "mlp_time_s": 0.1,
+    "simulator_time_s": 149.6,
+    "ms_per_simulator_step": 831
+   },
+   "finding": "The SIMULATOR is the dominant fixed cost at ~830 ms per step, independent of UTD. The demo cache prewarm and skipped init evals removed the two costs that scaled WITH UTD, which is why UTD 8 is now affordable at all -- but they cannot make collection itself faster.",
+   "corrected_projection": {
+    "3h_at_marginal_6.0_s_per_update": 1777,
+    "3h_at_cumulative_3.72_s_per_update": 2866,
+    "honest_range": "1800-2900 gradient updates in 3 hours",
+    "supersedes": "the 4859 figure, which extrapolated the pre-amortisation rate"
+   },
+   "still_a_large_improvement": "Run 1 achieved 150 updates and run 2 achieved 125 in the same budget, so 1800-2900 is a 12-19x improvement and comparable to the 2983 updates the original 415k checkpoint accumulated over ~50 hours.",
+   "method_note": "Third time this project has had to correct a throughput projection. The rule now applied: quote the MARGINAL rate from a steady-state window, never a cumulative rate that still contains one-time costs."
+  }
  }
 }

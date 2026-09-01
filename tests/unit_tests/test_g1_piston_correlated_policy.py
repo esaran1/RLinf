@@ -235,3 +235,49 @@ def test_deterministic_branch_precedes_the_correlated_branch():
     src = open("tools/g1_piston/train_sac.py").read()
     block = src.split("def sample_action(")[1].split("def masked_logprob")[0]
     assert block.index("if deterministic:") < block.index("elif corr_noise is not None:")
+
+
+def test_module_loads_by_file_path_without_the_rlinf_package():
+    """The training and evaluation tools load task modules BY FILE PATH, where `rlinf`
+    is not importable. Run 2 died instantly on this: the module used a package import
+    and every other g1_piston task module is self-contained for exactly that reason.
+
+    Loading with importlib from a directory outside the repo reproduces the tool's
+    environment closely enough to catch a regression.
+    """
+    import importlib.util as ilu
+    import os
+    import subprocess
+    import sys
+
+    path = os.path.abspath(
+        "rlinf/envs/isaaclab/tasks/g1_piston_correlated_policy.py")
+    # Run in a subprocess with cwd outside the repo so `rlinf` cannot be found.
+    code = (
+        "import sys, importlib.util as ilu\n"
+        f"sp = ilu.spec_from_file_location('g1cn', {path!r})\n"
+        "mo = ilu.module_from_spec(sp); sys.modules['g1cn'] = mo\n"
+        "sp.loader.exec_module(mo)\n"
+        "print(mo.CorrelatedChunkNoise().effective_dim())\n")
+    out = subprocess.run([sys.executable, "-c", code], cwd="/tmp",
+                         capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr[-600:]
+    assert out.stdout.strip() == "180", out.stdout
+
+
+def test_no_other_task_module_gained_a_package_import():
+    """Keep the convention: these modules are loaded by path, so a bare `from rlinf...`
+    import in any of them is a latent instant-crash in the tools."""
+    import glob
+    import os
+
+    offenders = []
+    for fp in glob.glob("rlinf/envs/isaaclab/tasks/g1_piston_*.py"):
+        src = open(fp).read()
+        for line in src.splitlines():
+            stripped = line.strip()
+            if stripped.startswith(("from rlinf", "import rlinf")):
+                # Guarded imports inside a try/except are fine.
+                if "    " not in line[:4]:
+                    offenders.append((os.path.basename(fp), stripped))
+    assert not offenders, offenders

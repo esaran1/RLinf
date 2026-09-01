@@ -73,12 +73,31 @@ import math
 import numpy as np
 import torch
 
-from rlinf.envs.isaaclab.tasks.g1_piston_action_basis import (
-    ACTION_DIMS,
-    HORIZON,
-    N_BASIS,
-    dct_basis,
-)
+# The tools in tools/g1_piston load these task modules BY FILE PATH (importlib), where
+# the `rlinf` package is not on sys.path -- every other g1_piston task module is
+# self-contained for exactly this reason. Support both: a normal package import when
+# available, and a path-relative load when this module is executed standalone.
+try:  # package context (tests, library use)
+    from rlinf.envs.isaaclab.tasks.g1_piston_action_basis import (
+        ACTION_DIMS,
+        HORIZON,
+        N_BASIS,
+        dct_basis,
+    )
+except ModuleNotFoundError:  # path-loaded context (the training/eval tools)
+    import importlib.util as _ilu
+    import os as _os
+
+    _spec = _ilu.spec_from_file_location(
+        "_g1_piston_action_basis",
+        _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                      "g1_piston_action_basis.py"))
+    _mod = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    ACTION_DIMS = _mod.ACTION_DIMS
+    HORIZON = _mod.HORIZON
+    N_BASIS = _mod.N_BASIS
+    dct_basis = _mod.dct_basis
 
 
 def correlated_noise_scales(horizon: int = HORIZON, n_basis: int = N_BASIS,

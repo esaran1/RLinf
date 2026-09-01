@@ -1,0 +1,40 @@
+{
+ "id": "g1_piston_v3_retrain_run2_preregistration",
+ "recorded": "2026-08-31, BEFORE the data exists",
+ "supersedes": "g1_piston_v3_retrain_preregistration.json, whose run completed only 150 gradient updates and therefore did not test the fixes. That result is retained and reported as a throughput failure, not as evidence against the changes.",
+ "what_changed_from_run_1": {
+  "utd": "0.5 -> 8 (measured 0.12% wall-clock overhead; 150 -> ~3000 updates in the same 3 hours)",
+  "correlated_noise": "NEW: exploration drawn as DCT coefficients rather than 900 i.i.d. scalars",
+  "everything_else": "unchanged: v3 reward, GAMMA_CHUNK 0.98, ACTION_BASIS, CRITIC_STATE, SMOOTH_LAMBDA 100, 22-episode v3 buffer"
+ },
+ "configuration": {
+  "algo": "rlpd",
+  "warm_ckpt": "rlpd_ckpt_step415140.pt",
+  "reward": "v3_review_fixed",
+  "gamma_chunk": 0.98,
+  "utd": 8,
+  "batch": 8,
+  "demo_frac": 0.5,
+  "action_basis": true,
+  "critic_state": true,
+  "correlated_noise": true,
+  "smooth_lambda": 100,
+  "seed": 0,
+  "wall_clock_h": 3,
+  "critic": "reinitialised (input width changed); policy, log-std and alpha transfer"
+ },
+ "hypotheses": {
+  "H1_critic_fits": "With ~3000 updates rather than 150, critic_loss should stop diverging and settle. This is the precondition for any policy claim: SAC's actor maximises the critic, so an unfitted critic actively degrades the policy.",
+  "H2_no_repeat_of_the_collapse": "Run 1 fell grasp 0.20 -> 0.00 monotonically. If that was the unfitted critic, grasp should NOT collapse this time.",
+  "H3_exploration_quality": "Correlated noise cuts per-step exploration jitter 10.2x at the same scale, so the online data should resemble demonstration dynamics more closely and the measured oscillation should be lower at equal training.",
+  "H4_dispense": "Still expected to stay 0.00. No executable demonstration contains a reproducible press, so the functional act must be discovered from reward alone. A nonzero dispense would be a genuine surprise, not the expected outcome."
+ },
+ "decision_rules": {
+  "primary": "v3 stage rates on the frozen 25-condition suite, deterministic, n=25, warm-start vs retrained under the SAME predicate.",
+  "critic_health_is_reported_first": "critic_loss trajectory is reported before any policy number. If it is still diverging, the run is declared another throughput/stability failure and NO claim is made about the reward or discount fixes.",
+  "progress": "grasp or lift rising beyond the 8-run noise floor counts as progress; post-grasp metrics from a single evaluation carry the documented non-reproducibility caveat.",
+  "failure_is_reportable": "Degradation or a flat result is reported as-is, with the mechanism identified if possible.",
+  "no_tuning_after_the_fact": "v3 thresholds and the discount are fixed by measurement and will not be adjusted to improve the numbers."
+ },
+ "risk_registered_in_advance": "High UTD on a small buffer can overfit the critic. Mitigations already in place: RLPD's 50% demonstration replay and the 5x smaller critic input (41 transitions per input dimension, up from 8.2). If critic_loss rises monotonically this is the first suspect and will be named as such."
+}

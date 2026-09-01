@@ -281,3 +281,38 @@ def test_no_other_task_module_gained_a_package_import():
                 if "    " not in line[:4]:
                     offenders.append((os.path.basename(fp), stripped))
     assert not offenders, offenders
+
+
+def test_the_entropy_target_is_reachable_under_correlated_noise():
+    """The earlier SAC pilots collapsed because TARGET_ENTROPY sat OUTSIDE the
+    achievable log-prob range: alpha then falls monotonically, the entropy regulariser
+    dies, and the actor drifts unregularised
+    (docs/contracts/g1_piston_sac_pilot_v1_collapse.json).
+
+    Changing the noise distribution changes that range, so it must be rechecked. Under
+    correlated noise the target -8.4 is reached near std 0.05-0.1, i.e. inside the
+    operating range, so alpha has a genuine equilibrium.
+    """
+    import importlib.util as ilu
+    import sys
+
+    spec = ilu.spec_from_file_location(
+        "g1s_e", "rlinf/envs/isaaclab/tasks/g1_piston_rl_space.py")
+    rlsp = ilu.module_from_spec(spec)
+    sys.modules["g1s_e"] = rlsp
+    spec.loader.exec_module(rlsp)
+    target = rlsp.default_target_entropy()
+    act_mask = rlsp.build_active_mask()
+
+    corr = CorrelatedChunkNoise()
+
+    def logp(std):
+        zc = torch.randn(400, corr.n_basis, ACTION_DIMS)
+        pre = corr.expand(zc, torch.full((ACTION_DIMS,), float(std)))
+        jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * act_mask).sum(-1)
+        return float(((CorrelatedChunkNoise.logprob_z(zc).unsqueeze(-1) / HORIZON)
+                      - jac).mean())
+
+    tight, loose = logp(0.05), logp(0.4)
+    # The target must lie inside the range the policy can actually produce.
+    assert tight <= target <= loose, (tight, target, loose)

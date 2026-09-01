@@ -66,6 +66,14 @@ CRITIC_STATE = os.environ.get("CRITIC_STATE", "0") == "1"
 #: jitter 10.2x and places ~100% of the energy in the subspace the demonstrations occupy.
 #: See g1_piston_correlated_policy.py.
 CORRELATED_NOISE = os.environ.get("CORRELATED_NOISE", "0") == "1"
+#: Encode every demonstration transition once before training instead of paying VLM
+#: cache misses inside the update loop. Measured cost ~105 s for 489 transitions; at
+#: UTD > 1 the misses otherwise dominate the loop (see the run-2 throughput analysis).
+PREWARM_DEMO_CACHE = os.environ.get("PREWARM_DEMO_CACHE", "1") == "1"
+#: The step-0 evaluations cost 2 x N_EVAL_PERIODIC x EP_CHUNKS chunk rollouts before a
+#: single gradient step. When the warm-start checkpoint has already been scored under the
+#: same predicate, that is ~1150 rollouts of pure duplication.
+RUN_INIT_EVAL = os.environ.get("RUN_INIT_EVAL", "1") == "1"
 #: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
 #: networks are built; this dict is mutated in place so the emitted config sees it.
 WARM_CKPT = os.environ.get("WARM_CKPT", "")
@@ -91,6 +99,8 @@ res = {
                            else "v2_functional" if REWARD_V2 else "v1_transport"),
         "action_basis": bool(ACTION_BASIS), "critic_state": bool(CRITIC_STATE),
         "correlated_noise": bool(CORRELATED_NOISE),
+        "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
+        "run_init_eval": bool(RUN_INIT_EVAL),
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -800,9 +810,33 @@ try:
     # EVAL_EVERY once both arms of the current comparison have finished.
     next_eval = 0
 
-    evaluate("init", 0, save_video=True)   # step-0 behavior, same suite
-    if EVAL_STOCHASTIC:
-        evaluate("init_stochastic", 0, deterministic=False)
+    # Pre-warm the demonstration VLM cache BEFORE training. Measured: one vlm_encode
+    # costs 107.5 ms, a demo cache MISS costs two of them, and RLPD draws BATCH*DEMO_FRAC
+    # demo transitions on every gradient update. At UTD 8 that is up to 8 misses per
+    # environment decision while the cache fills -- which is why raising UTD slowed
+    # collection 16x instead of being nearly free (run 2). Paying the whole cache up
+    # front is a bounded one-time cost (489 transitions x 2 encodes = ~105 s) after
+    # which demo_batch really is a dict lookup.
+    if demo and PREWARM_DEMO_CACHE:
+        _t0 = time.time()
+        for _idx in range(len(demo)):
+            if _idx not in demo_feat_cache:
+                _img, _act, _r, _nimg, _d = demo[_idx]
+                _aq, _f = vlm_encode(_img)
+                _naq, _nf = vlm_encode(_nimg)
+                _dcs = demo_state.get(_idx) if critic_state is not None else None
+                _dncs = demo_next_state.get(_idx) if critic_state is not None else None
+                demo_feat_cache[_idx] = store(
+                    _f, _aq, torch.tensor(_act, dtype=torch.float32), _r, _nf, _naq, _d,
+                    cs=_dcs, ncs=_dncs)
+        res["demo_cache_prewarm_s"] = round(time.time() - _t0, 1)
+        res["demo_cache_entries"] = len(demo_feat_cache)
+        emit()
+
+    if RUN_INIT_EVAL:
+        evaluate("init", 0, save_video=True)   # step-0 behavior, same suite
+        if EVAL_STOCHASTIC:
+            evaluate("init_stochastic", 0, deterministic=False)
 
     while env_steps < MAX_ENV_STEPS:
         # Training initial conditions come from the TRAIN split only; the EVAL split is

@@ -42,5 +42,29 @@
   }
  },
  "conclusion": "The bottleneck is simulation and VLM rollout throughput, not the optimiser. Raising the update-to-data ratio buys gradient updates at ~0.1% wall-clock overhead. UTD 8 reaches the original run's 2983 updates within a single 3-hour budget.",
- "caveat": "High UTD on a small replay buffer risks overfitting the critic to limited data -- the standard reason UTD is kept low. Two things mitigate it here: RLPD fills half of every batch from the 22-episode demonstration buffer, and the DCT basis cut the critic's input from 900 to 180 dimensions, raising transitions-per-input-dimension from 8.2 to 41. The run must still be watched for critic divergence, which is why critic_loss is a reported readout."
+ "caveat": "High UTD on a small replay buffer risks overfitting the critic to limited data -- the standard reason UTD is kept low. Two things mitigate it here: RLPD fills half of every batch from the 22-episode demonstration buffer, and the DCT basis cut the critic's input from 900 to 180 dimensions, raising transitions-per-input-dimension from 8.2 to 41. The run must still be watched for critic divergence, which is why critic_loss is a reported readout.",
+ "CORRECTION_after_run_2": {
+  "what_was_projected": "This contract projected that raising UTD to 8 would cost ~13 s over a 3-hour run (0.12% overhead) and yield ~3000 gradient updates, based on a measured critic update of 4.66 ms.",
+  "what_actually_happened": {
+   "run_2_utd_8": {
+    "grad_updates": 125,
+    "env_steps": 1380,
+    "checkpoint": "none produced",
+    "seconds_per_update": 86.4
+   },
+   "run_1_utd_0.5": {
+    "grad_updates": 150,
+    "env_steps": 22560,
+    "seconds_per_update": 72.0
+   },
+   "collection_slowdown": "16.3x FEWER env steps at UTD 8"
+  },
+  "why_the_projection_was_wrong": "The 4.66 ms timing measured ONLY the critic MLP. It excluded demo_batch, where a cache MISS runs two vlm_encode calls. A direct measurement puts vlm_encode at 107.5 ms, so a miss costs 215 ms. RLPD draws BATCH*DEMO_FRAC = 4 demo transitions per update, so at UTD 8 the loop can pay up to 8 x 4 x 2 = 64 encodes per environment decision while the cache fills. Benchmarking a component and presenting it as the system cost is the error.",
+  "second_cost_found": "The step-0 evaluations (init and init_stochastic) run 2 x N_EVAL_PERIODIC x EP_CHUNKS = 1150 chunk rollouts BEFORE any gradient step. For both runs that is the single largest block of work, and it duplicates a v3 baseline already scored under the same predicate.",
+  "fixes": {
+   "PREWARM_DEMO_CACHE": "Encode every demonstration transition once before training: 489 transitions x 2 encodes x 107.5 ms = ~105 s, one time. After that demo_batch is a dict lookup and UTD scales on MLP cost as originally intended.",
+   "RUN_INIT_EVAL": "Allows skipping the step-0 evaluations when the warm-start checkpoint has already been scored under the same predicate, freeing ~1150 chunk rollouts."
+  },
+  "method_note": "Two throughput projections in this project have now been wrong in the same way -- extrapolating from a measured piece rather than the measured whole. Any future throughput claim should be validated by a short end-to-end run before a long one is launched."
+ }
 }

@@ -901,6 +901,28 @@ try:
                                   "demo_fraction": round(n_demo_samples /
                                       max(1, n_online_samples + n_demo_samples), 3)})
                         res["train_log"].append(m); emit()
+                        # Rolling critic-health summary. critic_loss is spiky on a
+                        # small buffer, so the MEDIAN over a window -- not the max --
+                        # is what distinguishes high-variance TD learning from runaway
+                        # divergence. Recorded every entry so a run can be diagnosed
+                        # from its own file without re-reading the log.
+                        _cl = [x["critic_loss"] for x in res["train_log"]]
+                        _qm = [x["q_mean"] for x in res["train_log"]]
+                        if len(_cl) >= 6:
+                            _early = sorted(_cl[:len(_cl) // 2])
+                            _late = sorted(_cl[len(_cl) // 2:])
+                            _med = lambda v: v[len(v) // 2]  # noqa: E731
+                            res["critic_health"] = {
+                                "median_first_half": round(_med(_early), 4),
+                                "median_second_half": round(_med(_late), 4),
+                                "max_seen": round(max(_cl), 4),
+                                "q_median_first_half": round(_med(sorted(_qm[:len(_qm) // 2])), 4),
+                                "q_median_second_half": round(_med(sorted(_qm[len(_qm) // 2:])), 4),
+                                "median_ratio": round(_med(_late) / max(_med(_early), 1e-9), 3),
+                                "note": ("median_ratio >> 1 with q_median also climbing is the "
+                                         "overestimation signature; spikes alone are not."),
+                            }
+                            emit()
             if done: break
 
         bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()

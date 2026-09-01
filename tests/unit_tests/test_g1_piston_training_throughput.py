@@ -104,3 +104,23 @@ def test_the_original_cadence_is_still_reproducible():
     src = open("tools/g1_piston/train_sac.py").read()
     assert "FIRST_EVAL_AT_ZERO=1 restores" in src
     assert '"first_eval_at_zero": bool(FIRST_EVAL_AT_ZERO),' in src
+
+
+def test_run_records_a_rolling_critic_health_summary():
+    """critic_loss is spiky on a small replay buffer, so a single large value says
+    little. The run must record the MEDIAN trend and the Q trend, which together are
+    what separate high-variance TD learning from runaway overestimation -- the
+    pre-registered primary risk for the high-UTD configuration.
+    """
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert '"critic_health"' in src
+    for key in ("median_first_half", "median_second_half", "median_ratio",
+                "q_median_second_half", "max_seen"):
+        assert key in src, key
+
+
+def test_critic_health_is_computed_from_the_medians_not_the_extremes():
+    """Guards the reasoning: using max would flag every ordinary spike as divergence."""
+    src = open("tools/g1_piston/train_sac.py").read()
+    block = src.split('res["critic_health"]')[0][-1200:]
+    assert "sorted(" in block and "len(_cl) // 2" in block

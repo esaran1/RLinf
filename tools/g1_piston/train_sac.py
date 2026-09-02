@@ -78,6 +78,12 @@ RUN_INIT_EVAL = os.environ.get("RUN_INIT_EVAL", "1") == "1"
 #: cadence) instead of waiting for EVAL_EVERY. Costs a 25-condition sweep (~24 min)
 #: before training has meaningfully begun; retained only for reproducing those arms.
 FIRST_EVAL_AT_ZERO = os.environ.get("FIRST_EVAL_AT_ZERO", "0") == "1"
+#: Use the ORIGINAL alpha residual ``logp + TARGET_ENTROPY``, whose fixed point is
+#: ``logp = -TARGET_ENTROPY``. That is the formula the 415k checkpoint and every prior
+#: run were trained with; it disagrees with default_target_entropy()'s documented intent
+#: by a sign and drove run 3's policy to near-determinism. Kept only for reproducing
+#: those runs. See docs/contracts/g1_piston_entropy_target_sign.json.
+ENTROPY_RESIDUAL_LEGACY = os.environ.get("ENTROPY_RESIDUAL_LEGACY", "0") == "1"
 #: Optional RL checkpoint to warm-start from (continuation runs). Loaded after the
 #: networks are built; this dict is mutated in place so the emitted config sees it.
 WARM_CKPT = os.environ.get("WARM_CKPT", "")
@@ -106,6 +112,7 @@ res = {
         "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
         "run_init_eval": bool(RUN_INIT_EVAL),
         "first_eval_at_zero": bool(FIRST_EVAL_AT_ZERO),
+        "entropy_residual_legacy": bool(ENTROPY_RESIDUAL_LEGACY),
         "utd": UTD, "batch": BATCH, "demo_frac": DEMO_FRAC if ALGO == "rlpd" else 0.0,
         "ep_chunks": EP_CHUNKS,
     },
@@ -340,6 +347,11 @@ try:
     res["setup"] = {
         "hidden": HID, "action_horizon": H, "n_active_dims": N_ACTIVE,
         "target_entropy": TARGET_ENTROPY, "gamma_chunk": round(GAMMA, 5),
+        # Where the alpha update actually converges, recorded explicitly so a run can
+        # never be misread: the legacy residual's fixed point is the NEGATION of the
+        # documented target.
+        "alpha_fixed_point_logp": (-TARGET_ENTROPY if ENTROPY_RESIDUAL_LEGACY
+                                   else TARGET_ENTROPY),
         "terminal_credit_at_episode_start": round(TERMINAL_CREDIT, 5),
         "equivalent_per_step_gamma": round(GAMMA ** (1.0 / H), 6),
         "oft_params": int(sum(p.numel() for p in model.action_model.parameters())),
@@ -775,8 +787,28 @@ try:
         opt_actor.step()
 
         # --- alpha ---
+        # SIGN FIX (see docs/contracts/g1_piston_entropy_target_sign.json).
+        #
+        # The previous residual was ``logp + TARGET_ENTROPY``, whose fixed point is
+        # ``logp = -TARGET_ENTROPY = +8.4``. But default_target_entropy() documents -8.4
+        # as the TARGET LOG-DENSITY ("corresponds to an exploration std of ~0.20"), so
+        # implementation and intent disagreed by a sign. Run 3 measured the consequence
+        # directly: logp climbed -6.13 -> +7.79 toward +8.4, alpha fell 73%, the entropy
+        # term reached 0.3% of the actor objective, and the policy stopped moving
+        # (reach and grasp 0.20 -> 0.00, mean_disp_m 0.0091).
+        #
+        # ``logp - TARGET_ENTROPY`` puts the fixed point at ``logp = TARGET_ENTROPY``,
+        # matching the documented intent and the measured achievable range. The sign
+        # convention is pinned by test_g1_piston_entropy_alpha_fixed_point.py, which
+        # drives the update to convergence rather than checking the constant.
+        #
+        # ENTROPY_RESIDUAL_LEGACY=1 restores the old residual for reproducing the
+        # original SAC/RLPD arms and the 415k checkpoint, which were trained with it.
         alpha_v = ent.compute_alpha()
-        alloss = -alpha_v * (logp_chunk.mean().detach() + TARGET_ENTROPY)
+        _logp = logp_chunk.mean().detach()
+        _residual = (_logp + TARGET_ENTROPY) if ENTROPY_RESIDUAL_LEGACY \
+            else (_logp - TARGET_ENTROPY)
+        alloss = -alpha_v * _residual
         opt_alpha.zero_grad(); alloss.backward(); opt_alpha.step()
 
         # --- target soft update ---

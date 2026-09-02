@@ -25,5 +25,13 @@
   "B_document_and_keep": "Correct the docstring to state the true equilibrium (+8.4) and keep the formula, preserving comparability. Does not fix the collapse.",
   "C_floor_alpha": "Keep the formula but prevent alpha reaching zero, so the entropy term cannot vanish. Least invasive, but treats the symptom."
  },
- "status": "Diagnosed and recorded. No change made yet -- the choice affects comparability with every prior run."
+ "status": "Diagnosed and recorded. No change made yet -- the choice affects comparability with every prior run.",
+ "resolution": {
+  "chosen": "Option A -- correct the residual to (logp - TARGET_ENTROPY).",
+  "rationale": "The documented intent is the correct one: -8.4 was chosen as a reachable target log-density corresponding to exploration std ~0.20, specifically so alpha could correct in BOTH directions. A policy driven toward logp=+8.4 becomes near-deterministic and cannot explore at all, so comparability with a target that paralyses the policy buys nothing.",
+  "confound_declared": "Any run using the corrected residual has a DIFFERENT entropy target than the 415k checkpoint it warm-starts from and than every prior run in this study. That is a genuine confound and is declared here rather than discovered later: such a run is a new configuration, not a continuation.",
+  "reproducibility": "ENTROPY_RESIDUAL_LEGACY=1 restores the original residual exactly, so the prior arms remain reproducible. Every run records both the flag and alpha_fixed_point_logp -- where its alpha update actually converges -- so a result can never be misread as having used the documented target when it used the negation.",
+  "test_that_would_have_caught_it": "tests/unit_tests/test_g1_piston_entropy_alpha_fixed_point.py drives the real update to convergence and asserts where it lands, from both sides. The pre-run check that MISSED this only verified the target was reachable by the noise distribution; that test is retained in the same file, labelled 'necessary but NOT sufficient', so the distinction between reachability and convergence stays visible.",
+  "status": "IMPLEMENTED. 9 tests on the fixed point; 265 g1_piston tests pass."
+ }
 }

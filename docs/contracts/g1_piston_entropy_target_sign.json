@@ -1,0 +1,29 @@
+{
+ "id": "g1_piston_entropy_target_sign",
+ "recorded": "2026-08-31",
+ "severity": "ROOT CAUSE of run 3's policy collapse; affects the interpretation of every prior RL run",
+ "finding": "The alpha update is `-alpha * (logp + TARGET_ENTROPY)`, whose equilibrium is at logp = -TARGET_ENTROPY = +8.4. But default_target_entropy()'s docstring defines -8.4 as a TARGET LOG-DENSITY ('-8.4 corresponds to an exploration std of ~0.20'). The implemented equilibrium and the documented intent differ by a sign.",
+ "evidence": {
+  "run_3": {
+   "logp": "-6.13 -> +7.79 (climbing toward +8.4)",
+   "alpha": "0.00824 -> 0.00221 monotone",
+   "entropy_to_q_ratio": "0.224 -> 0.0032",
+   "outcome": "policy stopped moving; reach and grasp 0.20 -> 0.00, mean_disp_m 0.0091"
+  },
+  "original_rlpd_415k": {
+   "logp": "22.95 -> 5.62 (descending toward +8.4)",
+   "alpha": "0.051 -> 0.005",
+   "updates": 4975,
+   "note": "Started FAR ABOVE the +8.4 equilibrium and was still descending when the run ended. The same update that concentrated run 3's policy was, for the original run, correctly reducing an over-dispersed one."
+  }
+ },
+ "why_this_was_missed": "A pre-run check verified that logp = -8.4 is REACHABLE by the correlated noise distribution (it is, near std 0.05-0.1). Reachability and CONVERGENCE are different properties: the alpha update never targets -8.4, so reachability was necessary but not sufficient. The check should have driven the alpha update to its fixed point and asserted where it lands.",
+ "diagnostic_process_note": "Two intermediate analyses were wrong and were corrected before reporting. A hand-derivation produced 'alpha falls for every input', which is internally contradictory; and an empirical test using Adam at lr=0.1 showed identical behaviour for every logp, because Adam's normalised step hides gradient direction. Only plain SGD exposed the true gradient.",
+ "implication_for_prior_results": "The 415k checkpoint that the whole study analyses was trained under this same formula. Its behaviour is therefore not a bug artefact -- it was trained toward logp=+8.4 throughout, i.e. with steadily decreasing exploration. This does not invalidate the specification-gaming finding, which is a measurement of the trained policy's geometry and independent of how it was trained.",
+ "options_not_yet_chosen": {
+  "A_fix_the_residual": "Use (logp - TARGET_ENTROPY) so equilibrium is logp = -8.4, matching the documented intent. CONFOUND: run 4 would then use a different entropy target than the checkpoint it warm-starts from, and than every prior run.",
+  "B_document_and_keep": "Correct the docstring to state the true equilibrium (+8.4) and keep the formula, preserving comparability. Does not fix the collapse.",
+  "C_floor_alpha": "Keep the formula but prevent alpha reaching zero, so the entropy term cannot vanish. Least invasive, but treats the symptom."
+ },
+ "status": "Diagnosed and recorded. No change made yet -- the choice affects comparability with every prior run."
+}

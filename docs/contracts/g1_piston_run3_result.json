@@ -1,0 +1,38 @@
+{
+ "id": "g1_piston_run3_result",
+ "recorded": "2026-08-31",
+ "status": "NEGATIVE RESULT, reported per the pre-registration",
+ "headline": "The first RL run in this project with adequate gradient updates and a healthy critic still DEGRADED the policy: reach and grasp fell from 0.20 to 0.00 and mean return from 0.549 to -0.51 on the frozen 25-condition suite under the same v3 predicate.",
+ "critic_health_reported_first_as_pre_registered": {
+  "median_ratio_trajectory": [
+   1.99,
+   0.88,
+   0.72,
+   0.64
+  ],
+  "final_critic_loss": 0.091,
+  "q_plateau": "~3.7-4.9, the value a reliably-grasping policy is worth under v3 bonuses with gamma_chunk 0.98",
+  "verdict": "HEALTHY. This is the value-learning branch of the pre-registered test, not overestimation. The critic-loss median improved monotonically and Q plateaued near the achievable return."
+ },
+ "why_this_matters": "Run 1's degradation was attributed to an unfitted critic (critic_loss 0.15 -> 8.39, still rising at 150 updates). That hypothesis is now REFUTED: with 2700 updates and a demonstrably well-fitted critic, the policy degraded anyway. The cause is elsewhere.",
+ "measured_mechanism": {
+  "collapse_timing": "episodes 0-3 reached 2,0,2,3 stages; from episode 4 onward every episode reached 0.",
+  "entropy_term_died": {
+   "alpha": "0.00824 -> 0.00221 (73% decline, monotone)",
+   "entropy_to_q_ratio": "0.224 -> 0.0032",
+   "reading": "The entropy term is now 0.3% of the actor objective. SAC's exploration pressure is effectively switched off, so the actor follows Q alone."
+  },
+  "actor_follows_q": {
+   "actor_q_term": 5.233,
+   "actor_loss": "-0.171 -> -5.183"
+  },
+  "resulting_behaviour": "mean_disp_m 0.0091 -- the pipette barely moves; the policy stopped acting."
+ },
+ "hypotheses_tested_and_refuted": {
+  "unfitted_critic": "REFUTED -- critic fitted well (ratio 0.64, loss 0.091).",
+  "smoothness_penalty_dominating": "REFUTED by measurement -- at SMOOTH_LAMBDA=100 the CAPS penalty on real demonstration motion is 0.0025 weighted, against stage bonuses of 1.0-4.0. It is three orders of magnitude too small to matter.",
+  "throughput": "REFUTED -- 2700 updates, 18x run 1, at a measured 1.23 s/update."
+ },
+ "leading_remaining_hypothesis": "Entropy collapse. alpha fell monotonically for the entire run and the entropy term reached 0.3% of the objective. The target entropy (-8.4) was verified reachable under correlated noise BEFORE the run, so this is not the pilot-collapse mode; but the temperature learning rate (ALPHA_LR 1e-3) may be too high relative to how fast the policy's own log-prob moves, letting alpha chase downward faster than the policy adapts. UNTESTED.",
+ "honest_status": "Three of the six review fixes (reward, discount, critic conditioning) have still not been shown to help, because every run so far has failed for a different reason -- throughput, an import, and now entropy collapse. What HAS been established is the specification-gaming finding, which does not depend on any training run."
+}

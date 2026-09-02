@@ -124,3 +124,21 @@ def test_critic_health_is_computed_from_the_medians_not_the_extremes():
     src = open("tools/g1_piston/train_sac.py").read()
     block = src.split('res["critic_health"]')[0][-1200:]
     assert "sorted(" in block and "len(_cl) // 2" in block
+
+
+def test_analyzer_tracks_the_newest_result_not_a_hardcoded_path():
+    """Successive retrain attempts wrote different filenames (run 1 died on throughput,
+    run 2 on an import, run 3 is the first with enough updates). A hardcoded path would
+    report 'not available yet' while a real result sat on disk.
+    """
+    src = open("tools/g1_piston/analyze_v3_retrain.py").read()
+    assert 'rlpd_v3*_n25.json' in src
+    assert "key=os.path.getmtime" in src
+    # And it must never silently pick up the BASELINE as the retrained arm.
+    assert '"baseline" not in f' in src
+
+
+def test_analyzer_reports_which_file_it_read():
+    """A comparison that does not name its inputs can be misattributed later."""
+    src = open("tools/g1_piston/analyze_v3_retrain.py").read()
+    assert "retrained arm read from" in src

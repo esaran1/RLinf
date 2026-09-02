@@ -67,11 +67,23 @@ def rates(d):
 
 def main():
     base = load(f"{S}/runs/filter_ab/rlpd415k_v3baseline_n25.json")
-    new = load(f"{S}/runs/filter_ab/rlpd_v3trained_n25.json")
+    # Successive retrain attempts wrote different filenames (run 1 died on throughput,
+    # run 2 on an import, run 3 is the first with enough gradient updates to test the
+    # fixes). Take the NEWEST result that exists so the analysis follows the experiment
+    # instead of silently reporting "not available" against a stale path.
+    import glob as _glob
+    _cands = sorted(
+        (f for f in _glob.glob(f"{S}/runs/filter_ab/rlpd_v3*_n25.json")
+         if "baseline" not in f),
+        key=os.path.getmtime)
+    new = load(_cands[-1]) if _cands else None
+    new_path = _cands[-1] if _cands else None
 
     print("v3 RETRAIN vs PRE-REGISTERED RULES")
     print("=" * 68)
 
+    if new_path:
+        print(f"\n(retrained arm read from {os.path.basename(new_path)})")
     for name, d in (("warm-start (rlpd@415k)", base), ("v3-retrained", new)):
         if d is None:
             print(f"\n{name}: not available yet")

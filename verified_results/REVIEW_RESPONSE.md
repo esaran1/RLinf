@@ -167,6 +167,41 @@ Each of these would have produced a plausible-looking result rather than an erro
 
 ---
 
+## Training runs: four attempts, four distinct failures
+
+The review's fixes are implemented and tested, but **none has yet been shown to improve
+the policy**, because every training run failed for a different reason. Recording them
+plainly, because "the fixes did not help" and "the run never tested the fixes" are
+different claims:
+
+| run | updates | outcome | cause |
+|---|---|---|---|
+| 1 | 150 | grasp 0.20 → 0.00 | throughput: 72 s/update, critic never fit (loss 0.15 → 8.39) |
+| 2 | 0 | crashed in 27 s | a package import in a module the tools load by file path |
+| 2b | 125 | no checkpoint | raising UTD *slowed* collection 16×: demo VLM cache misses |
+| 3 | 2,700 | grasp 0.20 → 0.00 | entropy-target sign: policy driven to near-determinism |
+
+Run 3 is the informative one. Its critic was **healthy** — the loss median improved
+monotonically (ratio 1.99 → 0.64, final 0.091) and Q plateaued near the value a grasping
+policy is actually worth. That **refutes** run 1's explanation that an unfitted critic
+was dragging the policy down.
+
+The measured cause is an inconsistency between the alpha update and its documented
+target. The update is `−α(logp + TARGET_ENTROPY)`, whose equilibrium sits at
+**logp = +8.4**, while `default_target_entropy()` documents −8.4 as a target log-density
+("exploration std ~0.20"). Run 3's log-probability climbed −6.13 → +7.79 toward that
+equilibrium, α fell 73%, the entropy term reached **0.3%** of the actor objective, and
+the policy stopped moving from episode 4 onward (`mean_disp_m` 0.0091).
+
+The original 415k checkpoint was trained under the same formula, but started at
+logp 22.95 — far *above* the equilibrium — and was descending toward it. So the same
+update that paralysed run 3 was, for the original run, correctly reducing an
+over-dispersed policy. Contract: `g1_piston_entropy_target_sign.json`.
+
+**Throughput is no longer a constraint**: three avoidable costs (demonstration VLM cache
+misses, step-0 initial evaluations, a step-0 periodic sweep) took a run from 72 s per
+gradient update to 1.23 s. Contract: `g1_piston_utd_throughput_analysis.json`.
+
 ## Status and honest expectations
 
 A retrain is running with every fix applied (v3 reward, corrected discount, DCT critic

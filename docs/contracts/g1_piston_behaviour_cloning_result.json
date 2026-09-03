@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_behaviour_cloning_result",
  "recorded": "2026-09-03",
- "status": "NEGATIVE RESULT",
+ "status": "NEGATIVE RESULT, confirmed on the full frozen suite",
  "motivation": "Four RL runs had failed for four infrastructure reasons and the scratchpad wipe destroyed every RL checkpoint, so the remaining route to a working policy was to imitate the demonstrations directly. 16 of 22 executable episodes reach grasp -> lift -> plate when replayed, so the behaviour exists in the data.",
  "method": "Supervised regression of the OFT action head onto demonstration action chunks, VLM frozen, conditioned on the same features the policy sees at deployment. Trained on the 16 lifting episodes only (cloning the 6 failures would teach failure). Checkpoint written in the RL trainer's format so it is scored by the same tools on the same frozen suite.",
  "two_correctness_checks_made_before_training": {
@@ -34,5 +34,22 @@
  },
  "leading_explanation": "The policy observes ONE RGB frame and no proprioception, so it cannot perceive its own joint configuration. A 2.6 degree difference is invisible to it yet changes which action is correct. With 358 transitions there is not enough data to learn that mapping from pixels alone. This is a property of the inherited SFT architecture and dataset, not of the cloning procedure.",
  "implication": "Adding proprioception to the POLICY input -- the same fix the review prescribed for the critic -- is the change most likely to yield a working policy. That is an architecture and retraining change, not a tuning change, and is untested here.",
- "what_this_does_not_affect": "The specification-gaming finding is a measurement of the trained policy's geometry and is independent of every training run in this project."
+ "what_this_does_not_affect": "The specification-gaming finding is a measurement of the trained policy's geometry and is independent of every training run in this project.",
+ "full_25_condition_evaluation": {
+  "result": {
+   "reach": 0.0,
+   "grasp": 0.0,
+   "lift": 0.0,
+   "plate": 0.0,
+   "press": 0.0,
+   "dispense": 0.0,
+   "full_success": 0.0,
+   "mean_return": -0.611,
+   "mean_disp_m": 0.0096,
+   "n": 25
+  },
+  "supersedes": "The earlier 1-of-5 rendered estimate (0.20). The full frozen suite gives 0.00, so BC is WORSE than the RL baseline's 0.20, not equal to it.",
+  "render_vs_eval_discrepancy": "Condition 21 reached grasp during rendering but 0.00 during evaluation, with the SAME checkpoint, the SAME condition, and both in deterministic mode, which ignores the exploration std entirely. The two runs should be identical. This is the post-grasp contact nondeterminism already documented in g1_piston_post_grasp_nondeterminism.json, and it is a further reminder that a 5-rollout sample cannot resolve a rate in this setup.",
+  "honest_reading": "Behaviour cloning does not work here. Training converged (MSE 0.199 -> 0.0216) but the policy reproduces nothing in closed loop. Combined with the refuted out-of-distribution hypothesis, the evidence points at the observation space: one RGB frame, no proprioception, 358 transitions."
+ }
 }

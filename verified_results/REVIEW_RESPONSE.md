@@ -202,6 +202,27 @@ over-dispersed policy. Contract: `g1_piston_entropy_target_sign.json`.
 misses, step-0 initial evaluations, a step-0 periodic sweep) took a run from 72 s per
 gradient update to 1.23 s. Contract: `g1_piston_utd_throughput_analysis.json`.
 
+## Behaviour cloning was tried too, and also failed
+
+With every RL checkpoint destroyed by a scratchpad wipe, the remaining route to a working
+policy was to imitate the demonstrations directly. 16 of the 22 executable episodes reach
+grasp, lift and plate when replayed, so the behaviour is present in the data.
+
+Training converged cleanly: mean squared error fell from 0.199 to 0.0216 over 300 epochs
+on 358 transitions. Closed-loop performance on the frozen 25-condition suite was **0.00
+on every stage**, with a mean return of -0.611. That is worse than the RL baseline's 0.20
+grasp.
+
+The obvious explanation was tested and refuted. The evaluation conditions perturb the arm
+by at most 2.6 degrees and the piston by under a millimetre, so this is not a
+distribution-shift failure; the policy fails near the state it was trained on.
+
+What remains is the observation space. The policy sees a single RGB frame and no
+proprioception, so it cannot perceive its own joint configuration, and a two-degree
+difference that changes the correct action is invisible to it. With 358 transitions there
+is not enough data to learn that mapping from pixels alone. Contract:
+`g1_piston_behaviour_cloning_result.json`.
+
 ## Status and honest expectations
 
 A retrain is running with every fix applied (v3 reward, corrected discount, DCT critic

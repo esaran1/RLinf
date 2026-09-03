@@ -1,0 +1,38 @@
+{
+ "id": "g1_piston_behaviour_cloning_result",
+ "recorded": "2026-09-03",
+ "status": "NEGATIVE RESULT",
+ "motivation": "Four RL runs had failed for four infrastructure reasons and the scratchpad wipe destroyed every RL checkpoint, so the remaining route to a working policy was to imitate the demonstrations directly. 16 of 22 executable episodes reach grasp -> lift -> plate when replayed, so the behaviour exists in the data.",
+ "method": "Supervised regression of the OFT action head onto demonstration action chunks, VLM frozen, conditioned on the same features the policy sees at deployment. Trained on the 16 lifting episodes only (cloning the 6 failures would teach failure). Checkpoint written in the RL trainer's format so it is scored by the same tools on the same frozen suite.",
+ "two_correctness_checks_made_before_training": {
+  "forward_pass": "The OFT head forward is model.action_model.predict_action, not a guessed head_mean. Using a different forward would train a different function than the evaluator scores.",
+  "action_space": "The demo buffer stores PHYSICAL actions while the head emits NORMALIZED ones, so targets are passed through the Q99 normaliser. Training on raw values would have produced a policy wrong by the entire transform."
+ },
+ "training": {
+  "transitions": 358,
+  "episodes": 16,
+  "epochs": 300,
+  "mse": "0.199 -> 0.0216 (9x reduction)",
+  "wall_clock_s": 183
+ },
+ "result": {
+  "rendered_rollouts": 5,
+  "grasp_or_better": 1,
+  "per_condition": {
+   "0": "none",
+   "3": "none",
+   "7": "none",
+   "19": "none",
+   "21": "grasp at chunk 17"
+  },
+  "rate": "1/5 = 0.20, identical to the RL baseline's 0.20 on the same predicate"
+ },
+ "hypothesis_tested_and_refuted": {
+  "claim": "BC fails because it is evaluated out of distribution: demos start at the canonical reset while the eval perturbs each condition.",
+  "measurement": "The eval conditions perturb the arm by at most 2.6 degrees and the piston by under 1 mm. That is a trivial shift, so out-of-distribution starts do NOT explain the failure. BC fails near the state it was trained on.",
+  "note": "An earlier version of this check was itself wrong: it compared demo episodes to EACH OTHER at their first frame, which differ because the robot is mid-motion, not because the reset differs. Corrected before reporting."
+ },
+ "leading_explanation": "The policy observes ONE RGB frame and no proprioception, so it cannot perceive its own joint configuration. A 2.6 degree difference is invisible to it yet changes which action is correct. With 358 transitions there is not enough data to learn that mapping from pixels alone. This is a property of the inherited SFT architecture and dataset, not of the cloning procedure.",
+ "implication": "Adding proprioception to the POLICY input -- the same fix the review prescribed for the critic -- is the change most likely to yield a working policy. That is an architecture and retraining change, not a tuning change, and is untested here.",
+ "what_this_does_not_affect": "The specification-gaming finding is a measurement of the trained policy's geometry and is independent of every training run in this project."
+}

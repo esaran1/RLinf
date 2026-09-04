@@ -202,37 +202,90 @@ over-dispersed policy. Contract: `g1_piston_entropy_target_sign.json`.
 misses, step-0 initial evaluations, a step-0 periodic sweep) took a run from 72 s per
 gradient update to 1.23 s. Contract: `g1_piston_utd_throughput_analysis.json`.
 
-## Behaviour cloning was tried too, and also failed
+## Behaviour cloning: two train/deploy defects, then a working policy
 
 With every RL checkpoint destroyed by a scratchpad wipe, the remaining route to a working
 policy was to imitate the demonstrations directly. 16 of the 22 executable episodes reach
 grasp, lift and plate when replayed, so the behaviour is present in the data.
 
-Training converged cleanly: mean squared error fell from 0.199 to 0.0216 over 300 epochs
-on 358 transitions. Closed-loop performance on the frozen 25-condition suite was **0.00
-on every stage**, with a mean return of -0.611. That is worse than the RL baseline's 0.20
-grasp.
+The first two attempts scored **0.00 on every stage** of the frozen 25-condition suite.
+Both were defects in our own tooling, not properties of the task, and both had the same
+shape: a training tool and the deployment path disagreeing about what a tensor means,
+with matching shapes so nothing errored.
 
-The obvious explanation was tested and refuted. The evaluation conditions perturb the arm
-by at most 2.6 degrees and the piston by under a millimetre, so this is not a
-distribution-shift failure; the policy fails near the state it was trained on.
+| defect | what BC did | what deployment does | effect |
+|---|---|---|---|
+| **features** | sliced the last 30 hidden states | gathers hidden states *at the action-token positions* | prompt ends with `<action>.` after the tokens, so the slice is off by 8 positions; 49% relative difference |
+| **squash** | regressed the head's **raw** output | executes `tanh(head_out) * 2.2` | head trained in a space the simulator never runs |
 
-What remains is the observation space. The policy sees a single RGB frame and no
-proprioception, so it cannot perceive its own joint configuration, and a two-degree
-difference that changes the correct action is invisible to it. With 358 transitions there
-is not enough data to learn that mapping from pixels alone. Contract:
-`g1_piston_behaviour_cloning_result.json`.
+The squash defect is the one that mattered, measured end to end on demonstration ep046:
+
+| checkpoint | error before squash | **error after deployment squash** |
+|---|---|---|
+| feature-fixed | 0.376° | **12.393°** |
+| squash-fixed | 8.068° | **0.403°** |
+
+The errors swap, which is the signature of a correct fix: accurate in the space that is
+executed, inaccurate in a space nothing uses.
+
+**A policy-free control arm localised the failure.** `REPLAY_DEMO` feeds a recorded
+demonstration's own physical actions through the identical env, mapper, retargeter,
+reward and reset conditions. Replaying ep046 gives reach 1.00, grasp 1.00, lift 0.67,
+which proves the execution path is capable and pins the failure on what the policy
+commands. Without that control, a zero cannot be attributed to anything.
+
+### Result on the frozen 25-condition suite, v3 reward, deterministic
+
+| stage | before (either defect) | **after both fixes** | 95% CI |
+|---|---|---|---|
+| reach | 0.00 | **1.00** | [0.87, 1.00] |
+| grasp | 0.00 | **1.00** | [0.87, 1.00] |
+| lift | 0.00 | **0.80** | [0.61, 0.91] |
+| plate | 0.00 | **0.80** | [0.61, 0.91] |
+| press | 0.00 | 0.00 | [0.00, 0.13] |
+| dispense | 0.00 | 0.00 | [0.00, 0.13] |
+| mean return | −0.611 | **11.935** | |
+| mean displacement | 0.0096 m | **0.2742 m** | |
+
+This is the first policy in the project to perform the transport task, and it is scored
+under the **corrected** v3 predicate — the one that costs the old RL checkpoint four in
+five of its "grasps". Every rate was re-derived from the 25 per-condition records rather
+than read from the summary.
+
+**The functional act is still absent.** Press and dispense are 0.00, exactly as
+pre-registered. That is expected and is not a defect: only 1 of 22 executable
+demonstrations shows a genuine grasped press, none shows a dispense, and behaviour
+cloning cannot produce behaviour the data does not contain. Reaching the plunger stages
+requires reward-driven discovery, which is what the corrected RL setup exists to test.
+
+Contracts: `g1_piston_bc_feature_mismatch.json`, `g1_piston_bc_squash_mismatch.json`.
+
+**A correction to our own record.** The earlier explanation for BC's failure — that the
+policy cannot learn the task from one RGB frame without proprioception — was inferred
+from these defects and is withdrawn. It was recorded as the leading explanation on the
+strength of an open-loop probe that measured the head *without* the deployment squash,
+so it scored a function that is never executed. A fidelity measurement is only meaningful
+at the point of execution.
 
 ## Status and honest expectations
 
-A retrain is running with every fix applied (v3 reward, corrected discount, DCT critic
-input, privileged critic state, smoothness penalty, rebuilt 22-episode buffer). Its
-configuration, hypotheses and decision rules were **pre-registered before the data
-existed** (`g1_piston_v3_retrain_preregistration.json`), including the commitment that a
-dispense rate of 0.00 is a reportable finding about the task and the data rather than
-something to hide.
+**A policy now performs the transport task**: reach 1.00, grasp 1.00, lift 0.80,
+plate 0.80 on the frozen 25-condition suite under the corrected v3 predicate, from
+behaviour cloning on 16 demonstrations once two train/deploy defects were fixed. Videos
+are rendered from conditions the evaluation actually scored.
 
-**No policy in this project has performed the full pipette task**, and that is now
-measured rather than assumed. What the corrected setup makes possible is a fair test of
-whether removing the plateau and fixing the discount converts into genuine grasping and
-lifting.
+**No policy has performed the full pipette task**, and the gap is specific rather than
+mysterious: press and dispense are 0.00, because 1 of 22 executable demonstrations shows
+a grasped press and none shows a dispense. Imitation cannot supply behaviour the data
+does not contain, so the plunger stages must be discovered from reward. That is the fair
+test the corrected RL setup exists to run, and it now has something a previous attempt
+never had: a competent starting policy rather than one that scores zero.
+
+Two cautions carried forward. Post-grasp outcomes are not reproducible from a single
+rollout in this setup (`g1_piston_post_grasp_nondeterminism.json`), so a rendered video
+can differ from its evaluation row; the 25-condition evaluation is the number of record.
+And both defects fixed here were invisible to every test in the suite until the failure
+was measured end to end at the point of execution — the parity tests in
+`test_g1_piston_feature_extraction_parity.py` now pin that agreement, but the general
+lesson is to keep a policy-free control arm that proves the execution path can do the
+task.

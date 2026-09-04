@@ -160,8 +160,21 @@ try:
                 qo = model.qwen_vl_interface(**qi, output_attentions=False,
                                              output_hidden_states=True,
                                              return_dict=True)
-            hs = qo.hidden_states[-1]
-            return hs[:, -model.chunk_len:, :].float()
+            lh = qo.hidden_states[-1]
+            # Gather the hidden states AT THE ACTION-TOKEN POSITIONS, exactly as
+            # train_sac.py, eval_checkpoint.py and render_rollouts.py do.
+            #
+            # An earlier version sliced `lh[:, -chunk_len:, :]` instead. That is a
+            # DIFFERENT tensor: the prompt ends with "<action>." after the action
+            # tokens, so the tokens occupy positions 110-139 of 148 while the slice
+            # takes 118-147 -- an 8-position shift, 49% relative difference. The head
+            # was therefore trained on one input distribution and scored on another,
+            # which is why it fit the demonstrations open-loop (1.15 deg) and still
+            # scored 0.00 in closed loop. See
+            # docs/contracts/g1_piston_bc_feature_mismatch.json.
+            return model._gather_action_token_embeddings(
+                lh, qi.get("input_ids", None),
+                action_token_id=model.action_token_id).float()
 
     def head_mean(aq):
         """Differentiable OFT head forward, IDENTICAL to train_sac.py's head_mean.

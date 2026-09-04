@@ -1,0 +1,42 @@
+{
+ "id": "g1_piston_bc_feature_mismatch",
+ "recorded": "2026-09-04",
+ "status": "DEFECT FOUND AND FIXED. Supersedes the leading explanation in g1_piston_behaviour_cloning_result.json.",
+ "summary": "Behaviour cloning trained the OFT action head on hidden states taken from the WRONG token positions. It was then evaluated on the correct ones. The head fit its (mis-specified) inputs cleanly and reproduced nothing in closed loop.",
+ "how_it_was_found": {
+  "trigger": "The recorded explanation -- 'the policy sees one RGB frame and no proprioception, so it cannot learn this from 358 transitions' -- was a hypothesis that had never been tested. Before building a proprioception pipeline on top of it, the cheaper diagnostic was run first: does the trained head reproduce the demonstrations OPEN-LOOP on the very frames it trained on?",
+  "open_loop_probe": {
+   "sft_head_mean_abs_err_deg": 5.72,
+   "bc_head_mean_abs_err_deg": 1.15,
+   "demo_action_range_rad": 2.914,
+   "n_frames": 358,
+   "reading": "BC fit the data 5x better than SFT, to about 1 degree against a 167-degree action range. A head that fits its training data open-loop and then does nothing in closed loop is not a capacity or observability failure. That pointed at the train/eval path rather than the observation space."
+  }
+ },
+ "the_defect": {
+  "train_bc_py": "lh[:, -model.chunk_len:, :]  -- the last chunk_len positions, by slicing",
+  "train_sac_py": "model._gather_action_token_embeddings(lh, input_ids, action_token_id=...)",
+  "eval_checkpoint_py": "model._gather_action_token_embeddings(...)",
+  "render_rollouts_py": "model._gather_action_token_embeddings(...)",
+  "why_the_slice_is_wrong": "The prompt ends with '<action>.' AFTER the action tokens, so the action tokens are not the final positions of the sequence.",
+  "measured": {
+   "prompt_tokens": 148,
+   "action_token_count": 30,
+   "action_token_positions": "110-139",
+   "slice_positions": "118-147",
+   "offset": 8,
+   "mean_abs_diff": 15.49,
+   "max_abs_diff": 1928.0,
+   "relative_difference": 0.487,
+   "identical": false
+  }
+ },
+ "why_nothing_errored": "Both tensors have shape [1, 30, 2048], so the shapes match, the forward pass succeeds, the loss descends, and the checkpoint saves. Only the closed-loop score reveals the problem, and it presents as 'the policy does not work' rather than as a fault.",
+ "consequence_for_the_record": {
+  "superseded_claim": "'The policy observes ONE RGB frame and no proprioception ... adding proprioception is the change most likely to yield a working policy.' That claim was inferred from a failure whose actual cause was this defect. It is not supported by the evidence and is withdrawn.",
+  "still_true": "The out-of-distribution hypothesis remains refuted independently (eval conditions perturb the arm by at most 2.6 degrees).",
+  "unaffected": "The specification-gaming finding, the plunger-DoF finding and the entropy-sign finding are all measurements of other things and are untouched by this."
+ },
+ "fix": "train_bc.py now calls _gather_action_token_embeddings, identical to the other three tools. tests/unit_tests/test_g1_piston_feature_extraction_parity.py pins that all four tools agree; all 4 tests fail on the pre-fix source and pass on the fixed source, verified in both directions.",
+ "lesson": "A training tool and an evaluation tool that disagree about the model's input produce a silently invalid result. Before attributing a negative result to a property of the task, verify that the model was scored on the same function it was trained on."
+}

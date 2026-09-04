@@ -1,0 +1,32 @@
+{
+ "id": "g1_piston_v3_retrain_run4_preregistration",
+ "recorded": "2026-09-04, BEFORE the run 4 data exists",
+ "supersedes_initialisation_only": "g1_piston_v3_retrain_preregistration.json. Every decision rule, threshold and reporting commitment in that document is carried over UNCHANGED. Only the initialisation differs, and the deviation is registered here in advance rather than explained afterwards.",
+ "registered_deviation": {
+  "planned": "warm start from rlpd_ckpt_step415140.pt",
+  "actual": "warm start from the behaviour-cloning checkpoint runs/bc_sq/bc_ckpt_latest.pt",
+  "reason_1": "The planned checkpoint no longer exists. It was destroyed by a scratchpad wipe and is not recoverable.",
+  "reason_2": "The BC policy is a strictly better initialisation on the pre-registered readout itself: under the SAME v3 predicate on the SAME frozen 25-condition suite it scores reach 1.00, grasp 1.00, lift 0.80, plate 0.80, mean return 11.935, against the destroyed checkpoint's 0.20 grasp and 0.00 lift.",
+  "consequence_for_H1": "H1 (plateau removal raises grasp above the warm-start rate) is no longer testable as written: grasp is already 1.00 at initialisation and cannot rise. H1 is therefore RETIRED, not reinterpreted. The run tests H2 only."
+ },
+ "what_this_run_tests": {
+  "H2_dispense_is_discovery_not_imitation": "The pre-registered hypothesis, now the primary one. No executable demonstration dispenses and exactly 1 of 22 shows a genuine grasped press, so any press or dispense must be discovered from reward rather than imitated. Prior expectation remains LOW.",
+  "H4_rl_does_not_destroy_the_cloned_behaviour": "NEW, registered here before the data exists. Prior RL runs in this project drove grasp 0.20 -> 0.00. Starting from a competent policy, the first question is whether RL PRESERVES it. Rule: if v3 grasp falls below 0.87 (the lower bound of the initialisation's 95% CI) the run is reported as a regression, whatever happens to press and dispense."
+ },
+ "initialisation_details_that_could_otherwise_be_mistaken_for_results": {
+  "critic": "REINITIALISED. A BC checkpoint has no critic. It is refitted from the replay buffer, half of which is demonstrations under RLPD. Recorded in the run config as critic_transferred=false with the reason.",
+  "alpha": "REINITIALISED to ALPHA_INIT; a BC checkpoint has no alpha.",
+  "actor_logstd": "RESET to log(0.20), NOT inherited. The BC checkpoint's 0.05 is a placeholder written at save time, not a learned exploration scale, and starting there would begin far above the alpha equilibrium -- the condition that collapsed run 3. Pinned by tests/unit_tests/test_g1_piston_policy_only_warm_start.py.",
+  "why_this_matters": "Each of these is a way a run could look different from run 3 for reasons unrelated to the fixes, so each is stated before the data exists."
+ },
+ "carried_over_unchanged": {
+  "reward": "v3, thresholds fixed by measurement and NOT to be tuned after seeing results",
+  "gamma_chunk": 0.98,
+  "action_basis": "ACTION_BASIS=1, critic sees 180 DCT coefficients",
+  "critic_state": "CRITIC_STATE=1, 68-dim privileged state",
+  "smooth_lambda": 100,
+  "primary_readout": "v3 stage rates on the frozen 25-condition suite, deterministic, seed 20260817",
+  "failure_is_reportable": "dispense staying 0.00 is the honest result and will be reported as such",
+  "post_grasp_caveat": "post-grasp outcomes are not resolvable from a single evaluation; any such claim carries that caveat"
+ }
+}

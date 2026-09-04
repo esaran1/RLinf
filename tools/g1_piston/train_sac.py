@@ -272,9 +272,29 @@ try:
         # The POLICY always transfers: it is what carries the learned behaviour, and its
         # shape does not depend on how the critic is conditioned.
         model.action_model.load_state_dict(wc["action_model"])
-        with torch.no_grad():
-            actor_logstd.copy_(wc["actor_logstd"].to(DEV))
-        ent.load_state_dict(wc["alpha"])
+        # A behaviour-cloning checkpoint carries ONLY the policy: it has no critic, no
+        # target and no alpha, and its actor_logstd is the fixed placeholder written at
+        # save time rather than a learned exploration scale. Detect that case explicitly
+        # instead of KeyError-ing, and instead of silently inheriting a std that would
+        # start training far from the alpha equilibrium.
+        POLICY_ONLY = "critic" not in wc or "alpha" not in wc
+        WARM_META["policy_only_checkpoint"] = bool(POLICY_ONLY)
+        if POLICY_ONLY:
+            # Start exploration at the std the corrected entropy target is defined for
+            # (TARGET_ENTROPY_STD = 0.20). Inheriting BC's placeholder 0.05 would begin
+            # at logp far above the target, which is the condition that collapsed run 3
+            # -- see docs/contracts/g1_piston_entropy_target_sign.json.
+            with torch.no_grad():
+                actor_logstd.fill_(math.log(RLSP.TARGET_ENTROPY_STD))
+            WARM_META["actor_logstd_source"] = (
+                f"reset to log(TARGET_ENTROPY_STD={RLSP.TARGET_ENTROPY_STD}); the BC "
+                f"checkpoint's {float(wc['actor_logstd'].exp().mean()):.3f} is a "
+                "placeholder, not a learned exploration scale")
+        else:
+            with torch.no_grad():
+                actor_logstd.copy_(wc["actor_logstd"].to(DEV))
+            ent.load_state_dict(wc["alpha"])
+            WARM_META["actor_logstd_source"] = "inherited from warm checkpoint"
         # The CRITIC only transfers when its input space is unchanged. ACTION_BASIS and
         # CRITIC_STATE alter that width (2048+900 = 2948 raw, versus 2048+68+180 = 2296
         # with both on), so a checkpoint predating them cannot be loaded -- and padding
@@ -284,8 +304,15 @@ try:
         # the replay buffer within a few hundred updates, whereas a mis-indexed one
         # would emit confident nonsense that the actor would then maximise.
         want = critic.state_dict()["qs.0.net.0.weight"].shape
-        got = wc["critic"]["qs.0.net.0.weight"].shape
-        if want == got:
+        got = None if POLICY_ONLY else wc["critic"]["qs.0.net.0.weight"].shape
+        if POLICY_ONLY:
+            target.load_state_dict(critic.state_dict())
+            WARM_META["critic_transferred"] = False
+            WARM_META["critic_reinit_reason"] = (
+                "policy-only checkpoint (behaviour cloning): no critic to transfer. "
+                "The critic is refitted from the replay buffer, which is the correct "
+                "behaviour -- RLPD fills half of every batch from demonstrations.")
+        elif want == got:
             critic.load_state_dict(wc["critic"])
             target.load_state_dict(wc["target"])
             WARM_META["critic_transferred"] = True

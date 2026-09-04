@@ -649,6 +649,24 @@ try:
     demo = []
     #: Privileged critic state per demo transition, when the buffer provides it.
     demo_state, demo_next_state = {}, {}
+    # ALGO defaults to "sac", which loads NO demonstrations. A run that passes DEMO_DIR
+    # (or the RLPD-only knobs) while leaving ALGO unset is therefore not the run its
+    # launcher describes: it trains without the 50% demonstration replay that defines
+    # RLPD, reports demo_fraction 0.0, and still exits OK. That happened, so it now
+    # fails closed rather than producing a result that silently contradicts its own
+    # pre-registration.
+    if ALGO != "rlpd":
+        _rlpd_only = [n for n, v in (("DEMO_DIR", os.environ.get("DEMO_DIR")),
+                                     ("DEMO_FRAC", os.environ.get("DEMO_FRAC")),
+                                     ("PREWARM_DEMO_CACHE",
+                                      os.environ.get("PREWARM_DEMO_CACHE"))) if v]
+        if _rlpd_only:
+            raise SystemExit(
+                f"ALGO={ALGO!r} but {', '.join(_rlpd_only)} was set. Those knobs only "
+                "take effect under ALGO=rlpd; this run would train WITHOUT "
+                "demonstration replay and report demo_fraction 0.0 while looking "
+                "normal. Set ALGO=rlpd, or unset those variables to run plain SAC "
+                "deliberately.")
     if ALGO == "rlpd":
         # Fail loudly rather than train a critic on rewards from the wrong reward
         # version: it would look like a normal run and quietly produce a v1 policy.

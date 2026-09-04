@@ -142,7 +142,18 @@ try:
 
     ACT_MASK = RLSP.build_active_mask().to(DEV)          # [30] bool
     res["n_active_dims"] = int(ACT_MASK.sum())
+    #: The deployment path squashes the head's output before execution:
+    #:     a = tanh(head_out) * (HIGH-LOW)/2 + (HIGH+LOW)/2
+    #: identically in train_sac.py, eval_checkpoint.py and render_rollouts.py. The head
+    #: therefore does NOT emit a normalised action; it emits a PRE-SQUASH value.
+    ACTION_LOW, ACTION_HIGH = -2.2, 2.2
+    SQ_SCALE = (ACTION_HIGH - ACTION_LOW) / 2.0
+    SQ_SHIFT = (ACTION_HIGH + ACTION_LOW) / 2.0
     emit()
+
+    def squash(raw):
+        """The deployed deterministic action, from the head's raw output."""
+        return torch.tanh(raw) * SQ_SCALE + SQ_SHIFT
 
     def vlm_encode(img_np):
         """Frozen backbone forward. Returns action queries [1,H,HID]."""
@@ -232,7 +243,15 @@ try:
             batch = pairs[i:i + BATCH]
             aq = torch.stack([b[0] for b in batch]).to(DEV)
             tgt = torch.stack([b[1] for b in batch]).to(DEV)
-            pred = head_mean(aq)
+            # Regress the SQUASHED action -- the one the simulator actually executes.
+            #
+            # An earlier version regressed the head's RAW output onto the normalised
+            # target, which trains a different function than deployment runs. Measured
+            # on demonstration ep046: the raw head matched the demonstration to 0.376
+            # deg, but after the deployment tanh the same prediction was off by 12.393
+            # deg, a 33x degradation, and the policy scored 0.00 on all 25 conditions.
+            # See docs/contracts/g1_piston_bc_squash_mismatch.json.
+            pred = squash(head_mean(aq))
             # Regress only the ACTIVE dims; the frozen ones are constants supplied
             # downstream and would otherwise dilute the loss.
             loss = F.mse_loss(pred[..., ACT_MASK], tgt[..., ACT_MASK])

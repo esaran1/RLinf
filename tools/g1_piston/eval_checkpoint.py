@@ -55,6 +55,14 @@ FILTER_HZ = float(os.environ.get("FILTER_HZ", "0"))
 #: minimal intervention, since the measured pathology is confined to the hands and
 #: whole-action filtering lagged the reach enough to break grasp timing.
 FILTER_DIMS = os.environ.get("FILTER_DIMS", "all").lower()
+#: CONTROL ARM: replay a recorded demonstration's actions instead of the policy's, through
+#: the identical mapper -> retargeter -> env.step path and the identical reward. This
+#: answers "is the execution path capable of the task at all?" independently of any
+#: policy. Set to an episode number, e.g. REPLAY_DEMO=46. The reset condition is still
+#: applied, so a demonstration replayed here is NOT expected to match its original
+#: recording exactly; what matters is whether it reaches and grasps at all.
+REPLAY_DEMO = os.environ.get("REPLAY_DEMO", "")
+DEMO_DIR = os.environ.get("DEMO_DIR", "/home/jren313/research/starvla_rl/demo_buffer_v3")
 
 os.makedirs(RUN_DIR, exist_ok=True)
 res = {"checkpoint": CKPT_PATH, "n_eval": N_EVAL, "modes": {},
@@ -171,6 +179,18 @@ try:
     _, EVAL_CONDITIONS = build_reset_suite(n_eval=50, seed=RESET_SUITE_SEED)
     EVAL_CONDITIONS = EVAL_CONDITIONS[:N_EVAL]
 
+    #: Demonstration actions for the control arm, in PHYSICAL units (the buffer's own
+    #: convention, verified against the recorded act_ep*.npy).
+    REPLAY_ACTIONS = None
+    if REPLAY_DEMO:
+        import glob as _g
+        _fp = _g.glob(f"{DEMO_DIR}/ep{int(REPLAY_DEMO):03d}.npz")
+        if not _fp:
+            raise SystemExit(f"no demonstration ep{int(REPLAY_DEMO):03d} in {DEMO_DIR}")
+        REPLAY_ACTIONS = np.load(_fp[0])["actions"]
+        res["replay_demo"] = int(REPLAY_DEMO)
+        res["replay_chunks"] = int(len(REPLAY_ACTIONS))
+
     def vlm_encode(img):
         with torch.no_grad():
             imgs = [to_pil_preserve([img])]
@@ -205,8 +225,12 @@ try:
         a = torch.where(ACT_MASK, a, FROZEN_V.expand_as(a))
         return a.reshape(b, c, d)
 
-    def run_chunk(norm_action, prev_cmd=None):
-        phys = nrm.denormalize(norm_action.detach().cpu())
+    def run_chunk(norm_action, prev_cmd=None, physical=False):
+        # `physical=True` is the demonstration-replay control arm: the buffer already
+        # stores PHYSICAL actions, so denormalising them would corrupt them by the whole
+        # transform (the exact bug documented in the demo-buffer units contract).
+        phys = (norm_action.detach().cpu() if physical
+                else nrm.denormalize(norm_action.detach().cpu()))
         if act_filter is not None:
             # Filter in physical action space, the units the demonstrations are in;
             # the mapper and retargeter then see demonstration-envelope dynamics.
@@ -242,12 +266,21 @@ try:
             maxpress = 0.0; maxpress_grasped = 0.0
             acts = []
             prev_cmd = None
-            for _ in range(EP_CHUNKS):
-                img = sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()
-                mean = vlm_encode(img)
-                a = sample_action(mean, deterministic)
-                acts.append(a.detach().cpu().numpy())
-                r, done, info, prev_cmd = run_chunk(a[0], prev_cmd)
+            for _ci in range(EP_CHUNKS):
+                if REPLAY_ACTIONS is not None:
+                    # Control arm: the demonstration's own actions, already physical.
+                    if _ci >= len(REPLAY_ACTIONS):
+                        break
+                    a = torch.as_tensor(REPLAY_ACTIONS[_ci],
+                                        dtype=torch.float32).unsqueeze(0)
+                    acts.append(a.numpy())
+                    r, done, info, prev_cmd = run_chunk(a[0], prev_cmd, physical=True)
+                else:
+                    img = sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()
+                    mean = vlm_encode(img)
+                    a = sample_action(mean, deterministic)
+                    acts.append(a.detach().cpu().numpy())
+                    r, done, info, prev_cmd = run_chunk(a[0], prev_cmd)
                 ret += r
                 for k, v in info.get("stages", {}).items():
                     stages[k] = stages.get(k, False) or v

@@ -108,12 +108,34 @@ def test_the_target_is_reachable_only_near_the_bottom_of_the_std_range():
     assert hi > target, (hi, target)
 
 
-def test_logp_decreases_monotonically_as_exploration_shrinks():
-    """Sanity on the instrument: less noise must mean higher density, i.e. LOWER logp
-    under this branch's sign convention. If this inverts, the measurement above is
-    meaningless."""
+def test_legacy_logp_INCREASES_with_std_which_is_the_defect():
+    """Pins the defect, correctly labelled this time.
+
+    An earlier version of this test asserted the legacy curve's monotonic INCREASE with
+    std as a "sanity" property, with a docstring claiming less noise means lower logp.
+    That is backwards: less noise means HIGHER density and HIGHER logp. The legacy
+    formula omits the change-of-variables term for ``std`` (``-n_basis * sum log std``),
+    so ``d lp / d logstd`` is positive at every std -- the "entropy" term shrank
+    exploration and flattened the mean. See ``g1_piston_entropy_mean_force.json``.
+    """
     vals = [correlated_logp(s) for s in (0.05, 0.10, 0.20, 0.30, 0.50)]
-    assert vals == sorted(vals), vals
+    assert vals == sorted(vals), vals          # increasing with std: WRONG, and pinned
+
+
+def test_corrected_logp_decreases_with_std():
+    """The corrected shared implementation has the right sign.
+
+    Latent entropy is monotone in std everywhere (closed form, slope -4/std). Executed
+    entropy is monotone only until tanh saturation piles mass at the bounds (measured
+    minimum near std 0.4 in both branches), so it is asserted on [0.05, 0.30].
+    """
+    m = _space()
+    lat = [m.measure_logprob_at_std(s, correlated=True, entropy_space="latent")
+           for s in (0.05, 0.10, 0.20, 0.30, 0.50)]
+    assert lat == sorted(lat, reverse=True), lat
+    ex = [m.measure_logprob_at_std(s, correlated=True, entropy_space="executed")
+          for s in (0.05, 0.10, 0.20, 0.30)]
+    assert ex == sorted(ex, reverse=True), ex
 
 
 def test_the_two_noise_branches_disagree_about_the_same_std():
@@ -147,7 +169,7 @@ def test_the_two_noise_branches_disagree_about_the_same_std():
             per = per - torch.log(1 - torch.tanh(y).pow(2) + 1e-7)
         y = y2
     iid = float((per * am).sum(-1).mean())
-    corr = correlated_logp(std_v)
+    corr = correlated_logp(std_v)          # legacy formula, deliberately
     assert iid > 0 > corr, (iid, corr)
     assert abs(iid - corr) > 10.0, (
         f"the branches differ by {abs(iid - corr):.1f} nats at the same std; a single "
@@ -214,30 +236,47 @@ def test_alpha_has_leverage_at_the_calibrated_target():
 
 
 def test_flat_region_is_rejected():
-    """The std the OLD target implied (~0.05) must now raise rather than silently
-    produce a target with no leverage."""
+    """The guard must raise when the target sits where alpha has no leverage.
+
+    Under the corrected formulas no std is flat (latent slope is -4/std), so the guard
+    is exercised against a stubbed flat curve, and the LEGACY curve is measured to show
+    the region the guard exists for.
+    """
     m = _space()
-    with pytest.raises(ValueError, match="slope"):
-        m.calibrated_target_entropy(correlated=True, std=0.05)
+    legacy = [m.measure_logprob_at_std(s, correlated=True, legacy=True)
+              for s in (0.05, 0.10)]
+    legacy_slope = (legacy[1] - legacy[0]) / 0.05
+    assert abs(legacy_slope) < m.MIN_TARGET_SLOPE, legacy_slope
+    real = m.measure_logprob_at_std
+    m.measure_logprob_at_std = lambda std, **kw: -8.4          # perfectly flat
+    try:
+        with pytest.raises(ValueError, match="slope"):
+            m.calibrated_target_entropy(correlated=True, std=0.05)
+    finally:
+        m.measure_logprob_at_std = real
 
 
-def test_the_old_target_would_still_be_rejected_today():
-    """Guards against someone reinstating -8.4 by adjusting CALIBRATED_TARGET_STD: the
-    std that produces -8.4 under the correlated branch is in the flat region."""
+def test_the_old_target_lived_in_the_legacy_flat_region():
+    """-8.4 corresponds to std ~0.05 under the legacy formula, where that curve moves
+    ~3 nats per unit std: below MIN_TARGET_SLOPE, so alpha could not regulate it."""
     m = _space()
     old = m.default_target_entropy()
-    at_old_std = m.measure_logprob_at_std(0.05, correlated=True)
+    at_old_std = m.measure_logprob_at_std(0.05, correlated=True, legacy=True)
     assert abs(at_old_std - old) < 0.2, (at_old_std, old)
-    with pytest.raises(ValueError):
-        m.calibrated_target_entropy(correlated=True, std=0.05)
+    lo = m.measure_logprob_at_std(0.045, correlated=True, legacy=True)
+    hi = m.measure_logprob_at_std(0.055, correlated=True, legacy=True)
+    assert abs((hi - lo) / 0.01) < m.MIN_TARGET_SLOPE
 
 
 def test_branches_get_different_targets():
-    """One scalar cannot serve both; the calibrated function must not pretend it can."""
+    """The calibrated function must give each branch its own target rather than one
+    scalar. (Under the LEGACY executed formula the branches differed by ~15 nats; that
+    measurement is kept in test_the_two_noise_branches_disagree_about_the_same_std.)"""
     m = _space()
     c = m.calibrated_target_entropy(correlated=True)
     i = m.calibrated_target_entropy(correlated=False)
-    assert abs(c - i) > 10.0, (c, i)
+    assert c != i
+    assert abs(c - i) > 0.5, (c, i)
 
 
 def test_measurement_is_deterministic():
@@ -251,7 +290,9 @@ def test_measurement_is_deterministic():
 def test_trainer_uses_the_calibrated_target_by_default():
     with open("tools/g1_piston/train_sac.py") as f:
         src = f.read()
-    assert "RLSP.calibrated_target_entropy(correlated=CORRELATED_NOISE)" in src
+    assert "RLSP.calibrated_target_entropy(" in src
+    assert "correlated=CORRELATED_NOISE," in src
+    assert 'entropy_space="executed" if ENTROPY_LP_LEGACY else ENTROPY_SPACE' in src
     assert 'os.environ.get("ENTROPY_TARGET_LEGACY", "0")' in src
     assert '"entropy_target_source"' in src
 

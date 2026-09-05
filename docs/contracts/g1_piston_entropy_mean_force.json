@@ -1,0 +1,168 @@
+{
+ "id": "g1_piston_entropy_mean_force",
+ "recorded": "2026-09-05",
+ "status": "CAUSE OF THE RL REGRESSION IDENTIFIED AND REPRODUCED OFFLINE. Supersedes the 'untested hypothesis' in g1_piston_run5_refutes_entropy_diagnosis.json (the demo-conditioned critic is NOT required to reproduce the collapse).",
+ "summary": "The SAC entropy term, as implemented, flattens a competent policy by itself. Two defects in one formula: (1) the correlated-noise log-prob omits the change-of-variables term for std, so d lp/d logstd > 0 at every std; (2) entropy measured on the EXECUTED action includes the tanh Jacobian, whose mean-gradient +2*alpha*E[tanh(u)] pushes every pre-squash mean toward zero.",
+ "literature": {
+  "mechanism": "arXiv 2608.24488, 'Where Entropy Is Measured Matters: Policy Geometry in Bounded Continuous-Control PPO': executed-action entropy adds +2 c_ent E[tanh u_i] to the mean gradient (inward force, measured cosine +0.987); latent entropy has dH/dmu = 0.",
+  "why_a_fresh_critic_makes_it_worse": "WSRL, arXiv 2412.07762: value function diverges at the onset of fine-tuning under distribution shift; warm up before actor updates. ResFiT, arXiv 2509.19301: delayed actor updates, LayerNorm critic ensemble, and a FROZEN BC base with a learned residual for humanoid dexterous manipulation.",
+  "rlpd": "arXiv 2302.02948 deliberately does not pretrain the actor; symmetric 50/50 sampling, LayerNorm critic, 10-critic ensemble, UTD 20, target entropy -dim(A)/2."
+ },
+ "defect_1_std_sign": {
+  "trainer_formula": "lp = logprob_z(z)/H - sum_active log(1 - tanh^2(pre))",
+  "measured_d_lp_d_logstd_mean0": {
+   "std_0.10": 0.02,
+   "std_0.25": 0.118,
+   "std_0.40": 0.28
+  },
+  "reading": "Positive at every std: more noise reports a HIGHER density. The docstring of logprob_z claimed the expansion's Jacobian was 'identical for every sample and irrelevant to gradients'; the expansion multiplies by std, a learned parameter, so its Jacobian carries -n_basis * sum log(std_d), which is the entire std-dependence of the entropy.",
+  "correction": "-n_basis * sum_active log(std_d) - n_active * sum_k log(scales_k), per control action /H. d/d logstd = -n_basis*n_active/H = -4.0."
+ },
+ "defect_2_mean_force": {
+  "static_test_at_the_BC_checkpoint": {
+   "frac_components_pushed_inward": 0.9010144472122192,
+   "predicted_by_2608_24488": "~1.0 (paper measured cosine +0.987)",
+   "analytic_check_2alpha_tanh_mean": 0.04034184664487839,
+   "measured_abs_grad_active": 6.186662358231843e-05
+  },
+  "reading": "90% of active components receive an inward push at step 0 (paper: ~100%)."
+ },
+ "offline_replication": {
+  "method": "Working BC head, demonstration ep046 frames, Adam lr 3e-6, batch 8, alpha 0.06 fixed, std 0.25, 650 updates. NO critic, NO reward, NO simulator. Deployed action error measured through the full deployment path including the squash.",
+  "arm_A_executed_entropy": [
+   {
+    "step": 0,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 50,
+    "deployed_err_deg": 2.550597386542708,
+    "raw_abs_mean": 0.37054115533828735
+   },
+   {
+    "step": 100,
+    "deployed_err_deg": 5.089427633598447,
+    "raw_abs_mean": 0.33198970556259155
+   },
+   {
+    "step": 200,
+    "deployed_err_deg": 8.41591707148254,
+    "raw_abs_mean": 0.2806324064731598
+   },
+   {
+    "step": 325,
+    "deployed_err_deg": 11.421228701636196,
+    "raw_abs_mean": 0.239721417427063
+   },
+   {
+    "step": 450,
+    "deployed_err_deg": 13.303778920412064,
+    "raw_abs_mean": 0.21543382108211517
+   },
+   {
+    "step": 650,
+    "deployed_err_deg": 15.042230025422572,
+    "raw_abs_mean": 0.1963140368461609
+   }
+  ],
+  "arm_B_latent_entropy": [
+   {
+    "step": 0,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 50,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 100,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 200,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 325,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 450,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 650,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   }
+  ],
+  "arm_C_no_entropy": [
+   {
+    "step": 0,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 50,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 100,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 200,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 325,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 450,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   },
+   {
+    "step": 650,
+    "deployed_err_deg": 0.39997956931097434,
+    "raw_abs_mean": 0.41468966007232666
+   }
+  ],
+  "reference_rl_runs": {
+   "BC": {
+    "err": 0.403,
+    "raw": 0.4151
+   },
+   "run4": {
+    "err": 13.773,
+    "raw": 0.2364
+   },
+   "run5": {
+    "err": 11.542,
+    "raw": 0.2543
+   }
+  },
+  "reading": "Executed-action entropy alone reproduces runs 4 and 5 (11.4 deg at update 325, raw magnitude 0.24). Latent entropy and no-entropy leave the head bit-identical. The critic is not needed to reproduce the collapse."
+ },
+ "why_run_5_did_not_help": "Run 5 fixed the target's VALUE. The inward mean force exists for any positive alpha regardless of the target, and the std-sign defect means alpha was never regulating exploration in the first place. Both runs flattened the head identically.",
+ "fix": {
+  "shared_implementation": "CorrelatedChunkNoise.logprob_chunk(z, pre, logstd, mask, entropy_space) and rl_space.iid_logprob(); the trainer and the target calibration call the same code.",
+  "entropy_space": "ENTROPY_SPACE=latent by default. With latent entropy the target is closed-form: slope -n_basis*n_active/(H*std) = -4/std nats per unit std, never flat.",
+  "actor_warmup": "ACTOR_WARMUP_UPDATES=300 critic-only updates before actor and alpha start, since the warm start reinitialises the critic.",
+  "legacy": "ENTROPY_LP_LEGACY=1 reproduces the defective formula for re-running earlier arms."
+ },
+ "correction_to_our_own_tests": "test_logp_decreases_monotonically_as_exploration_shrinks asserted the legacy curve's INCREASE with std as a sanity property, with a docstring stating less noise means lower logp. That is backwards and the test pinned the defect as if it were correct. Relabelled and a correctly-signed test added.",
+ "unaffected": "The BC policy (grasp 1.00, lift 0.80), its videos, the specification-gaming finding, the plunger-DoF finding, and the two BC train/deploy defects."
+}

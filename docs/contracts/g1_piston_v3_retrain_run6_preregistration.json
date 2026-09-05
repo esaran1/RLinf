@@ -1,0 +1,21 @@
+{
+ "id": "g1_piston_v3_retrain_run6_preregistration",
+ "recorded": "2026-09-05, BEFORE the run 6 data exists",
+ "relationship_to_runs_4_and_5": "Both regressed identically (v3 grasp 1.00 -> 0.00). The cause has now been reproduced OFFLINE with no critic, no reward and no simulator: the entropy term as implemented flattens the policy by itself (g1_piston_entropy_mean_force.json). Run 6 is the same experiment with that formula corrected, so a preserved policy is the prediction and a collapsed one falsifies the diagnosis.",
+ "the_changes_and_their_sources": {
+  "entropy_measured_in_latent_space": "ENTROPY_SPACE=latent. Removes the tanh-Jacobian mean force +2*alpha*E[tanh(u)] (arXiv 2608.24488). Offline: executed entropy alone drove the working head 0.40 -> 15.04 deg in 650 updates; latent left it at 0.40.",
+  "change_of_variables_for_std": "The correlated log-prob now carries -n_basis*sum log(std_d), so d lp/d logstd = -4.0 (was +0.02..+0.28). The entropy term now regulates exploration instead of shrinking it.",
+  "actor_warmup": "ACTOR_WARMUP_UPDATES=300 critic-only updates first (WSRL arXiv 2412.07762; ResFiT arXiv 2509.19301 delayed actor updates). The warm start reinitialises the critic; an actor following a random critic from update 1 is the worst case for a competent policy.",
+  "target": "calibrated_target_entropy(correlated=True, entropy_space=latent) at std 0.25, closed-form slope -16 nats per unit std, so alpha has leverage and the target is never flat.",
+  "unchanged": "reward v3, gamma_chunk 0.98, ACTION_BASIS, CRITIC_STATE, SMOOTH_LAMBDA 100, UTD 0.5, BATCH 8, ALGO=rlpd, DEMO_FRAC 0.5, warm start from the BC policy, frozen 25-condition suite, seed 20260817, eval_checkpoint.py as the scorer of record."
+ },
+ "hypotheses_and_rules_fixed_in_advance": {
+  "H4_preservation": "PRIMARY, carried over from runs 4 and 5. If v3 grasp on the periodic 25-condition evaluation falls below 0.87, the run is a regression regardless of press/dispense. Under the diagnosis, grasp should stay within the initialisation's CI at every evaluation.",
+  "H6_no_flattening": "NEW. The offline signature must be absent: raw head magnitude must stay above 0.35 (BC: 0.415; collapsed runs: 0.24-0.25) and the deployed action error on ep046 must stay below 3 deg (BC: 0.40; collapsed: 11.5-13.8) at the first checkpoint. Measured with tools/g1_piston/measure_deployed_action_error.py. If grasp is preserved but this fails, the preservation is luck, not the fix.",
+  "H7_entropy_regulates_std": "NEW. Under the corrected formula, logprob_per_step should move toward the calibrated target and alpha should not rise monotonically; actor_logstd should move, not be pinned. Rule: alpha end/start within [0.6, 1.4].",
+  "H2_dispense": "Unchanged prior: LOW. 1 of 22 executable demos shows a grasped press, none a dispense. Reported either way."
+ },
+ "what_falsifies_the_diagnosis": "Grasp collapsing to 0.00 with raw magnitude ~0.25 again. That would mean a third mechanism flattens the head and the offline replication was necessary but not sufficient. It would be reported as such.",
+ "early_stop_rule": "EVAL_EVERY=15000 so the first read is at ~15k env steps. If H4 or H6 fails at the first evaluation the run is stopped and reported; no waiting for the budget.",
+ "no_tuning_after_seeing_results": "CALIBRATED_TARGET_STD, ACTOR_WARMUP_UPDATES and v3 thresholds are fixed now. Any change is a new pre-registration."
+}

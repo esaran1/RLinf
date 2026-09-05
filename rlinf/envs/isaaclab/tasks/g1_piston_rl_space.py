@@ -35,6 +35,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import math
+
 import torch
 
 #: Policy action dimensionality (StarVLA output).
@@ -226,56 +228,79 @@ CALIBRATED_TARGET_STD = 0.25
 MIN_TARGET_SLOPE = 5.0
 
 
-def measure_logprob_at_std(std, correlated=True, n=400, seed=0, horizon=30, dims=30):
-    """Measure log-density per control action at a given exploration std.
+def iid_logprob(dist, flat_sample, mask, entropy_space="latent"):
+    """Per-control-action log-density for the i.i.d. (SquashedNormal) branch.
 
-    Reproduces the trainer's own computation for the requested branch, so the number is
-    comparable to the ``logprob_per_step`` a run reports rather than to a textbook
-    formula. Returns a float.
+    Shared by the trainer and the calibration. ``latent`` is the density of the
+    pre-squash Gaussian sample; ``executed`` applies the affine and tanh change of
+    variables, exactly as the trainer's original ``masked_logprob`` did.
+    """
+    import torch
 
-    ``correlated=True`` is the branch selected by ``CORRELATED_NOISE=1``.
+    base = dist.base_dist.base_dist
+    parts = []
+    for t in dist.transforms:
+        parts.extend(getattr(t, "parts", [t]))
+    x = flat_sample
+    for t in reversed(parts):
+        x = t.inv(x)
+    per_dim = base.log_prob(x)
+    if entropy_space == "executed":
+        y = x
+        for t in parts:
+            y2 = t(y)
+            if type(t).__name__ == "TanhTransform":
+                per_dim = per_dim - torch.log(1 - y2.pow(2) + 1e-7)
+            else:
+                sc = torch.as_tensor(t.scale, dtype=x.dtype, device=x.device)
+                per_dim = per_dim - torch.log(sc.abs()).expand_as(x)
+            y = y2
+    elif entropy_space != "latent":
+        raise ValueError(f"entropy_space must be 'latent' or 'executed', got "
+                         f"{entropy_space!r}")
+    return (per_dim * mask.to(per_dim.dtype)).sum(dim=-1)
+
+
+def measure_logprob_at_std(std, correlated=True, n=400, seed=0, horizon=30, dims=30,
+                           entropy_space="latent", legacy=False):
+    """Measure log-density per control action at a given exploration std, mean 0.
+
+    Uses the SAME implementation the trainer uses (:meth:`CorrelatedChunkNoise.
+    logprob_chunk` / :func:`iid_logprob`), so the number is comparable to the
+    ``logprob_per_step`` a run reports. ``legacy=True`` reproduces the formula runs 1-5
+    trained under, for reproduction only.
     """
     import torch
 
     mask = build_active_mask()
+    torch.manual_seed(seed)
+    logstd = torch.full((dims,), float(math.log(float(std))))
     if correlated:
         from rlinf.envs.isaaclab.tasks.g1_piston_correlated_policy import (
             CorrelatedChunkNoise,
             N_BASIS,
         )
 
-        torch.manual_seed(seed)
         noise = CorrelatedChunkNoise(horizon=horizon, dims=dims, device="cpu")
         z = torch.randn(n, N_BASIS, dims)
-        pre = noise.expand(z, torch.full((dims,), float(std)))
-        jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * mask).sum(dim=-1)
-        lp = (CorrelatedChunkNoise.logprob_z(z).unsqueeze(-1) / horizon) - jac
+        pre = noise.expand(z, torch.exp(logstd))
+        if legacy:
+            lp = noise.logprob_chunk_legacy(z, pre, mask)
+        else:
+            lp = noise.logprob_chunk(z, pre, logstd, mask, entropy_space)
         return float(lp.mean())
 
     from rlinf.models.embodiment.modules.gaussian_policy import SquashedNormal
 
-    torch.manual_seed(seed)
-    dist = SquashedNormal(torch.zeros(n, dims), torch.full((n, dims), float(std)),
+    dist = SquashedNormal(torch.zeros(n, dims), torch.exp(logstd).expand(n, dims),
                           low=-2.2, high=2.2)
     sample = dist.rsample()
-    base = dist.base_dist.base_dist
-    parts = []
-    for t in dist.transforms:
-        parts.extend(getattr(t, "parts", [t]))
-    x = sample
-    for t in reversed(parts):
-        x = t.inv(x)
-    per_dim = base.log_prob(x)
-    y = x
-    for t in parts:
-        y2 = t(y)
-        if type(t).__name__ == "TanhTransform":
-            per_dim = per_dim - torch.log(1 - torch.tanh(y).pow(2) + 1e-7)
-        y = y2
-    return float((per_dim * mask).sum(dim=-1).mean())
+    return float(iid_logprob(dist, sample, mask,
+                             "executed" if legacy else entropy_space).mean())
 
 
-def calibrated_target_entropy(correlated=True, std=None, check_slope=True):
+def calibrated_target_entropy(correlated=True, std=None, check_slope=True,
+                              entropy_space="latent"):
     """Target log-density MEASURED for the noise branch actually in use.
 
     The scalar in :func:`default_target_entropy` was calibrated against neither branch
@@ -287,11 +312,14 @@ def calibrated_target_entropy(correlated=True, std=None, check_slope=True):
     real failure mode, not a hypothetical: it is what run 4 did.
     """
     std = float(CALIBRATED_TARGET_STD if std is None else std)
-    target = measure_logprob_at_std(std, correlated=correlated)
+    target = measure_logprob_at_std(std, correlated=correlated,
+                                    entropy_space=entropy_space)
     if check_slope:
         delta = max(0.05 * std, 0.01)
-        lo = measure_logprob_at_std(std - delta, correlated=correlated)
-        hi = measure_logprob_at_std(std + delta, correlated=correlated)
+        lo = measure_logprob_at_std(std - delta, correlated=correlated,
+                                    entropy_space=entropy_space)
+        hi = measure_logprob_at_std(std + delta, correlated=correlated,
+                                    entropy_space=entropy_space)
         slope = (hi - lo) / (2 * delta)
         if abs(slope) < MIN_TARGET_SLOPE:
             raise ValueError(

@@ -66,6 +66,21 @@ CRITIC_STATE = os.environ.get("CRITIC_STATE", "0") == "1"
 #: jitter 10.2x and places ~100% of the energy in the subspace the demonstrations occupy.
 #: See g1_piston_correlated_policy.py.
 CORRELATED_NOISE = os.environ.get("CORRELATED_NOISE", "0") == "1"
+#: Where the policy's entropy is measured. "latent": density of the PRE-SQUASH chunk;
+#: "executed": with the tanh change of variables. Executed-action entropy exerts an
+#: inward force +2*alpha*E[tanh(u)] on every pre-squash mean (arXiv 2608.24488). Measured
+#: offline on the working BC head with no critic and no reward, that term alone drove the
+#: deployed action error 0.40 -> 15.04 deg in 650 updates and reproduced the collapse of
+#: runs 4 and 5; latent entropy left it at 0.40. docs/contracts/g1_piston_entropy_mean_force.json
+ENTROPY_SPACE = os.environ.get("ENTROPY_SPACE", "latent").lower()
+#: Reproduce the log-prob formula runs 1-5 trained under (no change-of-variables term
+#: for std, tanh Jacobian included). For reproduction only.
+ENTROPY_LP_LEGACY = os.environ.get("ENTROPY_LP_LEGACY", "0") == "1"
+#: Critic-only gradient updates before the actor and alpha start updating. A warm start
+#: from a policy-only checkpoint reinitialises the critic, and an actor that follows a
+#: random critic's gradient from update 1 is the worst case for a competent policy
+#: (WSRL, arXiv 2412.07762; ResFiT's delayed actor updates, arXiv 2509.19301).
+ACTOR_WARMUP_UPDATES = int(os.environ.get("ACTOR_WARMUP_UPDATES", "300"))
 #: Encode every demonstration transition once before training instead of paying VLM
 #: cache misses inside the update loop. Measured cost ~105 s for 489 transitions; at
 #: UTD > 1 the misses otherwise dominate the loop (see the run-2 throughput analysis).
@@ -108,6 +123,8 @@ res = {
         "reward_version": ("v3_review_fixed" if REWARD_V3
                            else "v2_functional" if REWARD_V2 else "v1_transport"),
         "action_basis": bool(ACTION_BASIS), "critic_state": bool(CRITIC_STATE),
+        "entropy_space": ENTROPY_SPACE, "entropy_lp_legacy": bool(ENTROPY_LP_LEGACY),
+        "actor_warmup_updates": ACTOR_WARMUP_UPDATES,
         "correlated_noise": bool(CORRELATED_NOISE),
         "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
         "run_init_eval": bool(RUN_INIT_EVAL),
@@ -363,9 +380,12 @@ try:
         TARGET_ENTROPY = RLSP.default_target_entropy()
         _target_src = "legacy constant -8.4 (uncalibrated; run 4 regressed under it)"
     else:
-        TARGET_ENTROPY = RLSP.calibrated_target_entropy(correlated=CORRELATED_NOISE)
+        TARGET_ENTROPY = RLSP.calibrated_target_entropy(
+            correlated=CORRELATED_NOISE,
+            entropy_space="executed" if ENTROPY_LP_LEGACY else ENTROPY_SPACE)
         _target_src = (f"measured at std {RLSP.CALIBRATED_TARGET_STD} for the "
-                       f"{'correlated' if CORRELATED_NOISE else 'iid'} branch")
+                       f"{'correlated' if CORRELATED_NOISE else 'iid'} branch, "
+                       f"{ENTROPY_SPACE} entropy")
     res["config"]["entropy_target"] = TARGET_ENTROPY
     res["config"]["entropy_target_source"] = _target_src
     res["config"]["entropy_target_legacy"] = bool(ENTROPY_TARGET_LEGACY)
@@ -490,8 +510,12 @@ try:
             # Per-control-action log-prob on the same scale as the i.i.d. path: the
             # coefficient density spread over the horizon, plus the tanh Jacobian on the
             # active dims (the term that actually depends on the sample).
-            jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * ACT_MASK).sum(dim=-1)
-            lp = (CNZ.CorrelatedChunkNoise.logprob_z(zc).unsqueeze(-1) / c) - jac
+            # ONE shared implementation with the target calibration (see
+            # CorrelatedChunkNoise.logprob_chunk for why latent is the default).
+            if ENTROPY_LP_LEGACY:
+                lp = corr_noise.logprob_chunk_legacy(zc, pre, ACT_MASK)
+            else:
+                lp = corr_noise.logprob_chunk(zc, pre, logstd, ACT_MASK, ENTROPY_SPACE)
             lp = lp.reshape(b * c)
         else:
             std = torch.exp(logstd).view(1, -1).expand_as(flat)
@@ -502,25 +526,9 @@ try:
         return a.reshape(b, c, d), lp.reshape(b, c)
 
     def masked_logprob(dist, flat_sample):
-        base = dist.base_dist.base_dist
-        parts = []
-        for t in dist.transforms:
-            parts.extend(getattr(t, "parts", [t]))
-        x = flat_sample
-        for t in reversed(parts):
-            x = t.inv(x)
-        per_dim = base.log_prob(x)
-        y = x
-        for t in parts:
-            y2 = t(y)
-            nm = type(t).__name__
-            if nm == "TanhTransform":
-                per_dim = per_dim - torch.log(1 - y2.pow(2) + 1e-7)
-            else:
-                s = torch.as_tensor(t.scale, dtype=x.dtype, device=x.device)
-                per_dim = per_dim - torch.log(s.abs()).expand_as(x)
-            y = y2
-        return (per_dim * ACT_MASK).sum(dim=-1)
+        """i.i.d. branch log-prob, delegated to the shared implementation."""
+        return RLSP.iid_logprob(dist, flat_sample, ACT_MASK,
+                                "executed" if ENTROPY_LP_LEGACY else ENTROPY_SPACE)
 
     def act_to_command(norm_action):
         """[H,30] normalized -> [H,53] retargeted simulator command."""
@@ -841,6 +849,21 @@ try:
         cgn = torch.nn.utils.clip_grad_norm_(critic.parameters(), 10.0)
         opt_critic.step()
 
+        # --- actor warmup: critic-only until it has fit the replay buffer ---
+        if grad_updates < ACTOR_WARMUP_UPDATES:
+            with torch.no_grad():
+                for tp, op in zip(target.parameters(), critic.parameters()):
+                    tp.data.mul_(1 - TAU).add_(op.data, alpha=TAU)
+            return {
+                "critic_loss": float(closs.item()), "actor_loss": 0.0, "alpha_loss": 0.0,
+                "alpha": float(ent.compute_alpha().item()),
+                "q_mean": float(q.mean().item()), "target_q_mean": float(tq.mean().item()),
+                "logprob_per_step": float(nlp.mean().item()),
+                "actor_q_term": 0.0, "actor_entropy_term": 0.0, "abs_alpha_logprob": 0.0,
+                "entropy_to_q_ratio": 0.0, "critic_gn": float(cgn), "actor_gn": 0.0,
+                "actor_updated": False,
+            }
+
         # --- actor: gradient flows head_mean -> rsample -> critic ---
         mean_b = head_mean(aqs).float()                 # differentiable in OFT head
         a, lp = sample_action(mean_b, actor_logstd)
@@ -907,6 +930,7 @@ try:
             "abs_alpha_logprob": abs(ent_term),
             "entropy_to_q_ratio": round(abs(ent_term) / max(abs(q_term), 1e-6), 4),
             "critic_gn": float(cgn), "actor_gn": float(agn),
+            "actor_updated": True,
         }
 
     # ---------------- training loop ----------------

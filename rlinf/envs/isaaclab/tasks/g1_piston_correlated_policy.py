@@ -187,11 +187,73 @@ class CorrelatedChunkNoise:
     def logprob_z(z: torch.Tensor) -> torch.Tensor:
         """Log-density of the whitened coefficients, summed over ``(n_basis, dims)``.
 
-        The chunk noise is a fixed linear map of ``z``, so up to a constant Jacobian term
-        (identical for every sample and therefore irrelevant to gradients) this is the
-        chunk's log-density. Returned per batch element.
+        This is NOT the chunk's log-density on its own. An earlier version of this
+        docstring claimed the expansion's Jacobian was "identical for every sample and
+        therefore irrelevant to gradients". The expansion is ``eps = B (w * z) * std``
+        and ``std`` is a LEARNED parameter, so the Jacobian carries
+        ``-n_basis * sum log(std_d)``, which is exactly the term that gives the entropy
+        its dependence on exploration scale. Omitting it made ``d lp / d logstd``
+        POSITIVE at every std -- more noise reported a higher density -- so the "entropy"
+        term shrank std and flattened the mean instead of regulating exploration. Runs 4
+        and 5 trained under that formula. Use :meth:`logprob_chunk`.
         """
         return (-0.5 * (z ** 2) - 0.5 * math.log(2 * math.pi)).sum(dim=(-2, -1))
+
+    def logprob_chunk(self, z: torch.Tensor, pre: torch.Tensor, logstd: torch.Tensor,
+                      mask: torch.Tensor, entropy_space: str = "latent") -> torch.Tensor:
+        """Per-control-action log-density of the exploration chunk, ``[batch, horizon]``.
+
+        The ONE implementation shared by the trainer and by the target calibration, so
+        the two cannot disagree (every entropy defect in this project came from a
+        formula being written twice).
+
+        Args:
+            z: ``[batch, n_basis, dims]`` whitened coefficients actually drawn.
+            pre: ``[batch, horizon, dims]`` pre-squash sample, ``mean + expand(z, std)``.
+            logstd: ``[dims]`` learned log exploration std.
+            mask: ``[dims]`` bool, active action dims.
+            entropy_space: ``"latent"`` measures the density of the pre-squash chunk;
+                ``"executed"`` additionally applies the tanh change of variables.
+
+        Why ``latent`` is the default. With the tanh Jacobian included, the entropy
+        term's gradient w.r.t. the pre-squash mean is ``+2 alpha E[tanh(u)]`` per dim:
+        an inward force toward zero on essentially every component (arXiv 2608.24488,
+        measured cosine +0.987 there and 90% of components here). Measured offline on
+        the working behaviour-cloning head with NO critic and NO reward, that term
+        alone drove the deployed action error 0.40 -> 15.04 degrees in 650 updates and
+        reproduced the signature of both failed RL runs; the latent-space entropy left
+        the head untouched (0.40 -> 0.40). See
+        docs/contracts/g1_piston_entropy_mean_force.json.
+        """
+        if entropy_space not in ("latent", "executed"):
+            raise ValueError(f"entropy_space must be 'latent' or 'executed', got "
+                             f"{entropy_space!r}")
+        m = mask.to(z.dtype)
+        n_active = m.sum()
+        # Density of the coefficients drawn on the ACTIVE dims.
+        lpz = ((-0.5 * z ** 2 - 0.5 * math.log(2 * math.pi))
+               * m.view(1, 1, -1)).sum(dim=(-2, -1))                     # [batch]
+        # Change of variables for c = scales_k * std_d * z_kd: subtract log|det|.
+        # The std part is the term whose omission inverted the entropy's std-dependence.
+        cov = (-(self.n_basis * (logstd.to(z.dtype) * m).sum())
+               - n_active * torch.log(self.scales.to(z.dtype)).sum())
+        per_step = ((lpz + cov) / self.horizon).unsqueeze(-1).expand(-1, self.horizon)
+        if entropy_space == "executed":
+            jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * m).sum(dim=-1)
+            per_step = per_step - jac
+        return per_step
+
+    def logprob_chunk_legacy(self, z: torch.Tensor, pre: torch.Tensor,
+                             mask: torch.Tensor) -> torch.Tensor:
+        """The formula runs 1-5 trained under, kept ONLY for reproducing them.
+
+        Two defects: no change-of-variables term for ``std`` (so ``d lp / d logstd``
+        is positive), and the tanh Jacobian's inward mean-force. Do not use for new
+        runs.
+        """
+        m = mask.to(z.dtype)
+        jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * m).sum(dim=-1)
+        return (self.logprob_z(z).unsqueeze(-1) / self.horizon) - jac
 
     def per_step_std(self, std=1.0) -> torch.Tensor:
         """Realised per-step marginal std, for verifying the calibration."""

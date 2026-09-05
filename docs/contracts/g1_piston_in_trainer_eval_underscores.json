@@ -4,8 +4,16 @@
  "status": "MEASURED DISCREPANCY between the two evaluation paths on an IDENTICAL policy. Cause under investigation. Amends how the in-trainer H4 rule is read; the scorer-of-record rule is unchanged.",
  "measurement": {
   "policy": "run 6's first checkpoint at 15,480 env steps: ~100 gradient updates, all critic-only (actor_updated=False), deployed action error on ep046 = 0.403 deg = the BC checkpoint exactly. The policy is bit-identical to BC.",
-  "in_trainer_periodic_eval_n25": {"grasp": 0.76, "lift": 0.32, "mean_return": 5.907},
-  "scorer_of_record_eval_checkpoint_n25_same_policy": {"grasp": 1.00, "lift": 0.80, "mean_return": 11.935},
+  "in_trainer_periodic_eval_n25": {
+   "grasp": 0.76,
+   "lift": 0.32,
+   "mean_return": 5.907
+  },
+  "scorer_of_record_eval_checkpoint_n25_same_policy": {
+   "grasp": 1.0,
+   "lift": 0.8,
+   "mean_return": 11.935
+  },
   "independent_renders": "12/12 grasp (render_rollouts.py)",
   "why_this_is_not_noise": "BC grasped 37/37 across two independent processes; 19/25 under the same predicate is a different rate, not the documented post-grasp nondeterminism (which affects lift/carry, and left grasp at 25/25 in the 8-run study)."
  },
@@ -20,5 +28,11 @@
   "a difference in the rollout loop between _rollout and eval_checkpoint.evaluate (termination handling, chunk count, reward object reuse)",
   "the periodic suite prefix vs the scorer's suite (same seed and first 25 conditions must be confirmed)"
  ],
- "does_not_affect": "The BC result (scored by the scorer of record), the videos, or the entropy mean-force finding."
+ "does_not_affect": "The BC result (scored by the scorer of record), the videos, or the entropy mean-force finding.",
+ "code_diff_2026_09_05": {
+  "result": "The two evaluation loops are structurally identical: env.reset(seed=0) -> apply_reset_condition -> reward_fn.reset(); the same build_reset_suite(n_eval=50, seed=20260817)[:25]; the same 2x-hold chunk execution; the same v3 reward object; the same done handling; EP_CHUNKS 23 in both.",
+  "conclusion": "The discrepancy is NOT a code-path difference. What differs is the process history: the in-trainer evaluation runs in a simulator that has just executed ~18 noisy training episodes, while the scorer of record runs in a fresh process.",
+  "leading_hypothesis": "Simulator state carried across env.reset(seed=0): residual velocities, contact caches, or the articulated pipette/tube state after noisy rollouts, so apply_reset_condition does not reproduce the same initial physics.",
+  "decisive_test_queued": "eval_checkpoint.py with COND_ORDER=reverse on the BC checkpoint in a fresh process (scratchpad/after_chain.sh, runs after runs 6 and 7 release the GPU). If per-condition outcomes depend on order, state carries across resets and both evaluation paths inherit it; the scorer of record then remains comparable only under a FIXED order, which is how every number of record has been produced."
+ }
 }

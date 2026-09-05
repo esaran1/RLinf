@@ -1,0 +1,24 @@
+{
+ "id": "g1_piston_in_trainer_eval_underscores",
+ "recorded": "2026-09-05, during run 6, BEFORE any actor update in run 6",
+ "status": "MEASURED DISCREPANCY between the two evaluation paths on an IDENTICAL policy. Cause under investigation. Amends how the in-trainer H4 rule is read; the scorer-of-record rule is unchanged.",
+ "measurement": {
+  "policy": "run 6's first checkpoint at 15,480 env steps: ~100 gradient updates, all critic-only (actor_updated=False), deployed action error on ep046 = 0.403 deg = the BC checkpoint exactly. The policy is bit-identical to BC.",
+  "in_trainer_periodic_eval_n25": {"grasp": 0.76, "lift": 0.32, "mean_return": 5.907},
+  "scorer_of_record_eval_checkpoint_n25_same_policy": {"grasp": 1.00, "lift": 0.80, "mean_return": 11.935},
+  "independent_renders": "12/12 grasp (render_rollouts.py)",
+  "why_this_is_not_noise": "BC grasped 37/37 across two independent processes; 19/25 under the same predicate is a different rate, not the documented post-grasp nondeterminism (which affects lift/carry, and left grasp at 25/25 in the 8-run study)."
+ },
+ "what_was_wrongly_assumed": "After run 4, the in-trainer evaluation and eval_checkpoint.py were said to agree because both scored 0.00. That equivalence was only ever checked on a collapsed policy, where both are trivially zero. On a working policy the in-trainer path scores lower.",
+ "consequence_for_the_pre_registered_rules": {
+  "H4_in_trainer": "The 0.87 threshold was derived from the scorer of record's CI and would FAIL a perfectly preserved policy on the in-trainer path (0.76 < 0.87). The in-trainer periodic evals are therefore read RELATIVE TO THEIR OWN BASELINE of 0.76 measured here on the unchanged policy: a fall well below 0.76 (e.g. below 0.5) indicates regression; values near 0.76 indicate preservation. This is an amendment justified by a measurement of the unchanged policy, made before the intervention has acted.",
+  "H4_scorer_of_record": "UNCHANGED: eval_checkpoint.py, n=25 deterministic, grasp >= 0.87. This is the number of record for both arms.",
+  "H6_H8": "Unchanged; they are measured through the deployment path, not through either evaluation loop."
+ },
+ "candidate_causes_to_check": [
+  "simulator state carried over from ~18 noisy training episodes before the periodic eval (env.reset(seed=0) may not fully reset articulation/contact state)",
+  "a difference in the rollout loop between _rollout and eval_checkpoint.evaluate (termination handling, chunk count, reward object reuse)",
+  "the periodic suite prefix vs the scorer's suite (same seed and first 25 conditions must be confirmed)"
+ ],
+ "does_not_affect": "The BC result (scored by the scorer of record), the videos, or the entropy mean-force finding."
+}

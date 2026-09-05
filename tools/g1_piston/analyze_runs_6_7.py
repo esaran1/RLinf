@@ -38,6 +38,8 @@ S = ("/tmp/claude-3343958/-home-jren313-research-starvla-rl-RLinf/"
      "c78cad95-dbfe-4e7f-b78a-7e9be50a1fdc/scratchpad")
 BC_ERR = 0.403
 BC_GRASP_CI_LOW = 0.87
+IN_TRAINER_BASELINE = 0.76      # unchanged BC policy on the in-trainer path
+IN_TRAINER_REGRESSION = 0.50
 
 
 def load(p):
@@ -70,8 +72,12 @@ def report(run, n25_path, first_ckpt_path, residual):
     if evs:
         gr = [e.get("grasp_rate") for e in evs]
         print(f"  in-trainer grasp per eval: {gr}")
-        print(f"  H4 (in-trainer, every eval >= {BC_GRASP_CI_LOW}): "
-              f"{verdict(all(g is not None and g >= BC_GRASP_CI_LOW for g in gr))}")
+        # The in-trainer path under-scores a working policy: the UNCHANGED BC policy
+        # measured 0.76 on it (g1_piston_in_trainer_eval_underscores.json). Read it
+        # relative to that baseline; the 0.87 rule applies to the scorer of record.
+        print(f"  in-trainer H4 (relative to its own baseline {IN_TRAINER_BASELINE}, "
+              f"regression if < {IN_TRAINER_REGRESSION}): "
+              f"{verdict(all(g is not None and g >= IN_TRAINER_REGRESSION for g in gr))}")
     n25 = load(n25_path)
     if n25 is None or n25.get("_status") != "OK":
         print("  scorer of record (eval_checkpoint n=25): pending")

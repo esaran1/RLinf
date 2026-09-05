@@ -72,9 +72,17 @@ def test_exploration_std_is_reset_not_inherited_from_a_bc_checkpoint():
     """The load-bearing assertion: BC's placeholder std must not become the run's
     exploration scale."""
     src = _src()
-    assert "actor_logstd.fill_(math.log(RLSP.TARGET_ENTROPY_STD))" in src, (
+    # The PROPERTY, not a literal constant: exploration is reset to the std the entropy
+    # target is calibrated for. The constant itself changed when the target was
+    # recalibrated (TARGET_ENTROPY_STD -> CALIBRATED_TARGET_STD, see
+    # docs/contracts/g1_piston_entropy_target_miscalibrated.json); asserting the old
+    # literal would have forced the fix to break this test for no reason.
+    assert "actor_logstd.fill_(math.log(_reset_std))" in src, (
         "a policy-only warm start must reset exploration to the std the entropy target "
-        "is defined for, not inherit the checkpoint's placeholder."
+        "is calibrated for, not inherit the checkpoint's placeholder."
+    )
+    assert "RLSP.CALIBRATED_TARGET_STD" in src, (
+        "the reset must aim at the CALIBRATED std, or the run starts off-equilibrium."
     )
     assert '"actor_logstd_source"' in src, (
         "the run must record where its exploration std came from."
@@ -91,14 +99,19 @@ def test_the_reset_std_matches_the_entropy_target_it_is_defined_for():
 
 
 def test_bc_placeholder_std_would_have_been_wrong():
-    """Pins WHY the reset exists, in numbers rather than prose. BC writes log(0.05);
-    the target is defined for 0.20, a 4x difference in exploration scale."""
+    """Pins WHY the reset exists, in numbers rather than prose.
+
+    BC writes log(0.05) as a placeholder. The calibrated target aims at
+    CALIBRATED_TARGET_STD, so inheriting the placeholder would start the run at a
+    materially smaller exploration scale than the target is defined for.
+    """
     import math
     m = _rl_space()
-    bc_placeholder = math.log(0.05)
-    correct = math.log(m.TARGET_ENTROPY_STD)
+    bc_placeholder = 0.05
+    correct = m.CALIBRATED_TARGET_STD
     assert bc_placeholder < correct
-    assert math.exp(correct) / math.exp(bc_placeholder) == pytest.approx(4.0, rel=1e-6)
+    assert correct / bc_placeholder >= 4.0, (correct, bc_placeholder)
+    assert math.log(correct) > math.log(bc_placeholder)
 
 
 def test_critic_is_reinitialised_and_the_reason_recorded():

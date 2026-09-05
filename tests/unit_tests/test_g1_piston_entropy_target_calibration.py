@@ -164,3 +164,103 @@ def test_run4_regression_is_recorded_with_its_cause():
     assert c["measurement"]["target"] == -8.4
     assert "0.05" in str(c["measurement"]["correlated_noise_branch_used_by_run_4"])
     assert "REGRESSION" in c["status_of_run_4"].upper()
+
+
+# --------------------------------------------- the calibrated target ----
+"""``calibrated_target_entropy`` MEASURES the target for the branch in use.
+
+The historical scalar was calibrated against neither branch. These tests pin that the
+replacement is self-consistent: the target it returns is exactly the log-density its
+own std produces, in the same branch, under the trainer's own computation.
+"""
+
+
+def _space():
+    import importlib
+    sys.path.insert(0, ".")
+    m = importlib.import_module("rlinf.envs.isaaclab.tasks.g1_piston_rl_space")
+    return importlib.reload(m)
+
+
+def test_calibrated_target_equals_the_logprob_at_its_own_std():
+    """Self-consistency: this is the property the old constant lacked."""
+    m = _space()
+    for correlated in (True, False):
+        target = m.calibrated_target_entropy(correlated=correlated)
+        measured = m.measure_logprob_at_std(m.CALIBRATED_TARGET_STD,
+                                            correlated=correlated)
+        assert abs(target - measured) < 1e-6, (correlated, target, measured)
+
+
+def test_the_alpha_residual_is_zero_at_the_calibrated_target():
+    """The fixed point of the alpha update must sit exactly where the policy is asked
+    to be. Run 4's residual never closed because it did not."""
+    m = _space()
+    target = m.calibrated_target_entropy(correlated=True)
+    logp_there = m.measure_logprob_at_std(m.CALIBRATED_TARGET_STD, correlated=True)
+    assert abs(logp_there - target) < 1e-6
+
+
+def test_alpha_has_leverage_at_the_calibrated_target():
+    """A target on a flat part of the curve does not constrain exploration; alpha then
+    grows without bound. Run 4's target sat on slope ~2."""
+    m = _space()
+    std = m.CALIBRATED_TARGET_STD
+    d = 0.05 * std
+    lo = m.measure_logprob_at_std(std - d, correlated=True)
+    hi = m.measure_logprob_at_std(std + d, correlated=True)
+    slope = abs((hi - lo) / (2 * d))
+    assert slope >= m.MIN_TARGET_SLOPE, slope
+
+
+def test_flat_region_is_rejected():
+    """The std the OLD target implied (~0.05) must now raise rather than silently
+    produce a target with no leverage."""
+    m = _space()
+    with pytest.raises(ValueError, match="slope"):
+        m.calibrated_target_entropy(correlated=True, std=0.05)
+
+
+def test_the_old_target_would_still_be_rejected_today():
+    """Guards against someone reinstating -8.4 by adjusting CALIBRATED_TARGET_STD: the
+    std that produces -8.4 under the correlated branch is in the flat region."""
+    m = _space()
+    old = m.default_target_entropy()
+    at_old_std = m.measure_logprob_at_std(0.05, correlated=True)
+    assert abs(at_old_std - old) < 0.2, (at_old_std, old)
+    with pytest.raises(ValueError):
+        m.calibrated_target_entropy(correlated=True, std=0.05)
+
+
+def test_branches_get_different_targets():
+    """One scalar cannot serve both; the calibrated function must not pretend it can."""
+    m = _space()
+    c = m.calibrated_target_entropy(correlated=True)
+    i = m.calibrated_target_entropy(correlated=False)
+    assert abs(c - i) > 10.0, (c, i)
+
+
+def test_measurement_is_deterministic():
+    """A target that moves between calls would make runs incomparable."""
+    m = _space()
+    a = m.calibrated_target_entropy(correlated=True)
+    b = m.calibrated_target_entropy(correlated=True)
+    assert a == b
+
+
+def test_trainer_uses_the_calibrated_target_by_default():
+    with open("tools/g1_piston/train_sac.py") as f:
+        src = f.read()
+    assert "RLSP.calibrated_target_entropy(correlated=CORRELATED_NOISE)" in src
+    assert 'os.environ.get("ENTROPY_TARGET_LEGACY", "0")' in src
+    assert '"entropy_target_source"' in src
+
+
+def test_trainer_starts_exploration_at_the_calibrated_std():
+    """Both the cold start and the warm-start reset must aim at the std the target is
+    calibrated for, or the run begins off-equilibrium by construction."""
+    with open("tools/g1_piston/train_sac.py") as f:
+        src = f.read()
+    assert "_init_std = (RLSP.TARGET_ENTROPY_STD" in src
+    assert "_reset_std = (RLSP.TARGET_ENTROPY_STD" in src
+    assert src.count("RLSP.CALIBRATED_TARGET_STD") >= 2

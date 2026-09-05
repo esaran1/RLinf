@@ -185,8 +185,118 @@ def default_target_entropy() -> float:
     what both SAC pilots did (alpha 0.049 -> 0.039 while behaviour oscillated; see
     ``docs/contracts/g1_piston_sac_pilot_v1_collapse.json``).
 
-    -8.4 corresponds to an exploration std of ~0.20: enough to explore, close enough to
-    the SFT policy to stay on-distribution, and comfortably inside the achievable range
-    so alpha can correct in either direction.
+    -8.4 was chosen as "the log-density at exploration std ~0.20". Measured against the
+    trainer's own log-probability computation, that is **wrong for both noise branches**,
+    and wrong in different directions:
+
+    ==================  ==========================  ==========================
+    exploration std     correlated-noise branch     i.i.d. branch
+    ==================  ==========================  ==========================
+    0.05                -8.46                       +31.76
+    0.20 (documented)   -7.73                       +7.36
+    0.30                -6.79                       +3.12
+    ==================  ==========================  ==========================
+
+    So -8.4 needs std ~0.05 under correlated noise, and is unreachable at any std under
+    i.i.d. noise, where this quantity is positive throughout. The branches differ by
+    ~15 nats at the same std, so **no single scalar can be correct for both**.
+
+    Worse, -8.4 sits in the correlated branch's FLAT region: below std 0.10 the curve
+    moves only 3 nats per unit std, so the target barely constrains std and alpha must
+    grow without bound to move entropy at all. Run 4 measured exactly that -- alpha rose
+    57%, the entropy term averaged 28% of the actor objective for the whole run, and a
+    policy with v3 grasp 1.00 was flattened to 0.00. See
+    ``docs/contracts/g1_piston_entropy_target_miscalibrated.json``.
+
+    ``default_target_entropy`` is kept for callers that want the historical constant,
+    but new runs should use :func:`calibrated_target_entropy`, which MEASURES the target
+    for the branch actually in use.
     """
     return -8.4
+
+
+#: Exploration std the calibrated target aims at. 0.25 rather than 0.20: measured slope
+#: at 0.20 is 6.8 nats per unit std and at 0.25 it is 8.5, so alpha has more leverage
+#: while the policy stays close to the demonstrations. Below 0.10 the curve is flat
+#: (slope ~3) and the target stops constraining std, which is the run-4 failure.
+CALIBRATED_TARGET_STD = 0.25
+
+#: Minimum slope, in nats per unit std, for a target to actually constrain exploration.
+#: Below this the alpha update has no leverage and diverges instead of regulating.
+MIN_TARGET_SLOPE = 5.0
+
+
+def measure_logprob_at_std(std, correlated=True, n=400, seed=0, horizon=30, dims=30):
+    """Measure log-density per control action at a given exploration std.
+
+    Reproduces the trainer's own computation for the requested branch, so the number is
+    comparable to the ``logprob_per_step`` a run reports rather than to a textbook
+    formula. Returns a float.
+
+    ``correlated=True`` is the branch selected by ``CORRELATED_NOISE=1``.
+    """
+    import torch
+
+    mask = build_active_mask()
+    if correlated:
+        from rlinf.envs.isaaclab.tasks.g1_piston_correlated_policy import (
+            CorrelatedChunkNoise,
+            N_BASIS,
+        )
+
+        torch.manual_seed(seed)
+        noise = CorrelatedChunkNoise(horizon=horizon, dims=dims, device="cpu")
+        z = torch.randn(n, N_BASIS, dims)
+        pre = noise.expand(z, torch.full((dims,), float(std)))
+        jac = (torch.log(1 - torch.tanh(pre).pow(2) + 1e-7) * mask).sum(dim=-1)
+        lp = (CorrelatedChunkNoise.logprob_z(z).unsqueeze(-1) / horizon) - jac
+        return float(lp.mean())
+
+    from rlinf.models.embodiment.modules.gaussian_policy import SquashedNormal
+
+    torch.manual_seed(seed)
+    dist = SquashedNormal(torch.zeros(n, dims), torch.full((n, dims), float(std)),
+                          low=-2.2, high=2.2)
+    sample = dist.rsample()
+    base = dist.base_dist.base_dist
+    parts = []
+    for t in dist.transforms:
+        parts.extend(getattr(t, "parts", [t]))
+    x = sample
+    for t in reversed(parts):
+        x = t.inv(x)
+    per_dim = base.log_prob(x)
+    y = x
+    for t in parts:
+        y2 = t(y)
+        if type(t).__name__ == "TanhTransform":
+            per_dim = per_dim - torch.log(1 - torch.tanh(y).pow(2) + 1e-7)
+        y = y2
+    return float((per_dim * mask).sum(dim=-1).mean())
+
+
+def calibrated_target_entropy(correlated=True, std=None, check_slope=True):
+    """Target log-density MEASURED for the noise branch actually in use.
+
+    The scalar in :func:`default_target_entropy` was calibrated against neither branch
+    and cost run 4 a working policy. This measures the target instead of asserting it,
+    so the target and the exploration std it claims to represent cannot drift apart.
+
+    Raises ``ValueError`` when the requested std sits in a flat region of the curve,
+    where the target would not constrain exploration and alpha would diverge. That is a
+    real failure mode, not a hypothetical: it is what run 4 did.
+    """
+    std = float(CALIBRATED_TARGET_STD if std is None else std)
+    target = measure_logprob_at_std(std, correlated=correlated)
+    if check_slope:
+        delta = max(0.05 * std, 0.01)
+        lo = measure_logprob_at_std(std - delta, correlated=correlated)
+        hi = measure_logprob_at_std(std + delta, correlated=correlated)
+        slope = (hi - lo) / (2 * delta)
+        if abs(slope) < MIN_TARGET_SLOPE:
+            raise ValueError(
+                f"target at std {std} sits on slope {slope:.1f} nats per unit std, "
+                f"below MIN_TARGET_SLOPE={MIN_TARGET_SLOPE}. The alpha update would "
+                "have no leverage over exploration and would diverge, as in run 4. "
+                "Choose an std on a steeper part of the curve.")
+    return target

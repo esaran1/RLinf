@@ -219,7 +219,13 @@ try:
     # training starts at the alpha equilibrium instead of driving toward it from one
     # side. RLSP.TARGET_ENTROPY_STD and default_target_entropy() are two views of the
     # same operating point.
-    INIT_LOGSTD = float(os.environ.get("INIT_LOGSTD", math.log(RLSP.TARGET_ENTROPY_STD)))
+    # Cold start at the std the entropy target is calibrated for, so a fresh run also
+    # begins at the alpha equilibrium rather than off it (the warm-start path does the
+    # same). Legacy runs keep the historical std.
+    _init_std = (RLSP.TARGET_ENTROPY_STD
+                 if os.environ.get("ENTROPY_TARGET_LEGACY", "0") == "1"
+                 else RLSP.CALIBRATED_TARGET_STD)
+    INIT_LOGSTD = float(os.environ.get("INIT_LOGSTD", math.log(_init_std)))
     actor_logstd = torch.nn.Parameter(torch.full((30,), INIT_LOGSTD, device=DEV))
 
     # Critic action-input width: 900 raw, or 180 in the truncated temporal basis.
@@ -284,12 +290,19 @@ try:
             # (TARGET_ENTROPY_STD = 0.20). Inheriting BC's placeholder 0.05 would begin
             # at logp far above the target, which is the condition that collapsed run 3
             # -- see docs/contracts/g1_piston_entropy_target_sign.json.
+            # Reset to the std the TARGET is calibrated for, so the run starts at the
+            # alpha equilibrium. Using TARGET_ENTROPY_STD here while the target is
+            # measured at CALIBRATED_TARGET_STD would reintroduce a gap by construction.
+            _reset_std = (RLSP.TARGET_ENTROPY_STD
+                          if os.environ.get("ENTROPY_TARGET_LEGACY", "0") == "1"
+                          else RLSP.CALIBRATED_TARGET_STD)
             with torch.no_grad():
-                actor_logstd.fill_(math.log(RLSP.TARGET_ENTROPY_STD))
+                actor_logstd.fill_(math.log(_reset_std))
             WARM_META["actor_logstd_source"] = (
-                f"reset to log(TARGET_ENTROPY_STD={RLSP.TARGET_ENTROPY_STD}); the BC "
-                f"checkpoint's {float(wc['actor_logstd'].exp().mean()):.3f} is a "
-                "placeholder, not a learned exploration scale")
+                f"reset to log({_reset_std}), the std the entropy target is calibrated "
+                f"for; the BC checkpoint's "
+                f"{float(wc['actor_logstd'].exp().mean()):.3f} is a placeholder, not a "
+                "learned exploration scale")
         else:
             with torch.no_grad():
                 actor_logstd.copy_(wc["actor_logstd"].to(DEV))
@@ -336,7 +349,26 @@ try:
     # entropy term reached ~300 nats against Q ~ 3-7 and dominated the actor objective
     # purely because the policy emits 30 steps at once. Averaging over the horizon keeps
     # regularisation on a per-control-action scale that does not grow with the horizon.
-    TARGET_ENTROPY = RLSP.default_target_entropy()  # -8.4, per control action
+    # The target is MEASURED for the noise branch actually in use, not asserted.
+    #
+    # The historical -8.4 was calibrated against neither branch: it needs std ~0.05
+    # under correlated noise and is unreachable at any std under i.i.d. noise, where the
+    # quantity is positive. Run 4 sat at -7.55 against it, alpha rose 57%, the entropy
+    # term averaged 28% of the actor objective, and a policy with v3 grasp 1.00 was
+    # flattened to 0.00. See docs/contracts/g1_piston_entropy_target_miscalibrated.json.
+    #
+    # ENTROPY_TARGET_LEGACY=1 restores the old constant for reproducing prior runs.
+    ENTROPY_TARGET_LEGACY = os.environ.get("ENTROPY_TARGET_LEGACY", "0") == "1"
+    if ENTROPY_TARGET_LEGACY:
+        TARGET_ENTROPY = RLSP.default_target_entropy()
+        _target_src = "legacy constant -8.4 (uncalibrated; run 4 regressed under it)"
+    else:
+        TARGET_ENTROPY = RLSP.calibrated_target_entropy(correlated=CORRELATED_NOISE)
+        _target_src = (f"measured at std {RLSP.CALIBRATED_TARGET_STD} for the "
+                       f"{'correlated' if CORRELATED_NOISE else 'iid'} branch")
+    res["config"]["entropy_target"] = TARGET_ENTROPY
+    res["config"]["entropy_target_source"] = _target_src
+    res["config"]["entropy_target_legacy"] = bool(ENTROPY_TARGET_LEGACY)
 
     # The actor LR is deliberately small: it fine-tunes a converged SFT head, and the
     # collapsed pilot showed the OFT head can be driven off-distribution quickly

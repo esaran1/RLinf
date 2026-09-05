@@ -267,6 +267,52 @@ strength of an open-loop probe that measured the head *without* the deployment s
 so it scored a function that is never executed. A fidelity measurement is only meaningful
 at the point of execution.
 
+## Why RL destroyed the working policy, and the fix
+
+Two RLPD runs warm-started from the behaviour-cloning policy (v3 grasp 1.00, lift 0.80)
+and both evaluated at grasp **0.00**, while every training diagnostic looked healthy:
+critic loss converging, Q rising, demonstration replay active at 0.5, log-probability
+moving toward its target. Two confident diagnoses were refuted by measurement first
+(a proprioception gap; a miscalibrated entropy target — real, fixed, and not the cause).
+
+What located the cause was that the action head barely moved (mean |Δ| ≈ 0.0005 per
+tensor) while the **executed** action error went 0.40° → 12–14°, and the head's raw
+output shrank 0.415 → 0.24. That is a policy being pulled toward the tanh's centre, not
+one learning something different.
+
+**Reproduced offline, with no critic, no reward and no simulator.** Optimising the
+working head against the entropy term alone (Adam 3e-6, α = 0.06, 650 updates):
+
+| entropy measured on | deployed error | raw magnitude |
+|---|---|---|
+| the executed action (trainer's formula) | 0.40° → **15.04°** | 0.415 → 0.196 |
+| the latent (pre-squash) chunk | 0.40° → 0.40° | unchanged |
+| none | 0.40° → 0.40° | unchanged |
+
+Two defects in one formula:
+
+1. **Std sign.** The correlated-noise log-prob omitted the change-of-variables term for
+   the learned std (`−n_basis · Σ log std_d`), so `∂ log p / ∂ log std` was *positive* at
+   every std — more noise reported a higher density. The entropy term was shrinking
+   exploration, not regulating it.
+2. **Mean force.** Entropy measured on the executed action includes the tanh Jacobian,
+   whose mean-gradient is `+2α · E[tanh(u)]`: an inward pull on every pre-squash
+   component ([arXiv 2608.24488](https://arxiv.org/html/2608.24488), measured cosine
+   +0.987 there, 90 % of components here). A competent policy has large |means|, so it is
+   eroded toward zero at any positive α, regardless of the target — which is why run 5's
+   recalibrated target changed nothing.
+
+**Fix.** One shared log-probability implementation for the trainer and the target
+calibration, with the change-of-variables term; entropy measured in latent space by
+default (closed-form target, slope −4/std, never flat); and 300 critic-only warm-up
+updates before the actor moves, since the warm start reinitialises the critic
+([WSRL](https://arxiv.org/abs/2412.07762); [ResFiT](https://arxiv.org/abs/2509.19301)).
+Run 6 is pre-registered with a rule that measures the flattening signature directly at
+the first checkpoint. Contract: `g1_piston_entropy_mean_force.json`.
+
+A correction to our own record: one test had asserted the defective curve's increase
+with std as a sanity property. It is relabelled as the defect it pins.
+
 ## Status and honest expectations
 
 **A policy now performs the transport task**: reach 1.00, grasp 1.00, lift 0.80,
@@ -277,9 +323,9 @@ are rendered from conditions the evaluation actually scored.
 **No policy has performed the full pipette task**, and the gap is specific rather than
 mysterious: press and dispense are 0.00, because 1 of 22 executable demonstrations shows
 a grasped press and none shows a dispense. Imitation cannot supply behaviour the data
-does not contain, so the plunger stages must be discovered from reward. That is the fair
-test the corrected RL setup exists to run, and it now has something a previous attempt
-never had: a competent starting policy rather than one that scores zero.
+does not contain, so the plunger stages must be discovered from reward. Every RL attempt
+so far destroyed the starting policy for a reason that is now measured and fixed; run 6
+is the first that can fairly test discovery from a competent initialisation.
 
 Two cautions carried forward. Post-grasp outcomes are not reproducible from a single
 rollout in this setup (`g1_piston_post_grasp_nondeterminism.json`), so a rendered video

@@ -114,7 +114,12 @@ def report(run, n25_path, first_ckpt_path, residual):
 
 
 def main():
-    report(6, f"{S}/runs/filter_ab/rl6_v3_n25.json", f"{S}/diag/h6_first_ckpt.json", False)
+    # H6 of record is the first checkpoint AFTER the actor starts updating. The very
+    # first checkpoint (~100 updates) precedes the 300-update warmup, so its 0.403 deg is
+    # the warmup working, not the fix being tested.
+    h6 = (f"{S}/diag/h6_post_warmup.json" if os.path.exists(f"{S}/diag/h6_post_warmup.json")
+          else f"{S}/diag/h6_first_ckpt.json")
+    report(6, f"{S}/runs/filter_ab/rl6_v3_n25.json", h6, False)
     report(7, f"{S}/runs/filter_ab/rl7_v3_n25.json", f"{S}/diag/h8_run7_first_ckpt.json", True)
     print("=" * 70)
     print("Caveat carried from the noise-floor study: post-grasp outcomes are not "

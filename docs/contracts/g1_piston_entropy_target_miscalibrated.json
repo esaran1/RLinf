@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_entropy_target_miscalibrated",
  "recorded": "2026-09-04",
- "status": "DEFECT FOUND. Explains run 4's regression. Distinct from, and downstream of, g1_piston_entropy_target_sign.json.",
+ "status": "DEFECT FOUND AND FIXED, but REFUTED as the cause of run 4's regression. The miscalibration was real; it was not what broke the policy.",
  "summary": "The entropy target -8.4 is documented as corresponding to 'exploration std ~0.20'. Measured against the trainer's own log-probability computation, it does not. In the correlated-noise branch it is reachable only near std 0.05; in the i.i.d. branch it is not reachable at ANY std. Run 4 therefore spent its entire length under entropy pressure toward a target its configuration could not satisfy.",
  "how_it_was_found": {
   "trigger": "Run 4 warm-started from a policy with v3 grasp 1.00 and evaluated at 0.00, while every training diagnostic looked healthy: critic loss 1.24 -> 0.076, Q 0.65 -> 2.58, logp descending -5.59 -> -7.55 in the CORRECT direction, demo_fraction 0.5 throughout.",
@@ -11,12 +11,18 @@
  "measurement": {
   "method": "Drive the trainer's OWN log-probability computation (both branches, verbatim) at a range of exploration stds, mean 0, active dims only, per control action.",
   "correlated_noise_branch_used_by_run_4": {
-   "std_0.05": -8.47, "std_0.10": -8.30, "std_0.20": -7.76,
-   "std_0.30": -6.79, "std_0.50": -4.09,
+   "std_0.05": -8.47,
+   "std_0.10": -8.3,
+   "std_0.20": -7.76,
+   "std_0.30": -6.79,
+   "std_0.50": -4.09,
    "reading": "-8.4 is reachable only at std ~0.05, the MINIMUM of the useful range, not the documented 0.20."
   },
   "iid_branch": {
-   "std_0.05": 31.76, "std_0.10": 18.59, "std_0.20": 7.40, "std_0.30": 3.12,
+   "std_0.05": 31.76,
+   "std_0.10": 18.59,
+   "std_0.20": 7.4,
+   "std_0.30": 3.12,
    "reading": "-8.4 is not reachable at any std. The quantity is positive throughout."
   },
   "target": -8.4,
@@ -33,5 +39,47 @@
   "The specification-gaming finding, the plunger-DoF finding, and the two BC train/deploy defects, all of which are measurements of other things."
  ],
  "status_of_run_4": "REPORTED AS A REGRESSION per the pre-registered H4 rule in g1_piston_v3_retrain_run4_preregistration.json: v3 grasp fell below 0.87, so the run is reported as a regression whatever happened to press and dispense. Press and dispense were 0.00. The pre-registration is honoured exactly; the cause is now identified rather than left as 'RL did not work'.",
- "lesson": "A target expressed in units of a log-density is only meaningful relative to the exact log-probability computation it is compared against. TARGET_ENTROPY_STD documents an std, but nothing verified that the target and the std agree under the branch actually in use -- and the two branches disagree with each other by ~15 nats at the same std."
+ "lesson": "A target expressed in units of a log-density is only meaningful relative to the exact log-probability computation it is compared against. TARGET_ENTROPY_STD documents an std, but nothing verified that the target and the std agree under the branch actually in use -- and the two branches disagree with each other by ~15 nats at the same std.",
+ "refutation_by_run_5": {
+  "recorded": "2026-09-04, after run 5",
+  "test": "Run 5 repeated run 4 with the calibrated target (-7.30, measured for the correlated branch at std 0.25) as the ONLY change.",
+  "the_fix_worked_on_its_own_terms": {
+   "entropy_residual": "run 4: 0.85 -> run 5: 0.21 (closed)",
+   "alpha_rise": "run 4: +57% -> run 5: +36% (H5 threshold not breached)"
+  },
+  "but_the_policy_still_collapsed": {
+   "eval_grasp": "0.00 at 30k, 60k and 90k env steps, identical to run 4",
+   "H4": "FAILED. Run 5 is a regression under the pre-registered rule."
+  },
+  "conclusion": "The entropy target was NOT the cause of the regression. This contract's original claim to 'explain run 4's regression' is WITHDRAWN. The calibration defect is real and the fix is kept, but it is not the mechanism that flattens the policy.",
+  "what_the_signature_actually_is": {
+   "deployed_action_error_deg": {
+    "BC_grasp_1.00": 0.403,
+    "run_4": 13.773,
+    "run_5": 11.542
+   },
+   "raw_head_output_magnitude": {
+    "BC": 0.4151,
+    "run_4": 0.2364,
+    "run_5": 0.2543
+   },
+   "reading": "Both runs flatten the head's output and blow up the executed action, and the calibrated target barely moved either number."
+  },
+  "ruled_out_by_measurement": {
+   "smoothness_penalty": "SMOOTH_LAMBDA=100 contributes 0.011 against Q~2.45, under 0.5% of the actor objective. Not the cause."
+  },
+  "leading_hypothesis_now_UNTESTED": {
+   "claim": "The demonstration-conditioned critic is confidently wrong.",
+   "evidence": {
+    "demo_buffer_return_mean": 11.88,
+    "online_episode_return_mean": 1.34,
+    "deterministic_eval_return": -0.661,
+    "critic_q_mean_end": 2.45,
+    "q_trajectory": "0.71 -> 2.45 while grasp went 1.00 -> 0.00"
+   },
+   "mechanism": "RLPD fills half of every batch with demonstration transitions, so the critic learns values for actions the policy never takes. Q tracks the demonstrations (11.88) rather than the policy (-0.66), and the actor ascends that inflated estimate away from behaviour that works.",
+   "decisive_cheap_test": "Same setup with DEMO_FRAC=0 (plain SAC from the BC policy). If grasp survives, the demo-conditioned critic is the cause; if it collapses identically, the cause is in the actor update itself.",
+   "status": "NOT TESTED. Stated as a hypothesis, not a finding. Two prior confident diagnoses in this project failed in a row."
+  }
+ }
 }

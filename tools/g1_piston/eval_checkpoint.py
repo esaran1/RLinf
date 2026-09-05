@@ -189,6 +189,14 @@ try:
 
     _, EVAL_CONDITIONS = build_reset_suite(n_eval=50, seed=RESET_SUITE_SEED)
     EVAL_CONDITIONS = EVAL_CONDITIONS[:N_EVAL]
+    #: Order-dependence probe. The in-trainer evaluation scored an UNCHANGED policy at
+    #: grasp 0.76 where this tool scores it 1.00 (g1_piston_in_trainer_eval_underscores),
+    #: with identical code paths. If simulator state carries across env.reset, per-
+    #: condition outcomes will depend on the order conditions are run in.
+    COND_ORDER = os.environ.get("COND_ORDER", "forward").lower()
+    if COND_ORDER == "reverse":
+        EVAL_CONDITIONS = list(reversed(EVAL_CONDITIONS))
+    res["cond_order"] = COND_ORDER
 
     #: Demonstration actions for the control arm, in PHYSICAL units (the buffer's own
     #: convention, verified against the recorded act_ep*.npy).

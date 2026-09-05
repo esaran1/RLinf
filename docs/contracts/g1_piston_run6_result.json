@@ -1,0 +1,23 @@
+{
+ "id": "g1_piston_run6_result",
+ "recorded": "2026-09-05",
+ "status": "REGRESSION under the pre-registered H4 rule, stopped early per the pre-registered early-stop rule. The entropy fix did what it was built to do; a SECOND, independent mechanism collapses the policy.",
+ "what_ran": "Direct SAC/RLPD fine-tuning of the OFT head from the BC policy with latent entropy, corrected std change-of-variables, calibrated target -1.75, and a 300-update critic-only warmup (run6_preregistration.json).",
+ "readout": {
+  "in_trainer_grasp_per_eval": {"15480": 0.76, "30600": 0.80, "46260": 0.48, "60840": 0.04},
+  "note_on_scale": "The in-trainer path scores the UNCHANGED policy 0.76 (g1_piston_in_trainer_eval_underscores.json). 0.76 -> 0.80 during warmup is preservation; 0.48 -> 0.04 after 150 actor updates is collapse.",
+  "H6_post_warmup_checkpoint_60840": {"deployed_err_deg": 7.300, "raw_head_abs_mean": 0.4459, "verdict": "FAIL (err >= 3)"},
+  "H7_alpha": {"start": 0.0508, "end": 0.0537, "ratio": 1.06, "verdict": "PASS"},
+  "logp": {"start": -1.69, "end": -1.78, "target": -1.75, "reading": "sits at the target; the entropy term is regulating, not shrinking"},
+  "H4": "FAIL"
+ },
+ "the_signature_is_different_and_that_is_the_finding": {
+  "runs_4_and_5": "raw head magnitude 0.415 -> 0.24 (flattened), deployed error 11.5-13.8 deg, alpha rising, entropy 28% of the objective",
+  "run_6": "raw head magnitude 0.415 -> 0.446 (NOT flattened), deployed error 7.3 deg, alpha stable, logp at target",
+  "reading": "The pre-registered falsifier was 'grasp collapsing with raw magnitude ~0.25 again'. That did not happen: the flattening mechanism is absent, so the entropy diagnosis stands and its fix is verified in a live run. The policy nevertheless moved 7.3 degrees away from the demonstrations in a direction that does not shrink it. The only remaining term in the actor objective is the critic's Q-gradient. Direct fine-tuning therefore fails through critic-driven drift once entropy is fixed."
+ },
+ "why_this_matches_the_literature": "This is the failure mode the offline-to-online literature attributes to an uncalibrated or exploitable critic (Cal-QL arXiv 2303.05479; WSRL arXiv 2412.07762), and the reason ResFiT (arXiv 2509.19301) and RLPD (arXiv 2302.02948) bound the actor's freedom or avoid pretrained actors: a 42M-parameter head following a 2-critic Q-gradient over 900 action dimensions with ~8 transitions per dimension can find action directions the critic over-values.",
+ "next_test_no_simulator": "Rank actions with run 6's own critic on demonstration frames: Q(a_run6) vs Q(a_BC) vs Q(a_demo). If the critic rates the drifted action above the BC action while the environment scores it far lower, critic exploitation is confirmed as the mechanism.",
+ "consequence": "Run 7 (frozen base + bounded residual, R_MAX 0.15) is now the registered arm that limits how far critic-driven drift can move the executed action. Stopping run 6 early released the GPU to it ~1 h sooner.",
+ "unaffected": "The BC policy and its videos; the entropy mean-force finding (confirmed absent here, as predicted)."
+}

@@ -124,6 +124,18 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Read the in-trainer evaluations carefully (2026-09-05)
+
+The trainer's periodic evaluation **under-scores a working policy**: run 6's first
+checkpoint is bit-identical to BC (deployed error 0.403°, no actor update yet) and the
+in-trainer eval gave grasp 0.76 / lift 0.32, where the scorer of record gives 1.00 / 0.80.
+The two loops are identical in code; what differs is process history (the in-trainer
+eval runs after noisy training episodes). So: judge in-trainer curves relative to their
+own baseline (0.76), and treat only `eval_checkpoint.py` in a fresh process as the number
+of record. Contract: `g1_piston_in_trainer_eval_underscores.json`. A reversed-order
+scoring of BC (`COND_ORDER=reverse`) is queued after the chain to test whether simulator
+state carries across `env.reset`.
+
 ## Other things worth suspecting
 
 * The demonstration-conditioned critic (Q ≈ 2.45 tracking demo return 11.88 while the

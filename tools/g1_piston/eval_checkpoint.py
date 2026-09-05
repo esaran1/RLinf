@@ -109,6 +109,7 @@ try:
     RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
     RW3 = _load("g1r3", RL + "g1_piston_reward_v3.py") if REWARD_V3 else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
+    RESP = _load("g1rp", RL + "g1_piston_residual_policy.py")
     CB = _load("g1cb", RL + "g1_piston_chunk_blend.py")
     AF = _load("g1af", RL + "g1_piston_action_filter.py")
 
@@ -162,10 +163,20 @@ try:
 
     # Load the trained head + exploration state. An absent CKPT means "evaluate the raw
     # SFT policy", which gives the same two-mode comparison for the baseline.
+    residual = None   # set when the checkpoint carries a ResFiT residual
     if CKPT_PATH and CKPT_PATH != "sft":
         ck = torch.load(CKPT_PATH, map_location="cuda", weights_only=False)
         model.action_model.load_state_dict(ck["action_model"])
         actor_logstd = ck["actor_logstd"].to(DEV)
+        if "residual" in ck:
+            _rc = ck.get("residual_cfg", {})
+            residual = RESP.ResidualPolicy(feat_dim=int(_rc.get("feat_dim", 2048)),
+                                           hidden=tuple(_rc.get("hidden", (512, 512))),
+                                           r_max=float(_rc.get("r_max", RESP.R_MAX_DEFAULT)),
+                                           device=DEV)
+            residual.load_state_dict(ck["residual"])
+            residual.eval()
+            res["residual"] = {"applied": True, **{k: (list(v) if isinstance(v, (tuple, list)) else v) for k, v in _rc.items()}}
         res["checkpoint_env_steps"] = int(ck.get("env_steps", -1))
         res["checkpoint_grad_updates"] = int(ck.get("grad_updates", -1))
     else:
@@ -210,11 +221,22 @@ try:
                 lh, qi.get("input_ids", None), action_token_id=model.action_token_id)
             with torch.autocast("cuda", dtype=torch.float32):
                 mean = model.action_model.predict_action(aq.detach().float()).float()
-        return mean
+        return mean, aq.detach().float()
 
-    def sample_action(mean, deterministic):
+    def sample_action(mean, deterministic, aq=None):
         b, c, d = mean.shape
         flat = mean.reshape(b * c, d)
+        if residual is not None:
+            # ResFiT arm: the base is the frozen head's DETERMINISTIC executed chunk;
+            # the residual (and its exploration, if stochastic) composes on top.
+            scale = (ACTION_HIGH - ACTION_LOW) / 2.0
+            shift = (ACTION_HIGH + ACTION_LOW) / 2.0
+            a_base = torch.tanh(flat) * scale + shift
+            a_base = torch.where(ACT_MASK, a_base, FROZEN_V.expand_as(a_base)).reshape(b, c, d)
+            with torch.no_grad():
+                a, _, _ = residual.act(aq, a_base, None if deterministic else actor_logstd,
+                                       ACT_MASK, deterministic=deterministic)
+            return torch.where(ACT_MASK, a, FROZEN_V.expand_as(a))
         if deterministic:
             scale = (ACTION_HIGH - ACTION_LOW) / 2.0
             shift = (ACTION_HIGH + ACTION_LOW) / 2.0
@@ -277,8 +299,8 @@ try:
                     r, done, info, prev_cmd = run_chunk(a[0], prev_cmd, physical=True)
                 else:
                     img = sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()
-                    mean = vlm_encode(img)
-                    a = sample_action(mean, deterministic)
+                    mean, aq = vlm_encode(img)
+                    a = sample_action(mean, deterministic, aq=aq)
                     acts.append(a.detach().cpu().numpy())
                     r, done, info, prev_cmd = run_chunk(a[0], prev_cmd)
                 ret += r

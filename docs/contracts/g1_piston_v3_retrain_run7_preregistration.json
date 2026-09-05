@@ -1,0 +1,21 @@
+{
+ "id": "g1_piston_v3_retrain_run7_preregistration",
+ "recorded": "2026-09-05, BEFORE run 6 has produced data and BEFORE run 7 exists",
+ "what_run_7_is": "The residual arm (ResFiT, arXiv 2509.19301): the behaviour-cloning head is FROZEN and a small MLP learns a temporally smooth residual correction in the 6-component DCT basis, initialised to exactly zero so the initial policy IS the BC policy. Exploration is Gaussian on the latent residual coefficients with no squash, so the entropy is closed-form and its only pull on the mean is toward zero residual, i.e. toward the base.",
+ "why_it_is_registered_now": "So that it runs as a COMPARISON arm from the same initialisation on the same frozen suite regardless of run 6's outcome, rather than as a rescue chosen after seeing run 6. The literature is consistent that directly optimising a large chunked BC network with off-policy RL is unstable (ResFiT; RLPD deliberately does not pretrain the actor), and that a frozen base with a learned residual is the robust alternative, proven on a humanoid with five-fingered hands under sparse reward.",
+ "configuration": {
+  "RESIDUAL": 1, "R_MAX": 0.15, "RES_INIT_STD": 0.15, "RES_ACTOR_LR": 3e-4,
+  "residual_hidden": [512, 512], "actor_input": "pooled VLM action queries + DCT of the base chunk; NO privileged state reaches the actor",
+  "entropy": "latent, closed-form target latent_target_entropy(0.15, n_active=20)",
+  "actor_warmup_updates": 300,
+  "unchanged_from_run_6": "reward v3, gamma_chunk 0.98, ACTION_BASIS, CRITIC_STATE (critic stays privileged), SMOOTH_LAMBDA 100 on the composed deterministic chunk, UTD 0.5, BATCH 8, ALGO=rlpd, DEMO_FRAC 0.5, base = the BC checkpoint, frozen 25-condition suite, seed 20260817, eval_checkpoint.py as scorer of record (it applies the residual when the checkpoint carries one)"
+ },
+ "hypotheses_fixed_in_advance": {
+  "H8_zero_residual_is_the_base": "At update 0 the deterministic policy must score IDENTICALLY to the BC checkpoint on the frozen suite (grasp 1.00 within the post-grasp nondeterminism caveat) and the deployed action error on ep046 must equal BC's 0.403 deg to within 1e-3. This is a property of the construction and is checked before training, not hoped for.",
+  "H4_preservation": "If v3 grasp falls below 0.87 at any periodic evaluation the run is a regression, whatever happens to press and dispense.",
+  "H9_the_base_never_moves": "The OFT head's parameters must be bit-identical at the end of the run (oft_unchanged=true in the run record). If they change, the arm is not what it claims to be.",
+  "H2_dispense": "Prior LOW, unchanged. 1 of 22 executable demos shows a grasped press, none a dispense."
+ },
+ "comparison_to_run_6": "Both arms start from the same BC head and are scored by the same tool on the same suite. Run 6 tests whether direct fine-tuning survives once the entropy defects are fixed; run 7 tests whether a frozen base plus residual does better. Either ordering of results is reportable.",
+ "no_tuning_after_seeing_results": "R_MAX, RES_INIT_STD, RES_ACTOR_LR and ACTOR_WARMUP_UPDATES are fixed now. A change is a new pre-registration."
+}

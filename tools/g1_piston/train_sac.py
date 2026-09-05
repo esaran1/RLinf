@@ -81,6 +81,14 @@ ENTROPY_LP_LEGACY = os.environ.get("ENTROPY_LP_LEGACY", "0") == "1"
 #: random critic's gradient from update 1 is the worst case for a competent policy
 #: (WSRL, arXiv 2412.07762; ResFiT's delayed actor updates, arXiv 2509.19301).
 ACTOR_WARMUP_UPDATES = int(os.environ.get("ACTOR_WARMUP_UPDATES", "300"))
+#: ResFiT arm (arXiv 2509.19301): FREEZE the behaviour-cloning head and learn a small,
+#: temporally smooth residual on top of its executed chunk, initialised to exactly zero.
+#: docs/contracts/g1_piston_v3_retrain_run7_preregistration.json.
+RESIDUAL = os.environ.get("RESIDUAL", "0") == "1"
+R_MAX = float(os.environ.get("R_MAX", "0.15"))
+RES_INIT_STD = float(os.environ.get("RES_INIT_STD", "0.15"))
+RES_ACTOR_LR = float(os.environ.get("RES_ACTOR_LR", "3e-4"))
+RES_HIDDEN = tuple(int(x) for x in os.environ.get("RES_HIDDEN", "512,512").split(","))
 #: Encode every demonstration transition once before training instead of paying VLM
 #: cache misses inside the update loop. Measured cost ~105 s for 489 transitions; at
 #: UTD > 1 the misses otherwise dominate the loop (see the run-2 throughput analysis).
@@ -125,6 +133,8 @@ res = {
         "action_basis": bool(ACTION_BASIS), "critic_state": bool(CRITIC_STATE),
         "entropy_space": ENTROPY_SPACE, "entropy_lp_legacy": bool(ENTROPY_LP_LEGACY),
         "actor_warmup_updates": ACTOR_WARMUP_UPDATES,
+        "residual": bool(RESIDUAL), "r_max": R_MAX, "res_init_std": RES_INIT_STD,
+        "res_actor_lr": RES_ACTOR_LR, "res_hidden": list(RES_HIDDEN),
         "correlated_noise": bool(CORRELATED_NOISE),
         "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
         "run_init_eval": bool(RUN_INIT_EVAL),
@@ -169,6 +179,7 @@ try:
     ABAS = _load("g1ab", RL + "g1_piston_action_basis.py") if ACTION_BASIS else None
     CST = _load("g1cs", RL + "g1_piston_critic_state.py") if CRITIC_STATE else None
     CNZ = _load("g1cn", RL + "g1_piston_correlated_policy.py") if CORRELATED_NOISE else None
+    RESP = _load("g1rp", RL + "g1_piston_residual_policy.py") if RESIDUAL else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     AFLT = _load("g1af", RL + "g1_piston_action_filter.py")
 
@@ -225,7 +236,8 @@ try:
 
     # freeze VLM, train OFT head only
     for p in model.parameters(): p.requires_grad_(False)
-    for p in model.action_model.parameters(): p.requires_grad_(True)
+    # Under the residual arm the OFT head is the FROZEN base; only the residual trains.
+    for p in model.action_model.parameters(): p.requires_grad_(not RESIDUAL)
     vlm_ref = {n: p.detach().clone() for n, p in list(
         model.qwen_vl_interface.named_parameters())[:5]}   # spot-check frozen-ness
     oft_ref = {n: p.detach().clone() for n, p in list(
@@ -242,6 +254,8 @@ try:
     _init_std = (RLSP.TARGET_ENTROPY_STD
                  if os.environ.get("ENTROPY_TARGET_LEGACY", "0") == "1"
                  else RLSP.CALIBRATED_TARGET_STD)
+    if RESIDUAL:
+        _init_std = RES_INIT_STD          # exploration on the residual coefficients
     INIT_LOGSTD = float(os.environ.get("INIT_LOGSTD", math.log(_init_std)))
     actor_logstd = torch.nn.Parameter(torch.full((30,), INIT_LOGSTD, device=DEV))
 
@@ -260,6 +274,11 @@ try:
         """Map a raw action chunk [B,H,30] to the critic's action input [B,A_IN]."""
         return (ABAS.flatten(ABAS.project(a)) if ACTION_BASIS
                 else a.reshape(a.shape[0], -1))
+
+    res_actor = (RESP.ResidualPolicy(feat_dim=HID, hidden=RES_HIDDEN, r_max=R_MAX,
+                                     horizon=H, dims=30, device=DEV)
+                 if RESIDUAL else None)
+    RES_LAST = {}   # deterministic composed chunk of the last actor sample (smoothness)
     target.load_state_dict(critic.state_dict())
     for p in target.parameters(): p.requires_grad_(False)
 
@@ -302,6 +321,9 @@ try:
         # start training far from the alpha equilibrium.
         POLICY_ONLY = "critic" not in wc or "alpha" not in wc
         WARM_META["policy_only_checkpoint"] = bool(POLICY_ONLY)
+        if RESIDUAL and "residual" in wc:
+            res_actor.load_state_dict(wc["residual"])
+            WARM_META["residual_transferred"] = True
         if POLICY_ONLY:
             # Start exploration at the std the corrected entropy target is defined for
             # (TARGET_ENTROPY_STD = 0.20). Inheriting BC's placeholder 0.05 would begin
@@ -313,6 +335,8 @@ try:
             _reset_std = (RLSP.TARGET_ENTROPY_STD
                           if os.environ.get("ENTROPY_TARGET_LEGACY", "0") == "1"
                           else RLSP.CALIBRATED_TARGET_STD)
+            if RESIDUAL:
+                _reset_std = RES_INIT_STD
             with torch.no_grad():
                 actor_logstd.fill_(math.log(_reset_std))
             WARM_META["actor_logstd_source"] = (
@@ -376,7 +400,11 @@ try:
     #
     # ENTROPY_TARGET_LEGACY=1 restores the old constant for reproducing prior runs.
     ENTROPY_TARGET_LEGACY = os.environ.get("ENTROPY_TARGET_LEGACY", "0") == "1"
-    if ENTROPY_TARGET_LEGACY:
+    if RESIDUAL:
+        # Latent Gaussian on the residual coefficients, no squash: closed form.
+        TARGET_ENTROPY = RESP.latent_target_entropy(RES_INIT_STD, N_ACTIVE)
+        _target_src = f"closed-form latent residual target at std {RES_INIT_STD}"
+    elif ENTROPY_TARGET_LEGACY:
         TARGET_ENTROPY = RLSP.default_target_entropy()
         _target_src = "legacy constant -8.4 (uncalibrated; run 4 regressed under it)"
     else:
@@ -393,8 +421,10 @@ try:
     # The actor LR is deliberately small: it fine-tunes a converged SFT head, and the
     # collapsed pilot showed the OFT head can be driven off-distribution quickly
     # (actor grad-norm reached 110 at lr 1e-5).
-    opt_actor = torch.optim.Adam(
-        list(model.action_model.parameters()) + [actor_logstd], lr=ACTOR_LR)
+    opt_actor = (torch.optim.Adam(list(res_actor.parameters()) + [actor_logstd],
+                                  lr=RES_ACTOR_LR) if RESIDUAL else
+                 torch.optim.Adam(list(model.action_model.parameters()) + [actor_logstd],
+                                  lr=ACTOR_LR))
     opt_critic = torch.optim.Adam(critic.parameters(), lr=3e-4)
     opt_alpha = torch.optim.Adam(ent.parameters(), lr=ALPHA_LR)
 
@@ -530,6 +560,27 @@ try:
         return RLSP.iid_logprob(dist, flat_sample, ACT_MASK,
                                 "executed" if ENTROPY_LP_LEGACY else ENTROPY_SPACE)
 
+    def policy_action(aq, mean, logstd, deterministic=False):
+        """Executed chunk and per-step log-prob for the arm in use.
+
+        Direct arm: the head's output is the pre-squash mean (sample_action).
+        Residual arm: the head's DETERMINISTIC executed chunk is the frozen base and
+        the residual policy composes on top of it (ResidualPolicy.act).
+        """
+        if res_actor is None:
+            return sample_action(mean, logstd, deterministic)
+        b, c, d = mean.shape
+        flat = mean.detach().reshape(b * c, d)
+        scale = (ACTION_HIGH - ACTION_LOW) / 2.0
+        shift = (ACTION_HIGH + ACTION_LOW) / 2.0
+        a_base = torch.tanh(flat) * scale + shift
+        a_base = torch.where(ACT_MASK, a_base, FROZEN_V.expand_as(a_base)).reshape(b, c, d)
+        a, lp, c_mean = res_actor.act(aq, a_base, None if deterministic else logstd,
+                                      ACT_MASK, deterministic=deterministic)
+        RES_LAST["det"] = res_actor.compose(a_base, c_mean, ACT_MASK)
+        a = torch.where(ACT_MASK, a, FROZEN_V.expand_as(a))
+        return a, lp
+
     def act_to_command(norm_action):
         """[H,30] normalized -> [H,53] retargeted simulator command."""
         phys = nrm.denormalize(norm_action.detach().cpu())
@@ -565,8 +616,8 @@ try:
         for _ in range(EP_CHUNKS):
             img = get_img()
             if save_frames: frames.append(img)
-            _, mean, _ = vlm_feature_and_mean(img)
-            a, _ = sample_action(mean, actor_logstd, deterministic=deterministic)
+            _, mean, aq = vlm_feature_and_mean(img)
+            a, _ = policy_action(aq, mean, actor_logstd, deterministic=deterministic)
             r, done, info = run_chunk(a[0])
             ret += r
             for k, v in info.get("stages", {}).items():
@@ -836,7 +887,7 @@ try:
         with torch.no_grad():
             # next action from the CURRENT policy at the sampled next states
             nmean = head_mean(naqs).float()
-            na, nlp = sample_action(nmean, actor_logstd)
+            na, nlp = policy_action(naqs, nmean, actor_logstd)
             qn = target(nfeats, critic_action(na))
             qmin = qn.min(dim=1, keepdim=True)[0]
             alpha = ent.compute_alpha().detach()
@@ -865,8 +916,12 @@ try:
             }
 
         # --- actor: gradient flows head_mean -> rsample -> critic ---
-        mean_b = head_mean(aqs).float()                 # differentiable in OFT head
-        a, lp = sample_action(mean_b, actor_logstd)
+        if RESIDUAL:
+            with torch.no_grad():
+                mean_b = head_mean(aqs).float()         # frozen base
+        else:
+            mean_b = head_mean(aqs).float()             # differentiable in OFT head
+        a, lp = policy_action(aqs, mean_b, actor_logstd)
         qpi = critic(feats, critic_action(a)).min(dim=1, keepdim=True)[0]
         alpha = ent.compute_alpha().detach()
         logp_chunk = lp.mean(dim=-1, keepdim=True)      # per control action
@@ -875,15 +930,17 @@ try:
         if SMOOTH_LAMBDA > 0:
             # Penalise the DETERMINISTIC squashed chunk, not the sample: the target is
             # the policy's predicted trajectory, and sampling noise would swamp it.
-            det = torch.tanh(mean_b) * ((ACTION_HIGH - ACTION_LOW) / 2.0) \
-                  + (ACTION_HIGH + ACTION_LOW) / 2.0
+            det = (RES_LAST["det"] if RESIDUAL else
+                   torch.tanh(mean_b) * ((ACTION_HIGH - ACTION_LOW) / 2.0)
+                   + (ACTION_HIGH + ACTION_LOW) / 2.0)
             smooth = AFLT.temporal_smoothness_penalty(det, ACT_MASK.cpu()
                                                       if det.device.type == "cpu"
                                                       else ACT_MASK)
             aloss = aloss + SMOOTH_LAMBDA * smooth
         opt_actor.zero_grad(); aloss.backward()
         agn = torch.nn.utils.clip_grad_norm_(
-            list(model.action_model.parameters()) + [actor_logstd], 10.0)
+            (list(res_actor.parameters()) if RESIDUAL
+             else list(model.action_model.parameters())) + [actor_logstd], 10.0)
         opt_actor.step()
 
         # --- alpha ---
@@ -996,7 +1053,7 @@ try:
               if critic_state is not None else None)
 
         for c in range(EP_CHUNKS):
-            a, _ = sample_action(mean, actor_logstd)          # stochastic: explore
+            a, _ = policy_action(aq, mean, actor_logstd)      # stochastic: explore
             r, done, info = run_chunk(a[0])
             env_steps += H * 2
             nimg = get_img()
@@ -1088,6 +1145,9 @@ try:
                 "critic": critic.state_dict(), "target": target.state_dict(),
                 "actor_logstd": actor_logstd.detach().cpu(),
                 "alpha": ent.state_dict(),
+                **({"residual": res_actor.state_dict(),
+                    "residual_cfg": {"feat_dim": HID, "hidden": list(RES_HIDDEN),
+                                     "r_max": R_MAX}} if RESIDUAL else {}),
                 "env_steps": env_steps, "grad_updates": grad_updates,
             }
             torch.save(ck, f"{RUN_DIR}/{ALGO}_ckpt_latest.pt")
@@ -1104,6 +1164,7 @@ try:
                 oft_now = dict(list(model.action_model.named_parameters())[:5])
                 res["vlm_unchanged"] = all(
                     torch.equal(vlm_ref[n].cpu(), vlm_now[n].detach().cpu()) for n in vlm_ref)
+                res["oft_unchanged_required"] = bool(RESIDUAL)
                 res["oft_changed"] = any(
                     not torch.equal(oft_ref[n].cpu(), oft_now[n].detach().cpu()) for n in oft_ref)
             emit()

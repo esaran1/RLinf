@@ -93,16 +93,31 @@ try:
             aq=model._gather_action_token_embeddings(lh,qi.get("input_ids",None),
                                                      action_token_id=model.action_token_id)
             with torch.autocast("cuda",dtype=torch.float32):
-                return model.action_model.predict_action(aq.detach().float()).float()
+                return model.action_model.predict_action(aq.detach().float()).float(), aq.detach().float()
 
-    def deployed_physical(mean):
-        """EXACTLY eval_checkpoint.sample_action(deterministic) + denormalize."""
+    residual=None
+    if "residual" in ck:
+        RESP=_load("g1rp",RL+"g1_piston_residual_policy.py")
+        _rc=ck.get("residual_cfg",{})
+        residual=RESP.ResidualPolicy(feat_dim=int(_rc.get("feat_dim",2048)),
+                                     hidden=tuple(_rc.get("hidden",(512,512))),
+                                     r_max=float(_rc.get("r_max",RESP.R_MAX_DEFAULT)),device=DEV)
+        residual.load_state_dict(ck["residual"]); residual.eval()
+        res["residual_applied"]=True
+
+    def deployed_physical(mean, aq=None):
+        """EXACTLY eval_checkpoint.sample_action(deterministic) + denormalize,
+        including the residual composition when the checkpoint carries one."""
         b,c,d=mean.shape
         flat=mean.reshape(b*c,d)
         scale=(ACTION_HIGH-ACTION_LOW)/2.0; shift=(ACTION_HIGH+ACTION_LOW)/2.0
         a=torch.tanh(flat)*scale+shift
-        a=torch.where(ACT_MASK,a,FROZEN_V.expand_as(a))
-        return nrm.denormalize(a.reshape(b,c,d).detach().cpu())
+        a=torch.where(ACT_MASK,a,FROZEN_V.expand_as(a)).reshape(b,c,d)
+        if residual is not None:
+            with torch.no_grad():
+                a,_,_=residual.act(aq,a,None,ACT_MASK,deterministic=True)
+            a=torch.where(ACT_MASK,a,FROZEN_V.expand_as(a))
+        return nrm.denormalize(a.detach().cpu())
 
     z=np.load("/home/jren313/research/starvla_rl/demo_buffer_v3/ep046.npz")
     imgs,acts=z["images"],z["actions"]
@@ -110,8 +125,8 @@ try:
     rows=[]; 
     raw_mean_abs=[]; squashed_err=[]; nosquash_err=[]
     for i in range(min(8,len(acts)-1)):
-        mean=vlm_encode(imgs[i].astype(np.uint8))
-        phys=deployed_physical(mean)[0]                 # [H,30] physical, deployed path
+        mean,aq=vlm_encode(imgs[i].astype(np.uint8))
+        phys=deployed_physical(mean,aq)[0]              # [H,30] physical, deployed path
         tgt=torch.as_tensor(acts[i],dtype=torch.float32)  # [H,30] physical demo
         # what the head emits BEFORE squashing, denormalised directly
         nosq=nrm.denormalize(mean[0].detach().cpu())

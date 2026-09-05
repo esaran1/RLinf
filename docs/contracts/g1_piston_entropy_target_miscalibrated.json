@@ -1,0 +1,37 @@
+{
+ "id": "g1_piston_entropy_target_miscalibrated",
+ "recorded": "2026-09-04",
+ "status": "DEFECT FOUND. Explains run 4's regression. Distinct from, and downstream of, g1_piston_entropy_target_sign.json.",
+ "summary": "The entropy target -8.4 is documented as corresponding to 'exploration std ~0.20'. Measured against the trainer's own log-probability computation, it does not. In the correlated-noise branch it is reachable only near std 0.05; in the i.i.d. branch it is not reachable at ANY std. Run 4 therefore spent its entire length under entropy pressure toward a target its configuration could not satisfy.",
+ "how_it_was_found": {
+  "trigger": "Run 4 warm-started from a policy with v3 grasp 1.00 and evaluated at 0.00, while every training diagnostic looked healthy: critic loss 1.24 -> 0.076, Q 0.65 -> 2.58, logp descending -5.59 -> -7.55 in the CORRECT direction, demo_fraction 0.5 throughout.",
+  "first_hypothesis_refuted": "That the in-trainer evaluation disagreed with eval_checkpoint.py. Scoring run 4's checkpoint with the independent tool that gave BC 1.00 returned grasp 0.00, matching the in-trainer number exactly. The regression is real, not a measurement artifact.",
+  "the_anomaly_that_located_it": "The action head barely moved: mean |delta| ~0.0005 per tensor against BC. Yet the DEPLOYED action error went 0.403 -> 13.773 degrees, a 34x degradation, because the tanh squash amplifies small pre-squash changes. The raw head output also shrank, 0.4151 -> 0.2364, which is the signature of a policy being flattened toward the squash's linear centre rather than one that learned something different."
+ },
+ "measurement": {
+  "method": "Drive the trainer's OWN log-probability computation (both branches, verbatim) at a range of exploration stds, mean 0, active dims only, per control action.",
+  "correlated_noise_branch_used_by_run_4": {
+   "std_0.05": -8.47, "std_0.10": -8.30, "std_0.20": -7.76,
+   "std_0.30": -6.79, "std_0.50": -4.09,
+   "reading": "-8.4 is reachable only at std ~0.05, the MINIMUM of the useful range, not the documented 0.20."
+  },
+  "iid_branch": {
+   "std_0.05": 31.76, "std_0.10": 18.59, "std_0.20": 7.40, "std_0.30": 3.12,
+   "reading": "-8.4 is not reachable at any std. The quantity is positive throughout."
+  },
+  "target": -8.4,
+  "documented_as": "exploration std ~0.20"
+ },
+ "mechanism_of_the_regression": {
+  "observed": "actor_logstd was reset to 0.20 at warm start (correctly, per the policy-only warm-start rule). The run then sat at logp -7.55 against a target of -8.4, so the residual never reached zero and alpha ROSE 57% (0.0512 -> 0.0802) across the run.",
+  "consequence": "The entropy term averaged 28% of the actor objective for the entire run, pushing the policy toward higher entropy the whole time. Because the head's output is pre-squash, that pressure flattens it toward zero, and the squash converts a small weight change into a large executed-action change.",
+  "why_the_online_rate_looked_survivable": "Online (stochastic) episodes grasped ~41% flat from episode 0 with no downward trend, while deterministic evaluation was 0.00. That inversion -- noise apparently HELPING -- is consistent with a mean that has been flattened: the injected noise partially restores action magnitude that the flattened mean no longer provides."
+ },
+ "relationship_to_the_sign_bug": "g1_piston_entropy_target_sign.json fixed the DIRECTION of the alpha update, and that fix is confirmed working here: logp moved toward -8.4 rather than away from it. This contract is about the VALUE of the target, which is a separate defect the sign fix could not reveal. Run 3 collapsed because alpha fell; run 4 regressed because alpha rose toward an unreachable target. Both are entropy defects, with opposite signs.",
+ "what_this_does_not_affect": [
+  "The behaviour-cloning policy itself, which is unchanged and still scores grasp 1.00, lift 0.80 (verified_results/videos_bc_working/).",
+  "The specification-gaming finding, the plunger-DoF finding, and the two BC train/deploy defects, all of which are measurements of other things."
+ ],
+ "status_of_run_4": "REPORTED AS A REGRESSION per the pre-registered H4 rule in g1_piston_v3_retrain_run4_preregistration.json: v3 grasp fell below 0.87, so the run is reported as a regression whatever happened to press and dispense. Press and dispense were 0.00. The pre-registration is honoured exactly; the cause is now identified rather than left as 'RL did not work'.",
+ "lesson": "A target expressed in units of a log-density is only meaningful relative to the exact log-probability computation it is compared against. TARGET_ENTROPY_STD documents an std, but nothing verified that the target and the std agree under the branch actually in use -- and the two branches disagree with each other by ~15 nats at the same std."
+}

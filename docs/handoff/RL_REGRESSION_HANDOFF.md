@@ -116,9 +116,13 @@ falsification rule that measures the flattening signature directly at the first
 checkpoint (H6: raw magnitude > 0.35 and ep046 deployed error < 3°). It was blocked on GPU
 memory at handoff time (`scratchpad/autolaunch_rl6.sh` starts it when ≥ 9.5 GB is free).
 
-**If run 6 still collapses**, the next step is structural rather than another formula
-fix: freeze the BC base and learn a per-step residual (ResFiT), which cannot destroy the
-base at initialisation and is proven on a humanoid with five-fingered hands.
+**Run 7 (residual arm, commit `5c990200`)** is implemented and pre-registered
+(`g1_piston_v3_retrain_run7_preregistration.json`) as a *comparison* from the same
+initialisation, not a rescue: `RESIDUAL=1` freezes the BC head and trains a zero-initialised,
+temporally smooth residual (ResFiT). H8 verified before training: the zero residual
+reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` starts it
+after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
+residual when the checkpoint carries one.
 
 ## Other things worth suspecting
 

@@ -11,8 +11,16 @@
  "the_refutation": "The calibration fix worked and the policy still collapsed identically. Therefore the entropy target was not the cause of run 4's regression. The claim in g1_piston_entropy_target_miscalibrated.json that it 'explains run 4's regression' is withdrawn there.",
  "what_is_kept": "The miscalibration itself is a real defect, independently measured: -8.4 corresponds to std ~0.05 under correlated noise and is unreachable at any std under i.i.d. noise, and the two branches differ by ~15 nats at the same std. The measured-target fix and its tests are kept on the merits.",
  "shared_signature_across_both_failed_runs": {
-  "deployed_action_error_deg": {"BC_grasp_1.00": 0.403, "run_4": 13.773, "run_5": 11.542},
-  "raw_head_output_magnitude": {"BC": 0.4151, "run_4": 0.2364, "run_5": 0.2543},
+  "deployed_action_error_deg": {
+   "BC_grasp_1.00": 0.403,
+   "run_4": 13.773,
+   "run_5": 11.542
+  },
+  "raw_head_output_magnitude": {
+   "BC": 0.4151,
+   "run_4": 0.2364,
+   "run_5": 0.2543
+  },
   "reading": "RL flattens the head's pre-squash output and the tanh converts that into a large executed-action error. The policy is not learning something different; it is being pulled toward the squash's linear centre."
  },
  "ruled_out_by_measurement": {
@@ -22,9 +30,16 @@
  },
  "leading_hypothesis_explicitly_untested": {
   "claim": "The demonstration-conditioned critic is confidently wrong, and the actor ascends it away from working behaviour.",
-  "numbers": {"demo_buffer_return_mean": 11.88, "online_return_mean": 1.34, "deterministic_eval_return": -0.661, "critic_q_mean": 2.45, "q_went": "0.71 -> 2.45 while grasp went 1.00 -> 0.00"},
+  "numbers": {
+   "demo_buffer_return_mean": 11.88,
+   "online_return_mean": 1.34,
+   "deterministic_eval_return": -0.661,
+   "critic_q_mean": 2.45,
+   "q_went": "0.71 -> 2.45 while grasp went 1.00 -> 0.00"
+  },
   "decisive_test": "DEMO_FRAC=0 ablation, otherwise identical. Cheap relative to a full run because the failure is visible by the first 30k-step evaluation.",
-  "caution": "This project has had two confident diagnoses fail in a row (proprioception, then the entropy target). This is a hypothesis consistent with the evidence, not a finding."
+  "caution": "This project has had two confident diagnoses fail in a row (proprioception, then the entropy target). This is a hypothesis consistent with the evidence, not a finding.",
+  "status": "SUPERSEDED 2026-09-05. The collapse was reproduced OFFLINE with no critic at all: the entropy term as implemented flattens the head by itself (two defects in one formula). The demo-conditioned critic is therefore not required to explain runs 4 and 5. See g1_piston_entropy_mean_force.json. Whether the critic ALSO harms the policy remains untested and is a legitimate follow-up ablation."
  },
  "what_is_unaffected": "The behaviour-cloning policy, which still scores v3 grasp 1.00, lift 0.80, plate 0.80 on the frozen 25-condition suite, with 12 rendered videos in verified_results/videos_bc_working/. Every RL run in this project has failed to improve on it."
 }

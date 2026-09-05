@@ -80,32 +80,51 @@ log-probability moves toward its target, demo replay is genuinely active at 0.5.
 4. **The entropy update's sign.** Fixed earlier and confirmed working: log-probability now
    moves toward the target, not away.
 
-## The leading hypothesis — UNTESTED
+## The cause — found and reproduced offline (2026-09-05)
 
-The demonstration-conditioned critic may be confidently wrong.
+The entropy term, as implemented, flattens the policy by itself. Reproduced on the
+working BC head with **no critic, no reward, no simulator** (`tools/g1_piston/` probe
+recorded in `docs/contracts/g1_piston_entropy_mean_force.json`):
 
-    demo buffer return mean   11.88
-    online episode return     1.34
-    deterministic eval return -0.66
-    critic Q at end            2.45   (rose from 0.71 while grasp went 1.00 -> 0.00)
+| arm (650 Adam steps, lr 3e-6, alpha 0.06) | deployed error | raw magnitude |
+|---|---|---|
+| executed-action entropy (trainer's formula) | 0.40° → **15.04°** | 0.415 → 0.196 |
+| latent entropy (no tanh Jacobian)           | 0.40° → 0.40°     | unchanged |
+| no entropy                                  | 0.40° → 0.40°     | unchanged |
 
-RLPD fills half of every batch with demonstration transitions, so the critic learns values
-for actions the policy never takes. Q tracks the demonstrations rather than the policy,
-and the actor may be ascending an inflated estimate away from behaviour that works.
+Two defects in one formula:
 
-**The decisive cheap test** (not yet run): `DEMO_FRAC=0`, everything else identical. If
-grasp survives, the demo-conditioned critic is the cause. If it collapses the same way,
-the cause is in the actor update itself.
+1. **Std sign.** The correlated-noise log-prob omitted the change-of-variables term for
+   `std` (`-n_basis * Σ log std_d`), so `d lp/d logstd` was *positive*: more noise reported
+   a higher density. The "entropy" term shrank exploration instead of regulating it.
+2. **Mean force.** Entropy measured on the executed action includes the tanh Jacobian,
+   whose mean-gradient is `+2α·E[tanh(u)]` — an inward pull on every pre-squash
+   component ([arXiv 2608.24488](https://arxiv.org/html/2608.24488)). A competent policy
+   has large |means| (0.415), so it is eroded toward zero regardless of the target value,
+   which is why run 5's recalibrated target changed nothing.
 
-**Treat this as a hypothesis, not a finding.** Two confident diagnoses in this project
-have already failed: first "the policy needs proprioception" (refuted — it was a feature
-bug), then "the entropy target is miscalibrated" (refuted by run 5).
+**Fix (commit `c50dd658`):** one shared log-prob implementation for trainer and
+calibration (`CorrelatedChunkNoise.logprob_chunk`, `rl_space.iid_logprob`) with the
+change-of-variables term; `ENTROPY_SPACE=latent` by default (closed-form target, slope
+−4/std, never flat); `ACTOR_WARMUP_UPDATES=300` critic-only updates before the actor
+moves (WSRL [arXiv 2412.07762](https://arxiv.org/abs/2412.07762); ResFiT
+[arXiv 2509.19301](https://arxiv.org/abs/2509.19301)). `ENTROPY_LP_LEGACY=1` reproduces
+the old formula.
+
+**Run 6** is pre-registered in `g1_piston_v3_retrain_run6_preregistration.json` with a
+falsification rule that measures the flattening signature directly at the first
+checkpoint (H6: raw magnitude > 0.35 and ep046 deployed error < 3°). It was blocked on GPU
+memory at handoff time (`scratchpad/autolaunch_rl6.sh` starts it when ≥ 9.5 GB is free).
+
+**If run 6 still collapses**, the next step is structural rather than another formula
+fix: freeze the BC base and learn a per-step residual (ResFiT), which cannot destroy the
+base at initialisation and is proven on a humanoid with five-fingered hands.
 
 ## Other things worth suspecting
 
-* `ACTOR_LR=3e-6` on a converged head. Even small steps may be enough to flatten it, and
-  nothing has tested whether ANY actor update preserves the behaviour. A zero-actor-LR run
-  (critic-only) would establish the floor.
+* The demonstration-conditioned critic (Q ≈ 2.45 tracking demo return 11.88 while the
+  policy returned −0.66). Not required to explain the collapse, but a `DEMO_FRAC=0`
+  ablation would show whether it *also* harms the policy.
 * The actor maximises `Q(s, a_sampled)` where `a_sampled` comes from the squashed
   distribution. If the critic is inaccurate off the demonstration manifold, the gradient
   through the squash may systematically pull toward the linear centre.

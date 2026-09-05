@@ -1,0 +1,31 @@
+{
+ "id": "g1_piston_v3_retrain_run5_preregistration",
+ "recorded": "2026-09-04, BEFORE the run 5 data exists",
+ "relationship_to_run_4": "Run 4 is a REGRESSION under its own pre-registered H4 rule (v3 grasp 1.00 -> 0.00, below the 0.87 floor). Its cause is identified and fixed: g1_piston_entropy_target_miscalibrated.json. Run 5 is the same experiment with that single defect corrected, so the comparison is meaningful.",
+ "the_one_change": {
+  "was": "entropy target -8.4, a scalar calibrated against neither noise branch, sitting in the correlated branch's flat region (slope ~3 nats per unit std)",
+  "now": "target MEASURED for the branch in use at CALIBRATED_TARGET_STD=0.25 -> -7.30 for correlated noise, on slope 8.5 where alpha has leverage",
+  "also": "cold start and warm-start std reset both aim at 0.25, the std the target is calibrated for, so the run begins at the alpha equilibrium rather than off it",
+  "unchanged": "reward v3, gamma_chunk 0.98, ACTION_BASIS, CRITIC_STATE, SMOOTH_LAMBDA 100, UTD 0.5, BATCH 8, ALGO=rlpd, DEMO_FRAC 0.5, warm start from the BC policy, frozen 25-condition suite, seed 20260817"
+ },
+ "hypotheses": {
+  "H4_preservation": "CARRIED OVER UNCHANGED from run 4 and still primary. If v3 grasp falls below 0.87 (the lower bound of the initialisation's 95% CI) the run is reported as a regression, whatever happens to press and dispense. Run 4 failed this; the fix is supposed to be why.",
+  "H5_alpha_stability": "NEW, registered before the data. Under the calibrated target the alpha residual should CLOSE rather than grow: alpha should not rise monotonically, and the entropy term should not sit near a quarter of the actor objective for the whole run. Rule fixed in advance: if alpha rises by more than 40% end-to-end AND the mean entropy-to-Q ratio exceeds 0.20, the calibration fix has NOT worked, whatever the stage rates say. Run 4's values were +57% and 0.28.",
+  "H2_dispense_is_discovery_not_imitation": "Unchanged from the original pre-registration. Exactly 1 of 22 executable demonstrations shows a grasped press and none shows a dispense, so the functional act must be discovered from reward. Prior expectation remains LOW."
+ },
+ "what_would_falsify_the_fix": "If run 5 regresses in the same way (grasp collapsing while training diagnostics look healthy, alpha rising, deployed action error growing while raw weights barely move), then the entropy target was not the cause and the diagnosis in g1_piston_entropy_target_miscalibrated.json is wrong. That would be reported as a refutation of our own diagnosis, not as a second unexplained failure.",
+ "decision_rules_carried_over": {
+  "primary_readout": "v3 stage rates on the frozen 25-condition suite, deterministic, seed 20260817, scored by eval_checkpoint.py -- the same tool that scored BC at 1.00 and run 4 at 0.00",
+  "no_reward_tuning_after_seeing_results": "v3's thresholds are fixed by measurement and will not be adjusted",
+  "failure_is_reportable": "dispense staying 0.00 is the honest result and will be reported as such",
+  "post_grasp_caveat": "post-grasp outcomes are not resolvable from a single evaluation in this setup",
+  "no_target_tuning_after_seeing_results": "NEW. CALIBRATED_TARGET_STD is fixed at 0.25 by the slope measurement recorded before this run. It will not be adjusted to make run 5 look better; any future change must be justified by a new measurement and recorded as such."
+ },
+ "diagnostics_to_record_regardless_of_outcome": [
+  "alpha trajectory end to end",
+  "mean entropy-to-Q ratio",
+  "logprob_per_step trajectory against the calibrated target",
+  "deployed action error in degrees against the demonstrations, measured at the point of execution",
+  "raw head output magnitude, whose shrinkage was run 4's tell"
+ ]
+}

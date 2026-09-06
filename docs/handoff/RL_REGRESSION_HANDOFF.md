@@ -124,6 +124,25 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 6 result and the second mechanism (2026-09-05, evening)
+
+Run 6 **regressed** (in-trainer grasp 0.80 → 0.48 → 0.04 over 150 actor updates) but with a
+**different signature**: raw head magnitude 0.446 (not shrunk), alpha +6%, log-probability
+at its target. The entropy fix is verified live — the flattening mechanism is gone — and
+the policy still drifted 7.3° off the demonstrations. Stopped early per its pre-registered
+rule. Contract: `g1_piston_run6_result.json`.
+
+The remaining driver was then confirmed with run 6's own critic, no simulator
+(`tools/g1_piston/probe_critic_ranking.py`): it rates the drifted chunk **above** the BC
+chunk on 100% of demonstration frames, Q rises monotonically along the line between them,
+and the environment ranks them the other way (return 11.9 vs ≈ −0.6). The preference is 2%
+of Q for a 6.5° change that destroys the task — the critic is nearly **action-insensitive**,
+and once entropy is fixed its gradient is the only term the actor follows. Contract:
+`g1_piston_critic_exploitation.json`, which also registers a prediction for run 7 before
+its data: bounded residual ⇒ grasp preserved, but no press, because a bound does not repair
+the critic. Candidate critic fixes (untested): 10-critic LayerNorm ensemble (RLPD), n-step
+returns (ResFiT n=3), contrastive negatives near the BC action, Cal-QL calibration.
+
 ## Read the in-trainer evaluations carefully (2026-09-05)
 
 The trainer's periodic evaluation **under-scores a working policy**: run 6's first

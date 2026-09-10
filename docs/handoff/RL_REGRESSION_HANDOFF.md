@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 8 registered and chained (2026-09-06)
+
+`g1_piston_v3_retrain_run8_preregistration.json`: run 7 plus the critic repair —
+`NUM_Q=10 TARGET_SUBSET=2 ACTOR_Q_AGG=mean` (RLPD Alg. 1: target min over a random subset
+of 2, actor maximises the ensemble mean) and `N_STEP=3` (ResFiT). Implemented behind flags
+whose defaults reproduce every earlier run (commits `d0e071ca`, `3a6d9fba`; 319 tests).
+Its primary test is mechanistic (H10): does the repaired critic rank the BC chunk above
+perturbations, where run 6's ranked the drifted chunk higher on 100 % of frames?
+`runs_g1_piston/scripts/chain_rl8.sh` starts it when run 7's finish step completes.
+
 ## Durable storage (2026-09-05, 23:50)
 
 The scratchpad was wiped a **third** time, destroying run 6's checkpoints and run 7's first

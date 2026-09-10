@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Durable storage (2026-09-05, 23:50)
+
+The scratchpad was wiped a **third** time, destroying run 6's checkpoints and run 7's first
+attempt at ~43k steps. Every run artifact now lives in
+`/home/jren313/research/starvla_rl/runs_g1_piston/` (`scripts/`, `rl7/`, `diag/`,
+`filter_ab/`, `videos/`). Run 7 was relaunched there with its pre-registered command;
+`scripts/finish_rl7.sh` scores it with the scorer of record and renders videos if it passes
+H4. Never put anything that must survive in the scratchpad. Contract:
+`g1_piston_scratchpad_wipe_3.json`.
+
 ## Run 6 result and the second mechanism (2026-09-05, evening)
 
 Run 6 **regressed** (in-trainer grasp 0.80 → 0.48 → 0.04 over 150 actor updates) but with a

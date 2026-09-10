@@ -1,0 +1,21 @@
+{
+ "id": "g1_piston_scratchpad_wipe_3",
+ "recorded": "2026-09-05, 23:50",
+ "status": "INFRASTRUCTURE LOSS. Third scratchpad wipe of the project. Run 7's first attempt is lost mid-run; run 6's checkpoints are lost after its result was recorded.",
+ "lost": [
+  "run 6 checkpoints (result fully recorded beforehand in g1_piston_run6_result.json and g1_piston_critic_exploitation.json)",
+  "run 7 first attempt: checkpoints and record at ~43k env steps, 300 critic-only updates, actor about to start",
+  "all diag JSONs (every number already copied into contracts) and the automation scripts"
+ ],
+ "survived": ["the BC policy backup (checkpoints/g1_piston_bc_working/)", "the repo: contracts, tests (311 passing), tools, the 12 BC videos", "demo buffers"],
+ "run_7_first_attempt_partial_observations": {
+  "source": "in-trainer telemetry read live before the wipe; no scorer-of-record number exists for this attempt",
+  "in_trainer_periodic_grasp": {"15180": 0.76, "31200": 0.72},
+  "in_trainer_periodic_lift": {"15180": 0.44, "31200": 0.48},
+  "online_stochastic_episodes_first_13": {"grasp": "11/13", "lift": "6/13"},
+  "first_checkpoint_deployed_error_deg": 0.403,
+  "reading": "During warmup (residual exactly zero) the residual arm scored the in-trainer baseline of the unchanged policy (0.76; g1_piston_in_trainer_eval_underscores.json), as H8 predicts by construction. Online lift under residual exploration at std 0.15 (6/13) was the highest of any RL run; runs 4-6 explored the full action at std 0.20-0.25 and online lift was 0-2/66. No actor update had occurred, so nothing here tests the residual's learning."
+ },
+ "process_change": "All run artifacts now go to durable storage: /home/jren313/research/starvla_rl/runs_g1_piston/ (scripts, checkpoints, records, diag, videos). The scratchpad is used for nothing that must survive.",
+ "action": "Run 7 relaunched at 23:5x with its pre-registered command, unchanged, on durable storage. Post-warmup measurement and the score-then-render finish step re-armed there."
+}

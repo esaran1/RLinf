@@ -72,3 +72,22 @@ def test_trainer_wires_nstep_and_ensemble_flags():
     assert "num_q_heads=NUM_Q" in src
     assert "tq = rews + (~dones) * gpow * qmin" in src
     assert "NST.nstep_items(" in src
+
+
+def test_rlpd_aggregation_flags_default_to_todays_behaviour():
+    """RLPD: target = min over a random subset (2 of 10); actor = MEAN over all.
+    Defaults must reproduce every earlier run: subset = all heads, actor = min."""
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert 'TARGET_SUBSET = int(os.environ.get("TARGET_SUBSET", str(NUM_Q)))' in src
+    assert 'ACTOR_Q_AGG = os.environ.get("ACTOR_Q_AGG", "min").lower()' in src
+    assert "torch.randperm(qn.shape[1], device=qn.device)[:TARGET_SUBSET]" in src
+    assert '_qall.mean(dim=1, keepdim=True) if ACTOR_Q_AGG == "mean"' in src
+
+
+def test_demo_tuple_has_six_fields_everywhere():
+    """The n-step change grew the demo tuple to 6 fields; every unpack must agree, or a
+    run dies at the prewarm loop three minutes after launch."""
+    src = open("tools/g1_piston/train_sac.py").read()
+    assert "img, act, r, nimg, d, gp_ = demo[idx]" in src
+    assert "_img, _act, _r, _nimg, _d, _gp = demo[_idx]" in src
+    assert "= demo[_idx]\n" not in src.replace("_img, _act, _r, _nimg, _d, _gp = demo[_idx]\n", "")

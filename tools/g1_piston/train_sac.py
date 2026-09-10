@@ -94,6 +94,15 @@ RES_HIDDEN = tuple(int(x) for x in os.environ.get("RES_HIDDEN", "512,512").split
 #: (ResFiT n=3). Defaults reproduce every earlier run exactly.
 NUM_Q = int(os.environ.get("NUM_Q", "2"))
 N_STEP = int(os.environ.get("N_STEP", "1"))
+#: RLPD (arXiv 2302.02948, Alg. 1): the TARGET takes the min over a random subset of
+#: TARGET_SUBSET critics (RLPD: 2 of 10) and the ACTOR maximises the MEAN over all of
+#: them. Defaults (subset = all heads, actor = min) reproduce every earlier run exactly.
+TARGET_SUBSET = int(os.environ.get("TARGET_SUBSET", str(NUM_Q)))
+ACTOR_Q_AGG = os.environ.get("ACTOR_Q_AGG", "min").lower()
+if TARGET_SUBSET < 1 or TARGET_SUBSET > NUM_Q:
+    raise SystemExit(f"TARGET_SUBSET must be in [1, NUM_Q={NUM_Q}], got {TARGET_SUBSET}")
+if ACTOR_Q_AGG not in ("min", "mean"):
+    raise SystemExit(f"ACTOR_Q_AGG must be 'min' or 'mean', got {ACTOR_Q_AGG!r}")
 #: Encode every demonstration transition once before training instead of paying VLM
 #: cache misses inside the update loop. Measured cost ~105 s for 489 transitions; at
 #: UTD > 1 the misses otherwise dominate the loop (see the run-2 throughput analysis).
@@ -140,7 +149,8 @@ res = {
         "actor_warmup_updates": ACTOR_WARMUP_UPDATES,
         "residual": bool(RESIDUAL), "r_max": R_MAX, "res_init_std": RES_INIT_STD,
         "res_actor_lr": RES_ACTOR_LR, "res_hidden": list(RES_HIDDEN),
-        "num_q": NUM_Q, "n_step": N_STEP,
+        "num_q": NUM_Q, "n_step": N_STEP, "target_subset": TARGET_SUBSET,
+        "actor_q_agg": ACTOR_Q_AGG,
         "correlated_noise": bool(CORRELATED_NOISE),
         "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
         "run_init_eval": bool(RUN_INIT_EVAL),
@@ -903,6 +913,9 @@ try:
             nmean = head_mean(naqs).float()
             na, nlp = policy_action(naqs, nmean, actor_logstd)
             qn = target(nfeats, critic_action(na))
+            if TARGET_SUBSET < qn.shape[1]:
+                idx_ = torch.randperm(qn.shape[1], device=qn.device)[:TARGET_SUBSET]
+                qn = qn[:, idx_]
             qmin = qn.min(dim=1, keepdim=True)[0]
             alpha = ent.compute_alpha().detach()
             # mean over the horizon: per-control-action entropy scale (see TARGET_ENTROPY)
@@ -936,7 +949,9 @@ try:
         else:
             mean_b = head_mean(aqs).float()             # differentiable in OFT head
         a, lp = policy_action(aqs, mean_b, actor_logstd)
-        qpi = critic(feats, critic_action(a)).min(dim=1, keepdim=True)[0]
+        _qall = critic(feats, critic_action(a))
+        qpi = (_qall.mean(dim=1, keepdim=True) if ACTOR_Q_AGG == "mean"
+               else _qall.min(dim=1, keepdim=True)[0])
         alpha = ent.compute_alpha().detach()
         logp_chunk = lp.mean(dim=-1, keepdim=True)      # per control action
         entropy_term = alpha * logp_chunk
@@ -1033,7 +1048,7 @@ try:
         _t0 = time.time()
         for _idx in range(len(demo)):
             if _idx not in demo_feat_cache:
-                _img, _act, _r, _nimg, _d = demo[_idx]
+                _img, _act, _r, _nimg, _d, _gp = demo[_idx]
                 _aq, _f = vlm_encode(_img)
                 _naq, _nf = vlm_encode(_nimg)
                 _dcs = demo_state.get(_idx) if critic_state is not None else None

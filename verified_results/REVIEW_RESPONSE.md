@@ -307,8 +307,40 @@ calibration, with the change-of-variables term; entropy measured in latent space
 default (closed-form target, slope −4/std, never flat); and 300 critic-only warm-up
 updates before the actor moves, since the warm start reinitialises the critic
 ([WSRL](https://arxiv.org/abs/2412.07762); [ResFiT](https://arxiv.org/abs/2509.19301)).
-Run 6 is pre-registered with a rule that measures the flattening signature directly at
-the first checkpoint. Contract: `g1_piston_entropy_mean_force.json`.
+Run 6 tested the fix live and **verified it**: raw head magnitude 0.415 → 0.446 (no
+shrinkage), α +6 %, log-probability sitting at its target. Contract:
+`g1_piston_entropy_mean_force.json`.
+
+## A second mechanism: the critic
+
+Run 6 nevertheless regressed (grasp 0.80 → 0.04 over 150 actor updates) with a **different
+signature**: a 7.3° deployed action error and no flattening. With entropy fixed, the only
+term left in the actor objective is the critic's Q-gradient, and that is where the drift
+came from. Scored with run 6's own critic on demonstration frames, **no simulator**
+(`tools/g1_piston/probe_critic_ranking.py`):
+
+| executed chunk | critic Q | environment |
+|---|---|---|
+| BC policy | 1.475 | grasp 1.00, return 11.9 |
+| run 6 (drifted) | **1.509** — higher on 100 % of frames | grasp 0.04, return ≈ −0.6 |
+
+Q rises monotonically along the line from the BC chunk to the drifted one: the drift *is*
+the ascent direction. And the preference is 2 % of Q for a 6.5° change that destroys the
+task — the critic is nearly **action-insensitive** (900 action dimensions, ~8 transitions
+per dimension, two Q-heads, demonstration actions within 0.4° of the policy's own so the
+data carry no contrast). This is the offline-to-online failure the field attributes to an
+uncalibrated or exploitable critic ([Cal-QL](https://arxiv.org/abs/2303.05479),
+[WSRL](https://arxiv.org/abs/2412.07762)) and the reason
+[ResFiT](https://arxiv.org/abs/2509.19301) bounds the actor's freedom and
+[RLPD](https://arxiv.org/abs/2302.02948) uses a 10-critic LayerNorm ensemble.
+Contracts: `g1_piston_run6_result.json`, `g1_piston_critic_exploitation.json`.
+
+**Two pre-registered arms follow**, both from the same BC initialisation, scored by the same
+tool on the same suite: run 7 freezes the BC head and learns a bounded, zero-initialised
+residual (verified to equal BC exactly at step 0); run 8 adds the critic repair (10-critic
+ensemble with RLPD aggregation, 3-step returns). Their predictions were written before
+their data: the residual preserves grasp but does not repair the critic; the repair is
+tested directly by whether the critic learns to rank the BC action above perturbations.
 
 A correction to our own record: one test had asserted the defective curve's increase
 with std as a sanity property. It is relabelled as the defect it pins.
@@ -327,7 +359,10 @@ does not contain, so the plunger stages must be discovered from reward. Every RL
 so far destroyed the starting policy for a reason that is now measured and fixed; run 6
 is the first that can fairly test discovery from a competent initialisation.
 
-Two cautions carried forward. Post-grasp outcomes are not reproducible from a single
+A third caution joins the two below: the trainer's own periodic evaluation **under-scores a
+working policy** (a BC-identical checkpoint scored 0.76 grasp there against 1.00 from the
+scorer of record, with identical code paths), so only `eval_checkpoint.py` in a fresh
+process is a number of record. Post-grasp outcomes are not reproducible from a single
 rollout in this setup (`g1_piston_post_grasp_nondeterminism.json`), so a rendered video
 can differ from its evaluation row; the 25-condition evaluation is the number of record.
 And both defects fixed here were invisible to every test in the suite until the failure

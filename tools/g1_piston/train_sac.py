@@ -89,6 +89,11 @@ R_MAX = float(os.environ.get("R_MAX", "0.15"))
 RES_INIT_STD = float(os.environ.get("RES_INIT_STD", "0.15"))
 RES_ACTOR_LR = float(os.environ.get("RES_ACTOR_LR", "3e-4"))
 RES_HIDDEN = tuple(int(x) for x in os.environ.get("RES_HIDDEN", "512,512").split(","))
+#: Critic repair, for run 8 (g1_piston_critic_exploitation.json). NUM_Q: critic ensemble
+#: size with min aggregation (RLPD uses 10). N_STEP: n-step returns at chunk level
+#: (ResFiT n=3). Defaults reproduce every earlier run exactly.
+NUM_Q = int(os.environ.get("NUM_Q", "2"))
+N_STEP = int(os.environ.get("N_STEP", "1"))
 #: Encode every demonstration transition once before training instead of paying VLM
 #: cache misses inside the update loop. Measured cost ~105 s for 489 transitions; at
 #: UTD > 1 the misses otherwise dominate the loop (see the run-2 throughput analysis).
@@ -135,6 +140,7 @@ res = {
         "actor_warmup_updates": ACTOR_WARMUP_UPDATES,
         "residual": bool(RESIDUAL), "r_max": R_MAX, "res_init_std": RES_INIT_STD,
         "res_actor_lr": RES_ACTOR_LR, "res_hidden": list(RES_HIDDEN),
+        "num_q": NUM_Q, "n_step": N_STEP,
         "correlated_noise": bool(CORRELATED_NOISE),
         "prewarm_demo_cache": bool(PREWARM_DEMO_CACHE),
         "run_init_eval": bool(RUN_INIT_EVAL),
@@ -180,6 +186,7 @@ try:
     CST = _load("g1cs", RL + "g1_piston_critic_state.py") if CRITIC_STATE else None
     CNZ = _load("g1cn", RL + "g1_piston_correlated_policy.py") if CORRELATED_NOISE else None
     RESP = _load("g1rp", RL + "g1_piston_residual_policy.py") if RESIDUAL else None
+    NST = _load("g1ns", RL + "g1_piston_nstep.py")
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     AFLT = _load("g1af", RL + "g1_piston_action_filter.py")
 
@@ -263,8 +270,8 @@ try:
     A_IN = ABAS.critic_input_dim() if ACTION_BASIS else 30 * H
     # Privileged state is concatenated onto the VLM feature (asymmetric actor-critic).
     C_IN = HID + (CST.STATE_DIM if CRITIC_STATE else 0)
-    critic = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=2).to(DEV)
-    target = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=2).to(DEV)
+    critic = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=NUM_Q).to(DEV)
+    target = MultiQHead(C_IN, A_IN, [256, 256], num_q_heads=NUM_Q).to(DEV)
 
     # Correlated exploration sampler. Built once; carries the fixed DCT basis.
     corr_noise = (CNZ.CorrelatedChunkNoise(horizon=H, dims=30, device=DEV)
@@ -359,6 +366,8 @@ try:
         # would emit confident nonsense that the actor would then maximise.
         want = critic.state_dict()["qs.0.net.0.weight"].shape
         got = None if POLICY_ONLY else wc["critic"]["qs.0.net.0.weight"].shape
+        if not POLICY_ONLY and f"qs.{NUM_Q - 1}.net.0.weight" not in wc["critic"]:
+            got = ("ensemble size differs",)
         if POLICY_ONLY:
             target.load_state_dict(critic.state_dict())
             WARM_META["critic_transferred"] = False
@@ -791,11 +800,14 @@ try:
                 raise SystemExit(
                     f"CRITIC_STATE=1 but {fn} carries no critic_state array. Rebuild "
                     "the buffer with tools/g1_piston/build_demo_buffer.py.")
-            for i in range(len(acts) - 1):
+            T_ = len(acts) - 1
+            for i in range(T_):
+                m_ = min(N_STEP, T_ - i)
+                R_ = sum((GAMMA ** k) * float(rews[i + k]) for k in range(m_))
                 if cstates is not None:
                     demo_state[len(demo)] = cstates[i]
-                    demo_next_state[len(demo)] = cstates[i + 1]
-                demo.append((imgs[i], acts[i], float(rews[i]), imgs[i + 1], False))
+                    demo_next_state[len(demo)] = cstates[i + m_]
+                demo.append((imgs[i], acts[i], R_, imgs[i + m_], False, GAMMA ** m_))
         res["demo_transitions"] = len(demo)
         res["demo_episodes"] = len([f for f in os.listdir(DEMO_DIR) if f.endswith(".npz")])
         emit()
@@ -810,7 +822,7 @@ try:
         """
         out = []
         for idx in np.random.randint(0, len(demo), size=k):
-            img, act, r, nimg, d = demo[idx]
+            img, act, r, nimg, d, gp_ = demo[idx]
             if idx not in demo_feat_cache:
                 aq, f = vlm_encode(img)
                 naq, nf = vlm_encode(nimg)
@@ -833,7 +845,7 @@ try:
                             "(it records critic_state) and point DEMO_DIR at it.")
                 demo_feat_cache[idx] = store(
                     f, aq, torch.tensor(act, dtype=torch.float32), r, nf, naq, d,
-                    cs=dcs, ncs=dncs)
+                    cs=dcs, ncs=dncs, gpow=gp_)
             out.append(demo_feat_cache[idx])
         return out
 
@@ -849,7 +861,9 @@ try:
         rews = torch.tensor([x[3] for x in items], dtype=torch.float32, device=DEV).unsqueeze(-1)
         nfeats, naqs = cat(4), cat(5)
         dones = torch.tensor([x[6] for x in items], dtype=torch.bool, device=DEV).unsqueeze(-1)
-        return feats, aqs, acts, rews, nfeats, naqs, dones
+        gpow = torch.tensor([x[7] if len(x) > 7 else GAMMA for x in items],
+                            dtype=torch.float32, device=DEV).unsqueeze(-1)
+        return feats, aqs, acts, rews, nfeats, naqs, dones, gpow
 
     def _fuse(feat, cs):
         """Concatenate the privileged critic state onto the VLM feature.
@@ -863,7 +877,7 @@ try:
         v = torch.as_tensor(cs, dtype=feat.dtype, device=feat.device).view(1, -1)
         return torch.cat([feat, v], dim=-1)
 
-    def store(feat, aq, action, reward, nfeat, naq, done, cs=None, ncs=None):
+    def store(feat, aq, action, reward, nfeat, naq, done, cs=None, ncs=None, gpow=None):
         """Build one replay entry, holding the big tensors in float16 on CPU.
 
         The action queries dominate the footprint (H x HID = 30 x 2048 per state, twice
@@ -876,11 +890,11 @@ try:
         return (feat.squeeze(0).to("cpu", dtype=h), aq.squeeze(0).to("cpu", dtype=h),
                 action.detach().to("cpu", dtype=h), float(reward),
                 nfeat.squeeze(0).to("cpu", dtype=h), naq.squeeze(0).to("cpu", dtype=h),
-                bool(done))
+                bool(done), float(gpow if gpow is not None else GAMMA))
 
     # ---------------- gradient update ----------------
     def sac_update(batch_items):
-        feats, aqs, acts, rews, nfeats, naqs, dones = collate(batch_items)
+        feats, aqs, acts, rews, nfeats, naqs, dones, gpow = collate(batch_items)
         B = feats.shape[0]
 
         # --- critic ---
@@ -893,7 +907,7 @@ try:
             alpha = ent.compute_alpha().detach()
             # mean over the horizon: per-control-action entropy scale (see TARGET_ENTROPY)
             qmin = qmin - alpha * nlp.mean(dim=-1, keepdim=True)
-            tq = rews + (~dones) * GAMMA * qmin
+            tq = rews + (~dones) * gpow * qmin
         q = critic(feats, critic_action(acts))
         closs = F.mse_loss(q, tq.expand_as(q))
         opt_critic.zero_grad(); closs.backward()
@@ -1044,7 +1058,7 @@ try:
         apply_reset_condition(env, train_cond)
         reward_fn.reset()
         bar0 = sc["object"].data.body_pos_w[0, 1].cpu().numpy().copy()
-        ep_ret = 0.0; ep_stages = {}; maxlift = 0.0
+        ep_ret = 0.0; ep_stages = {}; maxlift = 0.0; ep_raw = []
         img = get_img()
         feat, mean, aq = vlm_feature_and_mean(img)
         if critic_state is not None:
@@ -1060,7 +1074,11 @@ try:
             nfeat, nmean, naq = vlm_feature_and_mean(nimg)
             ncs = (critic_state.build(stages=info.get("stages", {}), chunk=c + 1)
                    if critic_state is not None else None)
-            online.append(store(feat, aq, a[0], r, nfeat, naq, done, cs=cs, ncs=ncs))
+            if N_STEP == 1:
+                online.append(store(feat, aq, a[0], r, nfeat, naq, done, cs=cs, ncs=ncs))
+            else:
+                # Buffer raw transitions; n-step items are emitted at episode end.
+                ep_raw.append(((feat, aq, cs), a[0], r, (nfeat, naq, ncs), done))
             ep_ret += r
             for k, v in info.get("stages", {}).items():
                 ep_stages[k] = ep_stages.get(k, False) or v
@@ -1116,6 +1134,11 @@ try:
             if done: break
 
         bar = sc["object"].data.body_pos_w[0, 1].cpu().numpy()
+        if N_STEP > 1 and ep_raw:
+            for (sf, sa, scs), act_, R_, (nf, na, ncs_), d_, gp_ in NST.nstep_items(
+                    ep_raw, N_STEP, GAMMA):
+                online.append(store(sf, sa, act_, R_, nf, na, d_, cs=scs, ncs=ncs_, gpow=gp_))
+            ep_raw = []
         res["episodes"].append({
             "episode": episode, "condition": train_cond.index,
             "condition_hash": train_cond.hash(), "env_steps": env_steps,

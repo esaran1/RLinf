@@ -124,6 +124,19 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 8 result (2026-09-11, 12:50): the critic repair did not help
+
+Run 8 (10-critic RLPD-aggregated ensemble, 3-step returns, residual arm) **collapsed
+identically**: grasp 0.92 during warm-up → 0.68 → 0.00 → 0.04 once the actor updated; 2.71°
+executed error at the first post-warm-up checkpoint. The critic fit its targets (loss 27.9 →
+0.85; Q 3.4) — it changed its *values*, not its *action sensitivity*. Stopped early per the
+rule. Three arms now fail the same way after the entropy fix; the common factor is a critic
+gradient that does not encode which action directions break the grasp, and that is a
+property of the data (demo actions within 0.4° of the policy's own; 180-D exploration noise
+at ~8 transitions/dim). Scorer-of-record numbers, H10 and the order probe are queued
+(`finish_rl8.log`). The four options for what comes next are recorded in
+`g1_piston_run8_result.json`; choosing among them is the user's decision.
+
 ## H10 instrument and run 8 automation (2026-09-11)
 
 `tools/g1_piston/probe_critic_ranking.py` is generalised (ensemble size inferred, run's

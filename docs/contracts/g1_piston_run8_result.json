@@ -1,0 +1,24 @@
+{
+ "id": "g1_piston_run8_result",
+ "recorded": "2026-09-11",
+ "status": "REGRESSION under the pre-registered H4 rule; stopped early per the pre-registered rule. The critic repair (10-critic RLPD-aggregated ensemble + 3-step returns) trained but did not prevent the collapse. Scorer-of-record and H10 numbers pending (queued).",
+ "what_ran": "Run 7's residual arm plus NUM_Q=10, TARGET_SUBSET=2, ACTOR_Q_AGG=mean, N_STEP=3 (run8_preregistration.json). Durable storage. 63,780 env steps, 450 updates (150 actor) before the stop.",
+ "readout": {
+  "in_trainer_grasp_per_eval": {"15180": 0.92, "30360": 0.68, "45300": 0.00, "60480": 0.04},
+  "in_trainer_lift_per_eval": {"15180": 0.40, "30360": 0.40, "45300": 0.00, "60480": 0.00},
+  "note_on_scale": "in-trainer baseline for the unchanged policy is 0.76; 0.92 during warmup is the zero residual (BC). Collapse begins with the first actor updates, exactly as in runs 6 and 7.",
+  "post_warmup_first_checkpoint": {"deployed_err_deg": 2.708, "raw_head_abs_mean": 0.4151},
+  "critic": "loss 27.9 at update 75 (3-step targets) -> 0.85 by update 450: the ensemble fit its targets. Q rose to 3.42.",
+  "entropy": "alpha 0.0501 -> 0.0467, logp 1.92 -> 1.91 at target 1.913: regulating correctly.",
+  "H4": "FAIL"
+ },
+ "reading": "Three arms now collapse identically once the actor updates: direct head (run 6), bounded residual (run 7), bounded residual with a repaired critic (run 8). The entropy term is verified fixed in all three. The common factor is that the actor follows a critic gradient that does not encode which action directions break the grasp. A larger ensemble and longer-horizon targets change the critic's VALUE estimates (Q 3.4 vs 0.6) without changing its ACTION sensitivity, which is a property of the data: demonstration actions lie within 0.4 deg of the policy's own, and 180-dimensional exploration noise at ~8 transitions per dimension does not localise which dimension mattered.",
+ "pending": "H10 probe on run 8's final critic (queued after scoring) will state the sensitivity number directly; scorer-of-record grasp for runs 7 and 8; reversed-order BC probe.",
+ "what_this_settles": "Under this compute budget (~1.5 s per update, ~600 updates per run, one 16 GB GPU), off-policy actor-critic fine-tuning of this chunked VLA policy does not preserve a working behaviour, and the reason is measured at every layer: entropy geometry (fixed), then critic action-insensitivity (not fixed by ensemble size or n-step).",
+ "options_recorded_for_the_decision": [
+  "A: contrastive negatives -- construct transitions whose actions are the BC chunk perturbed along ONE dimension at a time and whose rewards come from the simulator, so the critic can attribute failure to a direction. Costly: each negative is a simulator rollout (~150 s per condition).",
+  "B: shrink the RL action space to a handful of task-relevant dimensions and 1-2 DCT components, so ~8 transitions per dimension becomes hundreds.",
+  "C: write up the measured anatomy with the BC result as the deliverable; no further RL runs.",
+  "D: produce a pressing demonstration by extending the data (scripted or teleoperated press) and cloning it; not RL, but yields the functional video."
+ ]
+}

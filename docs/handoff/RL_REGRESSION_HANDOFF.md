@@ -124,6 +124,22 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 7 result (2026-09-11) and a stuck pipeline
+
+Run 7 **regressed**: in-trainer grasp 0.88 during warm-up (zero residual = BC) → 0.04 → 0.00
+once the residual started updating; 2.66° executed error at the first post-warm-up
+checkpoint. The base head is verified bit-identical to BC (max |Δ| = 0.0), so the residual
+alone did it: it climbs the same action-insensitive critic within its bound, and 0.15 per
+coefficient is enough to break a grasp. The registered prediction (bound preserves grasp)
+is falsified; run 8's critic repair is now the decisive test. Contract:
+`g1_piston_run7_result.json`.
+
+The finish script sat for ~5 days in a `pgrep -f` loop that matched the shell wrapper
+which launched it (its command line contained the pattern). `scripts/common.sh` now builds
+the pattern from variables with bracketed names; scripts start under `setsid`. Run 8 was
+launched manually on 2026-09-11 10:36; run 7's scoring and the reversed-order BC probe are
+queued after it in `scripts/finish_rl8.sh`.
+
 ## Run 8 registered and chained (2026-09-06)
 
 `g1_piston_v3_retrain_run8_preregistration.json`: run 7 plus the critic repair —

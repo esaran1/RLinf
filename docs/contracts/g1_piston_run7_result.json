@@ -1,0 +1,20 @@
+{
+ "id": "g1_piston_run7_result",
+ "recorded": "2026-09-11",
+ "status": "REGRESSION under the pre-registered H4 rule. The registered prediction that a bounded residual would preserve grasp is FALSIFIED. Scorer-of-record number pending (queued after run 8) because the finish script was stuck for six days.",
+ "what_ran": "Frozen BC head + zero-initialised residual in the 6-component DCT basis, R_MAX 0.15, exploration std 0.15, residual lr 3e-4, latent entropy, 300 critic-only warmup updates, RLPD 50/50, v3 reward (run7_preregistration.json). Second launch, on durable storage; completed 90k env steps, 625 updates (325 actor).",
+ "readout": {
+  "in_trainer_grasp_per_eval": {"15540": 0.76, "30540": 0.88, "46320": 0.04, "60780": 0.08, "76320": 0.00, "91260": 0.04},
+  "in_trainer_lift_per_eval": {"15540": 0.52, "30540": 0.56, "46320": 0.00, "60780": 0.04, "76320": 0.00, "91260": 0.04},
+  "note_on_scale": "The in-trainer path scores the UNCHANGED policy 0.76 (g1_piston_in_trainer_eval_underscores.json); 0.76 -> 0.88 during warmup is the zero residual, i.e. the BC policy. Collapse begins with the first actor updates.",
+  "post_warmup_first_checkpoint": {"deployed_err_deg": 2.659, "raw_head_abs_mean": 0.4151, "reading": "the base head's magnitude is unchanged by construction; the residual alone moved the executed chunk 2.66 deg from the demonstrations, already enough to break the grasp"},
+  "H9_base_unchanged": "VERIFIED DIRECTLY: max |head(final) - head(BC)| = 0.0. The run record's oft_changed=True was an ordering artifact (reference snapshotted before the warm-start load); fixed.",
+  "H8": "PASS at step 0 (0.403 deg = BC), by construction.",
+  "entropy": "alpha 0.0508 -> 0.0376, logp 1.94 -> 1.55 against target 1.91: regulating in the correct direction; no flattening (the head cannot flatten, it is frozen).",
+  "H4": "FAIL"
+ },
+ "why_the_bound_did_not_help": "The residual actor (lr 3e-4, 100x the direct arm) climbs the same action-insensitive critic (2 heads, 1-step) within its bound and reaches the bound quickly in the critic's preferred, wrong direction. R_MAX 0.15 per coefficient (~7% of the action range) is more than enough to break a contact-rich grasp: 2.66 deg of executed error at the first post-warmup checkpoint. A bound limits the SIZE of the damage, not its direction; only the critic determines direction. This is consistent with g1_piston_critic_exploitation.json and makes run 8 (critic repair) the decisive test.",
+ "prediction_status": "The registered prediction 'H4 preserved, H2 not reached' is half wrong: H4 failed. Reported as such.",
+ "infrastructure_defect_found": "scripts/finish_rl7.sh never fired: its busy check pgrep -f 'bin/python tools/g1_piston/train_sac.py' matched the lingering shell wrapper that had launched it (the wrapper's command line contained the pattern text). The GPU sat idle for ~5 days. Fixed: patterns are built from variables with bracketed names and a literal prefix, scripts are started with setsid, and run 7's scoring plus the reversed-order BC probe are queued after run 8.",
+ "unaffected": "The BC policy and its videos; the entropy fix (verified again: no flattening, alpha regulating); the H8 construction property."
+}

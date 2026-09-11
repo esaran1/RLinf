@@ -124,6 +124,18 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## H10 instrument and run 8 automation (2026-09-11)
+
+`tools/g1_piston/probe_critic_ranking.py` is generalised (ensemble size inferred, run's
+aggregation, stored residual applied) and validated on run 7's checkpoint, where it
+replicated the run-6 finding: a random exploration-scale perturbation of the BC chunk gets
+exactly BC's Q (chance-level 46 %), while the residual's same-sized change is rated higher on
+100 % of frames. Run 8's pre-registration was amended before its data to replace the
+destroyed "run 6 drifted chunk" clause. After run 8 is scored, `scripts/h10_after_score_rl8.sh`
+runs the probe automatically; then `finish_rl8.sh` scores run 7 and runs the reversed-order
+BC probe. Watch run 8's critic loss: it started at 27.9 with 3-step targets (earlier runs
+≈ 1.2) and must fall during the 300-update warm-up for the actor phase to mean anything.
+
 ## Run 7 result (2026-09-11) and a stuck pipeline
 
 Run 7 **regressed**: in-trainer grasp 0.88 during warm-up (zero residual = BC) → 0.04 → 0.00

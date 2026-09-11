@@ -335,12 +335,26 @@ uncalibrated or exploitable critic ([Cal-QL](https://arxiv.org/abs/2303.05479),
 [RLPD](https://arxiv.org/abs/2302.02948) uses a 10-critic LayerNorm ensemble.
 Contracts: `g1_piston_run6_result.json`, `g1_piston_critic_exploitation.json`.
 
-**Two pre-registered arms follow**, both from the same BC initialisation, scored by the same
-tool on the same suite: run 7 freezes the BC head and learns a bounded, zero-initialised
-residual (verified to equal BC exactly at step 0); run 8 adds the critic repair (10-critic
-ensemble with RLPD aggregation, 3-step returns). Their predictions were written before
-their data: the residual preserves grasp but does not repair the critic; the repair is
-tested directly by whether the critic learns to rank the BC action above perturbations.
+**Run 7** froze the BC head and learned a bounded, zero-initialised residual (verified to
+equal BC exactly at step 0). It **regressed too**: grasp 0.88 while the residual was zero,
+then 0.04 → 0.00 once it started updating, with the base head verified bit-identical to BC
+throughout. The registered prediction that the bound would preserve grasp was wrong, and
+the reason is the point: a bound limits the *size* of the damage, not its *direction*.
+Scored with run 7's own critic, a random exploration-scale perturbation of the BC chunk
+gets **exactly** BC's Q (0.989 vs 0.989; BC beats it on 46 % of draws — chance), while the
+residual's chunk, whose executed error (2.49°) is the same size as that perturbation's
+(2.64°), is rated higher on 100 % of frames. The critic cannot tell a grasp-breaking change
+from noise; the actor finds the one direction with a slight positive slope and follows it.
+Contract: `g1_piston_run7_result.json`.
+
+**Run 8** (pre-registered, running) adds the critic repair: a 10-critic LayerNorm ensemble
+with RLPD's aggregation (target min over a random subset of 2, actor on the ensemble mean)
+and 3-step returns. Its primary test is mechanistic and was fixed before its data: does the
+repaired critic rank the BC chunk above exploration-scale perturbations on ≥ 70 % of draws
+(chance ≈ 50 %), with a > 10 % Q gap to its own final chunk? If it does not, the ensemble
+and n-step are insufficient and the remaining lever is the data itself — contrastive
+negatives near the BC action — because demonstration actions lie within 0.4° of the
+policy's own and carry no contrast for the critic to learn from.
 
 A correction to our own record: one test had asserted the defective curve's increase
 with std as a sanity property. It is relabelled as the defect it pins.

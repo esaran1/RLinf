@@ -12,15 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Does run 6's critic rate the DRIFTED policy above the BC policy?
+"""Is the critic action-sensitive, and does it rank the BC chunk above worse chunks?
 
-No simulator. On demonstration ep046 frames, with run 6's own critic (and its target):
-    Q(a_demo)   demonstration action (executed/normalised space)  env return 11.88 (ep mean)
-    Q(a_BC)     BC head's deterministic chunk                     env: grasp 1.00, return 11.9
-    Q(a_run6)   run 6 head's deterministic chunk (step 60840)     env: grasp 0.04, return ~-0.6
-Prediction under critic exploitation: Q(a_run6) > Q(a_BC) although the environment scores
-run 6 far lower. Also reports the critic's gradient direction: does moving from a_BC toward
-a_run6 raise Q (i.e. is the drift the ascent direction the actor followed)?
+No simulator. On demonstration ep046 frames, with the critic (and target) stored in the
+checkpoint given by CKPT, score:
+    Q(a_BC)       the BC head's deterministic chunk        env: grasp 1.00, return 11.9
+    Q(a_policy)   the checkpoint's own deterministic chunk  (base + residual if present)
+    Q(a_pert_k)   a_BC perturbed by exploration-scale noise (PERT_STD, K draws)
+    Q(a_demo)     the demonstration action
+
+H10 (run8_preregistration.json): Q(a_BC) > Q(a_pert) on >= 70% of (frame, draw) pairs,
+and |Q(a_BC) - Q(a_policy)| / |Q(a_BC)| > 0.10. Run 6's critic had Q(drifted) > Q(BC)
+on 100% of frames with a 2% gap: action-insensitive and mis-sloped.
+
+The ensemble size is inferred from the checkpoint, the aggregation matches the run's
+config (min over all heads unless the run record says otherwise), and a residual policy
+in the checkpoint is applied when forming a_policy.
+Env: OUTF, CKPT, [RUNJSON] (for aggregation/config), [PERT_STD=0.15], [K=8]
 """
 import json, os, sys, traceback, numpy as np
 OUT=os.environ["OUTF"]; res={"_status":"RUNNING"}
@@ -39,6 +47,9 @@ try:
     RLSP=_load("g1s",RL+"g1_piston_rl_space.py"); ABAS=_load("g1ab",RL+"g1_piston_action_basis.py")
     Q99=_load("g1n",RL+"g1_piston_norm.py").Q99ActionNormalizer
     from rlinf.models.embodiment.modules.q_head import MultiQHead
+    def infer_num_q(sd):
+        """Number of Q heads in a MultiQHead state dict (keys 'qs.<i>....')."""
+        return 1+max(int(k.split(".")[1]) for k in sd if k.startswith("qs."))
     BASE="/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1"
     TASK=("pick up the piston with the right hand, inject it into the tube held by the left hand, then move it over the hole plate.")
     from deployment.model_server.tools.image_tools import to_pil_preserve
@@ -54,10 +65,22 @@ try:
     FROZEN=RLSP.load_frozen_values(f"{BASE}/dataset_statistics.json").to(DEV).float()
     S=os.environ["SCRATCH"]
     BC=torch.load("/home/jren313/research/starvla_rl/checkpoints/g1_piston_bc_working/bc_ckpt_latest.pt",map_location="cpu",weights_only=False)["action_model"]
-    R6=torch.load(f"{S}/runs/rl6/rlpd_ckpt_step60840.pt",map_location="cpu",weights_only=False)
+    R6=torch.load(os.environ["CKPT"],map_location="cpu",weights_only=False)
     C_IN=HID+68; A_IN=ABAS.critic_input_dim()
-    critic=MultiQHead(C_IN,A_IN,[256,256],num_q_heads=2).to(DEV); critic.load_state_dict(R6["critic"]); critic.eval()
-    target=MultiQHead(C_IN,A_IN,[256,256],num_q_heads=2).to(DEV); target.load_state_dict(R6["target"]); target.eval()
+    NQ=infer_num_q(R6["critic"]); res["num_q"]=NQ
+    critic=MultiQHead(C_IN,A_IN,[256,256],num_q_heads=NQ).to(DEV); critic.load_state_dict(R6["critic"]); critic.eval()
+    target=MultiQHead(C_IN,A_IN,[256,256],num_q_heads=NQ).to(DEV); target.load_state_dict(R6["target"]); target.eval()
+    AGG="min"
+    if os.environ.get("RUNJSON"):
+        AGG=json.load(open(os.environ["RUNJSON"])).get("config",{}).get("actor_q_agg","min")
+    res["actor_q_agg"]=AGG
+    residual=None
+    if "residual" in R6:
+        RESP=_load("g1rp",RL+"g1_piston_residual_policy.py"); _rc=R6.get("residual_cfg",{})
+        residual=RESP.ResidualPolicy(feat_dim=int(_rc.get("feat_dim",HID)),hidden=tuple(_rc.get("hidden",(512,512))),
+                                     r_max=float(_rc.get("r_max",0.15)),device=DEV)
+        residual.load_state_dict(R6["residual"]); residual.eval(); res["residual_applied"]=True
+    PERT_STD=float(os.environ.get("PERT_STD","0.15")); K=int(os.environ.get("K","8"))
 
     def encode(img):
         with torch.no_grad():
@@ -80,7 +103,9 @@ try:
     def squash(mean):
         a=torch.tanh(mean)*SC+SH; return torch.where(am,a,FROZEN.expand_as(a))
     def q(net,feats,a):
-        with torch.no_grad(): return net(feats,ABAS.flatten(ABAS.project(a))).min(dim=1)[0]
+        with torch.no_grad():
+            qa=net(feats,ABAS.flatten(ABAS.project(a)))
+            return qa.mean(dim=1) if AGG=="mean" else qa.min(dim=1)[0]
 
     z=np.load("/home/jren313/research/starvla_rl/demo_buffer_v3/ep046.npz")
     rows=[]; feats=[]; aqs=[]
@@ -91,19 +116,34 @@ try:
     F_=torch.cat(feats); AQ=torch.cat(aqs)
     a_demo=nrm.normalize(torch.as_tensor(z["actions"][:len(aqs)],dtype=torch.float32)).to(DEV)
     model.action_model.load_state_dict(BC);  a_bc=squash(head(AQ))
-    model.action_model.load_state_dict(R6["action_model"]); a_r6=squash(head(AQ))
+    # the checkpoint's own policy chunk: its head (frozen = BC under the residual arm) + residual
+    model.action_model.load_state_dict(R6["action_model"]); a_pol=squash(head(AQ))
+    if residual is not None:
+        with torch.no_grad(): a_pol,_,_=residual.act(AQ,a_pol,None,am,deterministic=True)
+        a_pol=torch.where(am,a_pol,FROZEN.expand_as(a_pol))
+    torch.manual_seed(0)
+    perts=[torch.where(am,torch.clamp(a_bc+PERT_STD*torch.randn_like(a_bc),LOW,HIGH),a_bc) for _ in range(K)]
     out={}
     for name,net in (("critic",critic),("target",target)):
-        qd,qb,qr=q(net,F_,a_demo),q(net,F_,a_bc),q(net,F_,a_r6)
-        # direction test: interpolate from BC toward run 6
-        line=[float(q(net,F_,a_bc+t*(a_r6-a_bc)).mean()) for t in (0.0,0.25,0.5,0.75,1.0)]
-        out[name]={"Q_demo":float(qd.mean()),"Q_bc":float(qb.mean()),"Q_run6":float(qr.mean()),
-                   "frac_frames_Q_run6_gt_Q_bc":float((qr>qb).float().mean()),
-                   "Q_along_bc_to_run6":line}
+        qd,qb,qp=q(net,F_,a_demo),q(net,F_,a_bc),q(net,F_,a_pol)
+        qpert=torch.stack([q(net,F_,x) for x in perts])                     # [K,n]
+        frac_bc_over_pert=float((qb.unsqueeze(0)>qpert).float().mean())
+        gap=float((qb-qp).abs().mean()/qb.abs().mean().clamp(min=1e-6))
+        line=[float(q(net,F_,a_bc+t*(a_pol-a_bc)).mean()) for t in (0.0,0.25,0.5,0.75,1.0)]
+        out[name]={"Q_demo":float(qd.mean()),"Q_bc":float(qb.mean()),"Q_policy":float(qp.mean()),
+                   "Q_pert_mean":float(qpert.mean()),
+                   "frac_Q_bc_gt_Q_pert":frac_bc_over_pert,
+                   "rel_gap_bc_vs_policy":gap,
+                   "frac_frames_Q_policy_gt_Q_bc":float((qp>qb).float().mean()),
+                   "Q_along_bc_to_policy":line,
+                   "H10_sensitivity":frac_bc_over_pert>=0.70,"H10_gap":gap>0.10}
     res["n_frames"]=int(F_.shape[0]); res["by_net"]=out
-    res["deployed_err_deg"]={"bc_vs_demo":float(((nrm.denormalize(a_bc.cpu())-torch.as_tensor(z["actions"][:len(aqs)])).abs()[...,am.cpu()]).mean())*57.3,
-                             "run6_vs_demo":float(((nrm.denormalize(a_r6.cpu())-torch.as_tensor(z["actions"][:len(aqs)])).abs()[...,am.cpu()]).mean())*57.3}
-    res["environment_truth"]={"bc":"grasp 1.00, lift 0.80, return 11.935 (scorer of record)","run6_step60840":"in-trainer grasp 0.04, lift 0.00 (scorer of record pending)","demo_ep_returns_mean":11.88}
+    T_=torch.as_tensor(z["actions"][:len(aqs)])
+    res["deployed_err_deg"]={"bc_vs_demo":float(((nrm.denormalize(a_bc.cpu())-T_).abs()[...,am.cpu()]).mean())*57.3,
+                             "policy_vs_demo":float(((nrm.denormalize(a_pol.cpu())-T_).abs()[...,am.cpu()]).mean())*57.3,
+                             "pert_vs_demo_mean":float(sum(((nrm.denormalize(x.cpu())-T_).abs()[...,am.cpu()]).mean() for x in perts)/K)*57.3}
+    res["pert_std"]=PERT_STD; res["K"]=K
+    res["environment_truth"]={"bc":"grasp 1.00, lift 0.80, return 11.935 (scorer of record)","demo_ep_returns_mean":11.88}
     emit("OK"); os._exit(0)
 except Exception as e:
     res["error"]=f"{type(e).__name__}: {e}"; res["tb"]=traceback.format_exc(); emit("ERROR"); os._exit(1)

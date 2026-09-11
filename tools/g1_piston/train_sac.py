@@ -258,7 +258,7 @@ try:
     vlm_ref = {n: p.detach().clone() for n, p in list(
         model.qwen_vl_interface.named_parameters())[:5]}   # spot-check frozen-ness
     oft_ref = {n: p.detach().clone() for n, p in list(
-        model.action_model.named_parameters())[:5]}
+        model.action_model.named_parameters())[:5]}   # re-snapshotted after warm start
 
     # exploration log-std (per active dim), learned
     # Initialise exploration AT the entropy target's std (0.20 -> log-prob ~ -8.4), so
@@ -396,6 +396,11 @@ try:
                 f"critic input width changed {tuple(got)} -> {tuple(want)} "
                 "(ACTION_BASIS / CRITIC_STATE); policy and alpha still transferred")
         WARM_META["warm_env_steps"] = int(wc.get("env_steps", -1))
+        # Snapshot the head AFTER loading it, so oft_changed measures training, not the
+        # difference between the warm checkpoint and SFT (run 7 reported True with a head
+        # verified bit-identical to its warm start).
+        oft_ref = {n: p.detach().clone() for n, p in list(
+            model.action_model.named_parameters())[:5]}
         WARM_META["warm_grad_updates"] = int(wc.get("grad_updates", -1))
     # ENTROPY REDUCTION CONVENTION (see tests/unit_tests/
     # test_g1_piston_sac_decision_variable.py, which pins this):

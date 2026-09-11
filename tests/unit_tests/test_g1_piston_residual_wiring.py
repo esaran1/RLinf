@@ -131,3 +131,13 @@ def test_smoothness_penalty_targets_the_composed_chunk_under_the_residual_arm():
     src = _src(TRAINER)
     assert 'det = (RES_LAST["det"] if RESIDUAL else' in src
     assert 'RES_LAST["det"] = res_actor.compose(a_base, c_mean, ACT_MASK)' in src
+
+
+def test_oft_reference_is_taken_after_the_warm_start():
+    """Run 7 reported oft_changed=True with a head verified bit-identical to BC, because
+    the reference was snapshotted before the warm checkpoint was loaded."""
+    src = _src(TRAINER)
+    i_warm = src.index('WARM_META["warm_env_steps"]')
+    i_snap = src.index("oft_ref = {", i_warm)
+    assert i_snap > i_warm
+    assert "re-snapshotted after warm start" in src

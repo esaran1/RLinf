@@ -5,7 +5,12 @@
  "why_registered_now": "The critic's action-insensitivity was measured with run 6's own critic before run 7 could speak, and the repair is taken from the literature rather than from run 7's outcome. Registering and chaining it now means it runs from the same initialisation regardless of run 7, and cannot be tuned against run 7's numbers.",
  "configuration": {
   "base": "identical to run7_preregistration.json (RESIDUAL=1, R_MAX 0.15, RES_INIT_STD 0.15, RES_ACTOR_LR 3e-4, latent entropy, ACTOR_WARMUP_UPDATES 300, ALGO=rlpd, DEMO_FRAC 0.5, v3 reward, frozen suite, seed 20260817)",
-  "critic_repair": {"NUM_Q": 10, "TARGET_SUBSET": 2, "ACTOR_Q_AGG": "mean", "N_STEP": 3},
+  "critic_repair": {
+   "NUM_Q": 10,
+   "TARGET_SUBSET": 2,
+   "ACTOR_Q_AGG": "mean",
+   "N_STEP": 3
+  },
   "unchanged_limits": "UTD 0.5 (throughput-bound; RLPD uses 20), BATCH 8, 90k env steps"
  },
  "hypotheses_fixed_in_advance": {
@@ -16,5 +21,11 @@
  },
  "what_falsifies": "H10 failing (critic still action-insensitive) means the ensemble and n-step are not sufficient and the remaining lever is the DATA: contrastive negatives near the BC action. H10 passing with H2 failing means the critic now ranks actions but the residual's bound or the budget is limiting.",
  "execution": "scripts/run_rl8.sh on durable storage; chained to start when scripts/finish_rl7.sh writes FINISH RL7 DONE and the GPU has >= 9.5 GB free.",
- "no_tuning_after_seeing_results": "NUM_Q, TARGET_SUBSET, ACTOR_Q_AGG, N_STEP, R_MAX, RES_INIT_STD are fixed now."
+ "no_tuning_after_seeing_results": "NUM_Q, TARGET_SUBSET, ACTOR_Q_AGG, N_STEP, R_MAX, RES_INIT_STD are fixed now.",
+ "amendment_2026_09_11_before_run_8_data": {
+  "what": "H10's second clause compared the repaired critic's Q gap against run 6's DRIFTED chunk. Run 6's checkpoints were destroyed by the third scratchpad wipe, so that chunk no longer exists.",
+  "replacement": "The gap clause is measured between the BC chunk and run 8's OWN final policy chunk (base + residual): |Q(BC) - Q(policy)| / |Q(BC)| > 0.10. The sensitivity clause is unchanged: Q(BC) > Q(BC + N(0, 0.15^2)) on >= 70% of (frame, draw) pairs, K = 8 draws.",
+  "instrument": "tools/g1_piston/probe_critic_ranking.py, generalised on 2026-09-11 (commit after e1626f82) to infer the ensemble size, use the run's actor aggregation and apply the stored residual. The old probe hardcoded two heads and a destroyed path and could not have evaluated H10.",
+  "made_before": "run 8 had produced any actor update (relaunched 10:36; at amendment time 50 critic-only updates)."
+ }
 }

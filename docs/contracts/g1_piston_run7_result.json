@@ -4,10 +4,28 @@
  "status": "REGRESSION under the pre-registered H4 rule. The registered prediction that a bounded residual would preserve grasp is FALSIFIED. Scorer-of-record number pending (queued after run 8) because the finish script was stuck for six days.",
  "what_ran": "Frozen BC head + zero-initialised residual in the 6-component DCT basis, R_MAX 0.15, exploration std 0.15, residual lr 3e-4, latent entropy, 300 critic-only warmup updates, RLPD 50/50, v3 reward (run7_preregistration.json). Second launch, on durable storage; completed 90k env steps, 625 updates (325 actor).",
  "readout": {
-  "in_trainer_grasp_per_eval": {"15540": 0.76, "30540": 0.88, "46320": 0.04, "60780": 0.08, "76320": 0.00, "91260": 0.04},
-  "in_trainer_lift_per_eval": {"15540": 0.52, "30540": 0.56, "46320": 0.00, "60780": 0.04, "76320": 0.00, "91260": 0.04},
+  "in_trainer_grasp_per_eval": {
+   "15540": 0.76,
+   "30540": 0.88,
+   "46320": 0.04,
+   "60780": 0.08,
+   "76320": 0.0,
+   "91260": 0.04
+  },
+  "in_trainer_lift_per_eval": {
+   "15540": 0.52,
+   "30540": 0.56,
+   "46320": 0.0,
+   "60780": 0.04,
+   "76320": 0.0,
+   "91260": 0.04
+  },
   "note_on_scale": "The in-trainer path scores the UNCHANGED policy 0.76 (g1_piston_in_trainer_eval_underscores.json); 0.76 -> 0.88 during warmup is the zero residual, i.e. the BC policy. Collapse begins with the first actor updates.",
-  "post_warmup_first_checkpoint": {"deployed_err_deg": 2.659, "raw_head_abs_mean": 0.4151, "reading": "the base head's magnitude is unchanged by construction; the residual alone moved the executed chunk 2.66 deg from the demonstrations, already enough to break the grasp"},
+  "post_warmup_first_checkpoint": {
+   "deployed_err_deg": 2.659,
+   "raw_head_abs_mean": 0.4151,
+   "reading": "the base head's magnitude is unchanged by construction; the residual alone moved the executed chunk 2.66 deg from the demonstrations, already enough to break the grasp"
+  },
   "H9_base_unchanged": "VERIFIED DIRECTLY: max |head(final) - head(BC)| = 0.0. The run record's oft_changed=True was an ordering artifact (reference snapshotted before the warm-start load); fixed.",
   "H8": "PASS at step 0 (0.403 deg = BC), by construction.",
   "entropy": "alpha 0.0508 -> 0.0376, logp 1.94 -> 1.55 against target 1.91: regulating in the correct direction; no flattening (the head cannot flatten, it is frozen).",
@@ -16,5 +34,61 @@
  "why_the_bound_did_not_help": "The residual actor (lr 3e-4, 100x the direct arm) climbs the same action-insensitive critic (2 heads, 1-step) within its bound and reaches the bound quickly in the critic's preferred, wrong direction. R_MAX 0.15 per coefficient (~7% of the action range) is more than enough to break a contact-rich grasp: 2.66 deg of executed error at the first post-warmup checkpoint. A bound limits the SIZE of the damage, not its direction; only the critic determines direction. This is consistent with g1_piston_critic_exploitation.json and makes run 8 (critic repair) the decisive test.",
  "prediction_status": "The registered prediction 'H4 preserved, H2 not reached' is half wrong: H4 failed. Reported as such.",
  "infrastructure_defect_found": "scripts/finish_rl7.sh never fired: its busy check pgrep -f 'bin/python tools/g1_piston/train_sac.py' matched the lingering shell wrapper that had launched it (the wrapper's command line contained the pattern text). The GPU sat idle for ~5 days. Fixed: patterns are built from variables with bracketed names and a literal prefix, scripts are started with setsid, and run 7's scoring plus the reversed-order BC probe are queued after run 8.",
- "unaffected": "The BC policy and its videos; the entropy fix (verified again: no flattening, alpha regulating); the H8 construction property."
+ "unaffected": "The BC policy and its videos; the entropy fix (verified again: no flattening, alpha regulating); the H8 construction property.",
+ "critic_probe_on_run_7_own_critic_2026_09_11": {
+  "instrument": "tools/g1_piston/probe_critic_ranking.py (generalised), CKPT = run 7 final, residual applied, 2-head min aggregation",
+  "result": {
+   "num_q": 2,
+   "deployed_err_deg": {
+    "bc_vs_demo": 0.4000088893342763,
+    "policy_vs_demo": 2.491899304836988,
+    "pert_vs_demo_mean": 2.6447351910173893
+   },
+   "by_net": {
+    "critic": {
+     "Q_demo": 0.9902826547622681,
+     "Q_bc": 0.9888669848442078,
+     "Q_policy": 1.0172594785690308,
+     "Q_pert_mean": 0.9890004396438599,
+     "frac_Q_bc_gt_Q_pert": 0.45652174949645996,
+     "rel_gap_bc_vs_policy": 0.026976147666573524,
+     "frac_frames_Q_policy_gt_Q_bc": 1.0,
+     "Q_along_bc_to_policy": [
+      0.9888669848442078,
+      0.9959510564804077,
+      1.0030444860458374,
+      1.0101473331451416,
+      1.0172594785690308
+     ],
+     "H10_sensitivity": false,
+     "H10_gap": false
+    },
+    "target": {
+     "Q_demo": 0.9146203994750977,
+     "Q_bc": 0.91362065076828,
+     "Q_policy": 0.9329257011413574,
+     "Q_pert_mean": 0.9137405753135681,
+     "frac_Q_bc_gt_Q_pert": 0.45652174949645996,
+     "rel_gap_bc_vs_policy": 0.0204897653311491,
+     "frac_frames_Q_policy_gt_Q_bc": 1.0,
+     "Q_along_bc_to_policy": [
+      0.91362065076828,
+      0.9184499382972717,
+      0.9232711791992188,
+      0.928096354007721,
+      0.9329257011413574
+     ],
+     "H10_sensitivity": false,
+     "H10_gap": false
+    }
+   },
+   "pert_std": 0.15,
+   "K": 8
+  },
+  "reading": [
+   "Q(BC + N(0, 0.15^2)) == Q(BC) to three decimals (0.989 vs 0.989); BC beats a random perturbation on 46% of draws, i.e. chance. The critic is insensitive to exploration-scale changes of the action.",
+   "Q(policy) > Q(BC) on 100% of frames, by 2.7%. The residual's executed error (2.49 deg) is the same size as a random perturbation's (2.64 deg): the critic cannot distinguish a grasp-breaking change from noise, but the residual found the one direction with a small positive slope and the actor followed it.",
+   "This replicates g1_piston_critic_exploitation.json (run 6: 100% of frames, 2% gap) with an independent critic trained under the residual arm, and confirms the H10 test's chance level (~0.5) against its registered threshold (0.70)."
+  ]
+ }
 }

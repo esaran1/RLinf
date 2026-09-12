@@ -124,6 +124,18 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 9: critic-free (2026-09-12, 00:25)
+
+Decision taken under the user's instruction to use my judgement and get proper RL results:
+drop the critic. `tools/g1_piston/train_grpo.py` runs GRPO-style PPO (group-standardised
+return-to-go advantages, clipped ratio on the latent Gaussian, KL anchor to the base,
+approx-KL early stop) on the frozen BC head + zero-init residual. Pre-registered in
+`g1_piston_run9_grpo_preregistration.json` (H4 preserve ≥ 0.87; H11 improve lift/plate or
+press > 0; H12 no in-trainer collapse). Artifacts in `runs_g1_piston/rl9/`; `finish_rl9.sh`
+scores `grpo_ckpt_best.pt` with the scorer of record, renders if it passes H4, then redoes
+the run-8 scoring and H10 that OOM'd under another GPU job. The pipeline busy check now
+accepts absolute tool paths; never put a script's name unbracketed in a launching shell.
+
 ## Run 8 result (2026-09-11, 12:50): the critic repair did not help
 
 Run 8 (10-critic RLPD-aggregated ensemble, 3-step returns, residual arm) **collapsed

@@ -1,0 +1,95 @@
+{
+ "id": "g1_piston_grpo_certified_trajectory",
+ "recorded": "2026-09-12 15:10 (run 9c iterations 2-5 scoring in progress; appended when done)",
+ "status": "FINDING. One GRPO update improved the certified policy; no later update in three continuation attempts did. The group signal is dominated by contact nondeterminism, so subsequent updates random-walk the residual away from the base.",
+ "certified_trajectory_scorer_of_record_n25": {
+  "BC": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.8,
+   "plate_rate": 0.8,
+   "press_rate": 0.0,
+   "mean_return": 11.935
+  },
+  "rl9_iter1": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.96,
+   "plate_rate": 0.96,
+   "press_rate": 0.0,
+   "mean_return": 14.054
+  },
+  "rl9_iter2": {
+   "grasp_rate": 0.96,
+   "lift_rate": 0.8,
+   "plate_rate": 0.8,
+   "press_rate": 0.0,
+   "mean_return": 11.278
+  },
+  "rl9b_iter1": {
+   "grasp_rate": 0.92,
+   "lift_rate": 0.72,
+   "plate_rate": 0.64,
+   "press_rate": 0.0,
+   "mean_return": 9.815
+  },
+  "rl9b_iter2": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.52,
+   "plate_rate": 0.28,
+   "press_rate": 0.04,
+   "mean_return": 7.646
+  },
+  "rl9b_iter3": {
+   "grasp_rate": 0.92,
+   "lift_rate": 0.44,
+   "plate_rate": 0.4,
+   "press_rate": 0.0,
+   "mean_return": 7.729
+  },
+  "rl9b_iter4": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.68,
+   "plate_rate": 0.64,
+   "press_rate": 0.0,
+   "mean_return": 10.903
+  },
+  "rl9c_iter1": {
+   "grasp_rate": 0.96,
+   "lift_rate": 0.76,
+   "plate_rate": 0.76,
+   "press_rate": 0.0,
+   "mean_return": 11.495
+  }
+ },
+ "kl_to_base_per_iteration": {
+  "rl9": [
+   0.00242,
+   0.01687
+  ],
+  "rl9b": [
+   0.0137,
+   0.02239,
+   0.03137,
+   0.03819
+  ],
+  "rl9c": [
+   0.01197,
+   0.0191,
+   0.02483,
+   0.03104,
+   0.04239
+  ]
+ },
+ "reading": [
+  "run 9 iteration 1: lift/plate 0.80 -> 0.96, return 11.94 -> 14.05 (the deliverable). Every later iteration -- run 9 iteration 2, run 9b iterations 1-4 (LR 1e-4), run 9c iterations (LR 5e-5, same base) -- certifies at or below BC on lift, while KL-to-base grows monotonically within each run (0.002 -> 0.017; 0.014 -> 0.038; 0.012 -> 0.042).",
+  "Within-group return std was 4-6 on means of 4-9 in every iteration, and collected grasp/lift rates under exploration fluctuated 0.50-0.83 / 0.13-0.63 with no trend. The documented post-grasp nondeterminism (carry 0.00-0.36 across identical repeats) means much of that spread is not attributable to the sampled action, so the advantage mostly rewards luck; the one good update is consistent with a favourable draw as much as with learning.",
+  "The scorer of record itself has repeat noise: BC's reversed-order rescoring flipped lift on 6/25 conditions (0.80 vs 0.80 in aggregate, grasp 0.92 vs 1.00). A +0.16 lift from a single n=25 scoring is therefore suggestive, not established; paired repeats are queued (scripts/repeat_scoring.sh).",
+  "run 9b iteration 2 certified press 0.04 (1/25, deterministic): the first certified press by any policy in this project, on a checkpoint whose lift is 0.52. Pressing is reachable; it is not yet learnable from this signal."
+ ],
+ "what_would_fix_the_signal_untested": [
+  "variance reduction by many more rollouts per condition (hundreds, not 6) -- compute-bound at 50 s/rollout",
+  "advantages from the DENSE terms only (approach/transport/press shaping), excluding the luck-dominated stage bonuses, or from a smoothed return",
+  "common-random-numbers across a group (same physics seed per group) so action effects are isolated -- requires control of the simulator's contact RNG",
+  "evaluation-based selection with repeats built into the loop (score candidates with >= 2 fresh-process sweeps before accepting)"
+ ],
+ "decision": "Stop continuation attempts under this protocol after run 9c. Certify run 9 iteration 1 with paired repeats; report the trajectory as measured."
+}

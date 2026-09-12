@@ -1,0 +1,30 @@
+{
+ "id": "g1_piston_run10_preregistration",
+ "recorded": "2026-09-12 19:25, BEFORE run 10 exists",
+ "what": "Run 9's exact GRPO configuration (the one that produced the certified improvement) started from the BC base, with the TRAINING reward switched to v4 (press pays only while lifted). Certification stays on v3 by the scorer of record, with paired repeats.",
+ "configuration": {
+  "BASE_CKPT": "BC",
+  "SIGMA": 0.15,
+  "R_MAX": 0.15,
+  "N_GROUPS": 8,
+  "GROUP": 6,
+  "PPO_EPOCHS": 3,
+  "MB": 64,
+  "LR": 0.0001,
+  "CLIP": 0.2,
+  "KL_BETA": 0.1,
+  "KL_STOP": 0.02,
+  "WALL_BUDGET": 7200,
+  "SEED": 3,
+  "TRAIN_REWARD": "v4_held_press",
+  "SCORER": "eval_checkpoint.py REWARD_V3=1 n=25, every saved iteration, 2 sweeps each"
+ },
+ "hypotheses": {
+  "H14_no_table_press": "On the scorer of record, any certified press co-occurs with lift (no press without lift). Under v3 training, 5 of 5 certified presses had no lift.",
+  "H4": "grasp >= 0.87 on the selected iteration",
+  "H11": "selected iteration's mean lift over its 2 sweeps >= 0.80 (BC's single-sweep value); improvement over run 9 (0.87 paired mean) is hoped for but not predicted",
+  "H13b": "a certified press WITH lift would be the project's first functional press; prior LOW"
+ },
+ "selection": "iteration with the highest mean return over two fresh-process v3 sweeps among those with grasp >= 0.87 in both.",
+ "no_tuning_after_results": "Constants fixed now."
+}

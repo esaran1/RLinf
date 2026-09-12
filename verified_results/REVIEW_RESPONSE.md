@@ -359,6 +359,39 @@ policy's own and carry no contrast for the critic to learn from.
 A correction to our own record: one test had asserted the defective curve's increase
 with std as a sanity property. It is relabelled as the defect it pins.
 
+## Removing the critic: the first RL improvement over BC
+
+With two independent critics measured at chance on ranking exploration-scale
+perturbations, the remaining move was to learn from the simulator's returns directly.
+Run 9 uses GRPO-style PPO (per-chunk return-to-go standardised within groups of six
+rollouts from the same initial condition; clipped ratio on the latent Gaussian; KL anchor
+to the frozen base) on a zero-initialised residual over the frozen BC head — the published
+recipe for RL fine-tuning of OFT-style VLA heads ([GRPO](https://arxiv.org/abs/2402.03300),
+SimpleVLA-RL, RLinf's embodied PPO) on a [ResFiT](https://arxiv.org/abs/2509.19301) policy.
+Pre-registered before its data (`g1_piston_run9_grpo_preregistration.json`).
+
+Scored by the scorer of record on the frozen 25-condition suite, fresh process:
+
+| | BC | **run 9 best** |
+|---|---|---|
+| grasp | 1.00 | **1.00** |
+| lift | 0.80 | **0.96** (CI 0.81–0.99) |
+| plate | 0.80 | **0.96** |
+| press / dispense | 0.00 | 0.00 |
+| mean return | 11.935 | **14.054** |
+
+It lifts four of the five conditions BC failed. One conservative update did it: within-group
+return std 4.1 on a mean of 4.8 (a clean signal), approx-KL ≤ 0.007, clip fraction 0.
+Videos: `verified_results/videos_rl_grpo/run9_best/` (12 clips). Contract:
+`g1_piston_run9_result.json`.
+
+Two honest caveats. The continuation (run 9b) picked its "best" by eight in-trainer
+conditions evaluated after stochastic rollouts, and that selection was noise: the certified
+number (lift 0.64) is below BC, so checkpoint selection must use the scorer of record —
+every intermediate checkpoint is being scored post hoc. And the plunger is still never
+pressed: the behaviour is absent from the data, although the deterministic policy already
+reaches 27.8 mm of the 28 mm press threshold on some conditions.
+
 ## Status and honest expectations
 
 **A policy now performs the transport task**: reach 1.00, grasp 1.00, lift 0.80,
@@ -366,12 +399,12 @@ plate 0.80 on the frozen 25-condition suite under the corrected v3 predicate, fr
 behaviour cloning on 16 demonstrations once two train/deploy defects were fixed. Videos
 are rendered from conditions the evaluation actually scored.
 
-**No policy has performed the full pipette task**, and the gap is specific rather than
-mysterious: press and dispense are 0.00, because 1 of 22 executable demonstrations shows
-a grasped press and none shows a dispense. Imitation cannot supply behaviour the data
-does not contain, so the plunger stages must be discovered from reward. Every RL attempt
-so far destroyed the starting policy for a reason that is now measured and fixed; run 6
-is the first that can fairly test discovery from a competent initialisation.
+**No policy has performed the full pipette task**: press and dispense are 0.00, because
+1 of 22 executable demonstrations shows a grasped press and none shows a dispense.
+Imitation cannot supply behaviour the data does not contain, and actor-critic RL could not
+discover it because its critic could not rank actions. Critic-free RL now improves the
+transport task from a competent initialisation; whether it can discover the press is the
+open question, and the deterministic policy is already within 0.2 mm of the threshold.
 
 A third caution joins the two below: the trainer's own periodic evaluation **under-scores a
 working policy** (a BC-identical checkpoint scored 0.76 grasp there against 1.00 from the

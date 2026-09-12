@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## RESULT (2026-09-12, 09:30): critic-free RL beats BC
+
+Run 9 best (iteration 1), scorer of record n=25: **grasp 1.00, lift 0.96, plate 0.96,
+return 14.05** vs BC 1.00 / 0.80 / 0.80 / 11.94. Videos in
+`verified_results/videos_rl_grpo/run9_best/`; checkpoint backed up at
+`checkpoints/g1_piston_grpo_working/run9_best.pt`. Run 9b's in-trainer "best" certified at
+lift 0.64 — in-trainer selection after rollouts is unreliable; select by the scorer of
+record only (`scripts/score_intermediates.sh` is scoring every saved iteration). Run 8 is
+closed: grasp 0.04, H10 at chance (0.49). Press still 0.00 everywhere.
+
 ## Run 9: critic-free (2026-09-12, 00:25)
 
 Decision taken under the user's instruction to use my judgement and get proper RL results:

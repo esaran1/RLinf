@@ -5,10 +5,22 @@
  "method": "GRPO-style policy optimisation (Shao et al. 2024; SimpleVLA-RL 2025; RLinf embodied PPO) on a ResFiT frozen-base + residual policy (arXiv 2509.19301). Per initial condition, G rollouts with fixed exploration std; per-chunk return-to-go standardised within the group (advantage); PPO clipped surrogate (eps 0.2) on the latent-coefficient Gaussian log-density (per-entry mean), plus a KL anchor to the base policy (zero residual), beta 0.1; approx-KL early stop per epoch (0.02). No critic, no learned entropy temperature.",
  "configuration": {
   "policy": "frozen BC head (checkpoints/g1_piston_bc_working) + ResidualPolicy R_MAX 0.15, zero-init (H8 verified: equals BC exactly at step 0)",
-  "exploration_std": 0.15, "groups_per_iter": 8, "group_size": 6, "ppo_epochs": 3, "minibatch_chunks": 64,
-  "lr": 1e-4, "grad_clip": 1.0, "clip": 0.2, "kl_beta": 0.1, "approx_kl_stop": 0.02, "gamma_rtg": 1.0,
-  "reward": "v3 per-chunk", "episode": "23 chunks x 30 steps x 2 holds", "conditions": "TRAIN split of build_reset_suite(seed 20260817); EVAL split never trained on",
-  "wall_budget_s": 6000, "checkpoint": "every iteration in trainer format; best-by-in-trainer-deterministic-return kept as best.pt",
+  "exploration_std": 0.15,
+  "groups_per_iter": 8,
+  "group_size": 6,
+  "ppo_epochs": 3,
+  "minibatch_chunks": 64,
+  "lr": 0.0001,
+  "grad_clip": 1.0,
+  "clip": 0.2,
+  "kl_beta": 0.1,
+  "approx_kl_stop": 0.02,
+  "gamma_rtg": 1.0,
+  "reward": "v3 per-chunk",
+  "episode": "23 chunks x 30 steps x 2 holds",
+  "conditions": "TRAIN split of build_reset_suite(seed 20260817); EVAL split never trained on",
+  "wall_budget_s": 6000,
+  "checkpoint": "every iteration in trainer format; best-by-in-trainer-deterministic-return kept as best.pt",
   "scorer_of_record": "eval_checkpoint.py, n=25 deterministic, fresh process, on best.pt"
  },
  "hypotheses_fixed_in_advance": {
@@ -17,5 +29,44 @@
   "H12_no_collapse_mechanism": "in-trainer deterministic grasp on the fixed eval prefix must not fall below the in-trainer baseline band (0.76 +/- 0.12) at any iteration. If it does, the critic-free objective also destabilises the policy and the cause must be found in the returns, not assumed."
  },
  "what_falsifies": "H4 failing means returns alone mislead the policy (e.g. reward hacking within v3) and would be reported with the return trajectory. H11 failing with H4 passing means preservation without improvement under this budget.",
- "no_tuning_after_seeing_results": "All constants above are fixed now. A change is a new pre-registration."
+ "no_tuning_after_seeing_results": "All constants above are fixed now. A change is a new pre-registration.",
+ "iteration_1_observed_2026_09_12_01_25": {
+  "collect": {
+   "episodes": 48,
+   "mean_return": 4.8,
+   "within_group_return_std": 4.11,
+   "grasp": 0.65,
+   "lift": 0.27,
+   "collect_s": 2412
+  },
+  "ppo": {
+   "approx_kl": [
+    0.0023,
+    0.00023,
+    0.00671
+   ],
+   "clipfrac": 0.0,
+   "kl_base": 0.00242,
+   "early_stop": false
+  },
+  "in_trainer_eval_8_conditions": {
+   "it0": {
+    "return": 7.22,
+    "grasp": 1.0,
+    "lift": 0.375
+   },
+   "it1": {
+    "return": 10.45,
+    "grasp": 0.875,
+    "lift": 0.625
+   }
+  },
+  "reading": "A clean, large learning signal (within-group std 4.1 on mean 4.8) and a conservative update (clipfrac 0). Return and lift rose after one iteration. Throughput is 50 s/episode, 4x slower than estimated, so the 6000 s budget yields only 2 iterations."
+ },
+ "continuation_run_9b_registered_2026_09_12_01_30": {
+  "what": "Same algorithm and constants, started from run 9's best residual (INIT_RESIDUAL), groups 6 x 5 (30 episodes/iteration, ~30 min), WALL_BUDGET 7200 s, SEED 1.",
+  "why": "Run 9's budget ends after iteration 2; the signal is healthy and the first update improved the in-trainer evaluation. Continuing with smaller groups buys ~4 more iterations in the user's time window.",
+  "hypotheses": "H4/H11/H12 unchanged, applied to run 9b's best checkpoint via the scorer of record. Run 9's best is scored and rendered FIRST, so a certified intermediate result exists regardless of 9b.",
+  "not_tuned_on_results": "group size reduced for throughput only; LR, CLIP, KL_BETA, SIGMA, R_MAX unchanged."
+ }
 }

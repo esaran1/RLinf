@@ -106,6 +106,13 @@ try:
     for p in model.parameters(): p.requires_grad_(False)
     model.eval()
     residual = RESP.ResidualPolicy(feat_dim=HID, hidden=(512, 512), r_max=R_MAX, horizon=H, dims=30, device=DEV)
+    # Continuation: start from a previous run's residual (its base head is the same BC head).
+    INIT_RESIDUAL = os.environ.get("INIT_RESIDUAL", "")
+    if INIT_RESIDUAL:
+        _prev = torch.load(INIT_RESIDUAL, map_location="cpu", weights_only=False)
+        residual.load_state_dict(_prev["residual"])
+        res["config"]["init_residual"] = INIT_RESIDUAL
+        res["config"]["init_residual_iteration"] = int(_prev.get("iteration", -1))
     K = residual.n_basis
     opt = torch.optim.Adam(residual.parameters(), lr=LR)
     TRAIN_CONDITIONS, EVAL_CONDITIONS = build_reset_suite(n_train=400, n_eval=50, seed=RESET_SUITE_SEED)

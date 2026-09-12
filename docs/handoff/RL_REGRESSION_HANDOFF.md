@@ -136,6 +136,13 @@ scores `grpo_ckpt_best.pt` with the scorer of record, renders if it passes H4, t
 the run-8 scoring and H10 that OOM'd under another GPU job. The pipeline busy check now
 accepts absolute tool paths; never put a script's name unbracketed in a launching shell.
 
+Iteration 1 (01:25): within-group return std 4.11 on mean 4.80 (strong signal), PPO inside
+its trust region (approx-KL ≤ 0.007, clipfrac 0), in-trainer return 7.22 → 10.45 and lift
+0.38 → 0.62 after one update. Throughput is 50 s/episode, so run 9 stops after 2 iterations;
+`scripts/chain_rl9.sh` then scores+renders run 9's best, launches **run 9b** (continuation
+from that residual, groups 6×5, 2 h; `run_rl9b.sh`), scores+renders its best, and finally
+redoes the run-8 scoring and H10. Logs: `runs_g1_piston/chain_rl9.log`.
+
 ## Run 8 result (2026-09-11, 12:50): the critic repair did not help
 
 Run 8 (10-critic RLPD-aggregated ensemble, 3-step returns, residual arm) **collapsed

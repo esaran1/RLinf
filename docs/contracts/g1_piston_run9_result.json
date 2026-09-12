@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_run9_result",
  "recorded": "2026-09-12",
- "status": "FIRST RL IMPROVEMENT OVER THE BC POLICY IN THIS PROJECT. Pre-registered H4 and H11 PASS on the scorer of record.",
+ "status": "FIRST RL IMPROVEMENT OVER THE BC POLICY, CERTIFIED WITH PAIRED REPEATS: run 9 iteration 1 beats BC on lift and return in 3 of 3 paired fresh-process sweeps.",
  "what_ran": "Critic-free GRPO-style PPO with a KL anchor on the frozen BC head + zero-init residual (run9_grpo_preregistration.json). 2 iterations x 48 episodes; 102 gradient updates; 6029 s.",
  "scorer_of_record_run9_best_iteration1_n25_fresh_process": {
   "grasp_rate": 1.0,
@@ -99,5 +99,72 @@
   "where": "run 9b, iteration 3 collection: press_rate 0.033 = 1 of 30 stochastic rollouts fired the v3 press stage (live-grasp gated, 28 mm), max plunger depth 31.2 mm that iteration. Iterations 2 and 4 also exceeded 28 mm (29.5, 29.8 mm) without the stage firing (not grasped at the time).",
   "significance": "The press is reachable by exploration from this policy, so the functional act is a discovery problem the critic-free objective can in principle solve: a pressing rollout carries the 12.0 stage bonus plus the dense 150/m term and receives a large positive group advantage. One event in ~200 rollouts is too rare to have moved the policy yet.",
   "collection_rates_note": "Collected (stochastic, sigma 0.15) grasp rates 0.50-0.75 and lift 0.13-0.63 are far below the deterministic policy's; exploration noise on 120 latent dimensions breaks many grasps, which is also what produces the within-group contrast the method learns from."
+ },
+ "paired_repeats_scorer_of_record_n25_fresh_process": {
+  "run9_iter1": [
+   {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.96,
+    "plate_rate": 0.96,
+    "press_rate": 0.0,
+    "mean_return": 14.054
+   },
+   {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.76,
+    "plate_rate": 0.72,
+    "press_rate": 0.0,
+    "mean_return": 11.605
+   },
+   {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.88,
+    "plate_rate": 0.88,
+    "press_rate": 0.0,
+    "mean_return": 13.079
+   }
+  ],
+  "bc": [
+   {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.8,
+    "plate_rate": 0.8,
+    "press_rate": 0.0,
+    "mean_return": 11.935
+   },
+   {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.72,
+    "plate_rate": 0.72,
+    "press_rate": 0.0,
+    "mean_return": 10.662
+   },
+   {
+    "grasp_rate": 0.88,
+    "lift_rate": 0.6,
+    "plate_rate": 0.56,
+    "press_rate": 0.04,
+    "mean_return": 9.35
+   }
+  ],
+  "means": {
+   "run9_iter1": {
+    "grasp_rate": 0.973,
+    "lift_rate": 0.867,
+    "plate_rate": 0.853,
+    "mean_return": 12.913
+   },
+   "bc": {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.707,
+    "plate_rate": 0.693,
+    "mean_return": 10.649
+   }
+  },
+  "paired_wins": {
+   "lift": "3/3",
+   "return": "3/3"
+  },
+  "reading": "Mean lift 0.867 vs 0.707 (+0.16), plate 0.853 vs 0.693, return 12.91 vs 10.65 (+2.3); grasp 0.973 vs 0.960. The per-sweep spread (BC lift 0.60-0.80) shows the scorer's own noise, and the improvement holds in every pair. This is the strongest certification available without a larger suite."
  }
 }

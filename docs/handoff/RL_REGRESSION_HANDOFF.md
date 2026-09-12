@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## CERTIFIED (2026-09-12, 18:20): run 9 beats BC in 3/3 paired repeats
+
+Three fresh-process sweeps each: run 9 iter 1 lift 0.96/0.76/0.88 (mean 0.87) vs BC
+0.80/0.72/0.60 (mean 0.71); return 12.9 vs 10.7; run 9 wins every pair. Run 9c's five
+iterations all certify below it; its press-scoring iterations (0.08, 0.04) lost lift (0.16):
+the objective trades transport for the press bonus under this noise. GPU idle; no runs
+queued. Deliverable: `checkpoints/g1_piston_grpo_working/run9_best.pt`,
+`verified_results/videos_rl_grpo/run9_best/`. Manifests for every certified sweep are in
+`verified_results/manifests/grpo_*`.
+
 ## Certified trajectory (2026-09-12, 15:10): only the first update helped
 
 Every later GRPO iteration (run 9 iter 2; run 9b iters 1–4 at LR 1e-4; run 9c at LR 5e-5)

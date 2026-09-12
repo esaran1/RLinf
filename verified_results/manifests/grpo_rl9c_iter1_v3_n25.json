@@ -1,0 +1,635 @@
+{
+  "checkpoint": "/home/jren313/research/starvla_rl/runs_g1_piston/rl9c/grpo_ckpt_iter1.pt",
+  "n_eval": 25,
+  "modes": {
+    "deterministic": {
+      "n_eval_episodes": 25,
+      "full_success_rate": 0.0,
+      "reach_rate": 0.96,
+      "grasp_rate": 0.96,
+      "lift_rate": 0.76,
+      "plate_rate": 0.76,
+      "tube_rate": 0.0,
+      "press_rate": 0.0,
+      "dispense_rate": 0.0,
+      "ci95": {
+        "success": [
+          0.0,
+          0.133
+        ],
+        "reach": [
+          0.805,
+          0.993
+        ],
+        "grasp": [
+          0.805,
+          0.993
+        ],
+        "lift": [
+          0.566,
+          0.885
+        ],
+        "plate": [
+          0.566,
+          0.885
+        ],
+        "tube": [
+          0.0,
+          0.133
+        ],
+        "press": [
+          0.0,
+          0.133
+        ],
+        "dispense": [
+          0.0,
+          0.133
+        ]
+      },
+      "mean_return": 11.495,
+      "mean_disp_m": 0.2402,
+      "mean_max_lift_m": 0.1273,
+      "mean_max_press_m": 0.01444,
+      "max_press_m_any": 0.03268,
+      "mean_max_press_grasped_m": 0.01045,
+      "mean_action_variance": 0.7212,
+      "per_condition": [
+        {
+          "condition": 0,
+          "hash": "dffa437572f84d40",
+          "return": 14.676,
+          "disp_m": 0.3048,
+          "disp_xy_m": 0.3012,
+          "final_dz_m": 0.0469,
+          "max_lift_m": 0.1597,
+          "max_press_m": 0.00942,
+          "max_press_grasped_m": 0.00942,
+          "action_variance": 0.73354,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 1,
+          "hash": "f60fa5ca03c6a477",
+          "return": 13.901,
+          "disp_m": 0.3177,
+          "disp_xy_m": 0.3127,
+          "final_dz_m": 0.0557,
+          "max_lift_m": 0.1611,
+          "max_press_m": 0.0138,
+          "max_press_grasped_m": 0.0138,
+          "action_variance": 0.72117,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 2,
+          "hash": "9bf42ffa96caaecd",
+          "return": 14.987,
+          "disp_m": 0.2227,
+          "disp_xy_m": 0.205,
+          "final_dz_m": -0.0871,
+          "max_lift_m": 0.1486,
+          "max_press_m": 0.00983,
+          "max_press_grasped_m": 0.00983,
+          "action_variance": 0.71634,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 3,
+          "hash": "f5537120a8d1ea37",
+          "return": 5.787,
+          "disp_m": 0.0043,
+          "disp_xy_m": 0.0006,
+          "final_dz_m": 0.0043,
+          "max_lift_m": 0.1877,
+          "max_press_m": 0.02283,
+          "max_press_grasped_m": 0.01613,
+          "action_variance": 0.71097,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": false,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": false,
+            "success": false
+          }
+        },
+        {
+          "condition": 4,
+          "hash": "00968119b01cb36a",
+          "return": 15.355,
+          "disp_m": 0.3224,
+          "disp_xy_m": 0.3168,
+          "final_dz_m": 0.06,
+          "max_lift_m": 0.1178,
+          "max_press_m": 0.00949,
+          "max_press_grasped_m": 0.00848,
+          "action_variance": 0.75355,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 5,
+          "hash": "ecab971237c428ef",
+          "return": 14.691,
+          "disp_m": 0.3226,
+          "disp_xy_m": 0.3183,
+          "final_dz_m": 0.0524,
+          "max_lift_m": 0.0997,
+          "max_press_m": 0.01544,
+          "max_press_grasped_m": 0.01544,
+          "action_variance": 0.72361,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 6,
+          "hash": "dcc2fd8a069b75f6",
+          "return": 11.769,
+          "disp_m": 0.2368,
+          "disp_xy_m": 0.2368,
+          "final_dz_m": -0.0049,
+          "max_lift_m": 0.1609,
+          "max_press_m": 0.01456,
+          "max_press_grasped_m": 0.01456,
+          "action_variance": 0.72189,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 7,
+          "hash": "271e8b94af4b9cb3",
+          "return": 4.2,
+          "disp_m": 0.0046,
+          "disp_xy_m": 0.0007,
+          "final_dz_m": -0.0046,
+          "max_lift_m": 0.1823,
+          "max_press_m": 0.02311,
+          "max_press_grasped_m": 0.0,
+          "action_variance": 0.74231,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": false,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": false,
+            "success": false
+          }
+        },
+        {
+          "condition": 8,
+          "hash": "33cdfb7b8ee5fecb",
+          "return": 13.687,
+          "disp_m": 0.318,
+          "disp_xy_m": 0.3139,
+          "final_dz_m": 0.0508,
+          "max_lift_m": 0.1949,
+          "max_press_m": 0.01812,
+          "max_press_grasped_m": 0.01812,
+          "action_variance": 0.73105,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 9,
+          "hash": "20b0da5b1f52a49c",
+          "return": 12.259,
+          "disp_m": 0.2277,
+          "disp_xy_m": 0.2211,
+          "final_dz_m": -0.0544,
+          "max_lift_m": 0.1025,
+          "max_press_m": 0.03268,
+          "max_press_grasped_m": 0.01001,
+          "action_variance": 0.73293,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 10,
+          "hash": "723816bdda5dcf5f",
+          "return": 14.099,
+          "disp_m": 0.3381,
+          "disp_xy_m": 0.3312,
+          "final_dz_m": 0.0678,
+          "max_lift_m": 0.1545,
+          "max_press_m": 0.00889,
+          "max_press_grasped_m": 0.00869,
+          "action_variance": 0.76918,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 11,
+          "hash": "1df14a4bfcdd5f8d",
+          "return": 12.435,
+          "disp_m": 0.3137,
+          "disp_xy_m": 0.3109,
+          "final_dz_m": 0.0416,
+          "max_lift_m": 0.1572,
+          "max_press_m": 0.01361,
+          "max_press_grasped_m": 0.01361,
+          "action_variance": 0.74254,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 12,
+          "hash": "0ffd70a332336855",
+          "return": 11.561,
+          "disp_m": 0.3187,
+          "disp_xy_m": 0.3146,
+          "final_dz_m": 0.0504,
+          "max_lift_m": 0.15,
+          "max_press_m": 0.01146,
+          "max_press_grasped_m": 0.01146,
+          "action_variance": 0.72192,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 13,
+          "hash": "d9277cf3bd98fdf7",
+          "return": 2.894,
+          "disp_m": 0.0093,
+          "disp_xy_m": 0.0063,
+          "final_dz_m": -0.0069,
+          "max_lift_m": 0.0012,
+          "max_press_m": 0.02136,
+          "max_press_grasped_m": 0.02136,
+          "action_variance": 0.70724,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": false,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": false,
+            "success": false
+          }
+        },
+        {
+          "condition": 14,
+          "hash": "d018c28710bb9fdd",
+          "return": 13.603,
+          "disp_m": 0.18,
+          "disp_xy_m": 0.1584,
+          "final_dz_m": -0.0855,
+          "max_lift_m": 0.1492,
+          "max_press_m": 0.01013,
+          "max_press_grasped_m": 0.00788,
+          "action_variance": 0.6858,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 15,
+          "hash": "03734cd7523b08b1",
+          "return": -0.093,
+          "disp_m": 0.2429,
+          "disp_xy_m": 0.2391,
+          "final_dz_m": -0.0427,
+          "max_lift_m": 0.0744,
+          "max_press_m": 0.0102,
+          "max_press_grasped_m": 0.0,
+          "action_variance": 0.71462,
+          "stages": {
+            "reach": false,
+            "grasp": false,
+            "lift": false,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": false,
+            "success": false
+          }
+        },
+        {
+          "condition": 16,
+          "hash": "50d2414e0a64edbc",
+          "return": 14.489,
+          "disp_m": 0.3104,
+          "disp_xy_m": 0.3041,
+          "final_dz_m": 0.062,
+          "max_lift_m": 0.1432,
+          "max_press_m": 0.00958,
+          "max_press_grasped_m": 0.00958,
+          "action_variance": 0.73502,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 17,
+          "hash": "9e0fbfd2161bcaac",
+          "return": 4.115,
+          "disp_m": 0.0031,
+          "disp_xy_m": 0.0011,
+          "final_dz_m": -0.0029,
+          "max_lift_m": 0.0555,
+          "max_press_m": 0.02072,
+          "max_press_grasped_m": 0.00958,
+          "action_variance": 0.73419,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": false,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": false,
+            "success": false
+          }
+        },
+        {
+          "condition": 18,
+          "hash": "4cc2a807c83d9f0e",
+          "return": 3.515,
+          "disp_m": 0.1172,
+          "disp_xy_m": 0.1169,
+          "final_dz_m": 0.0085,
+          "max_lift_m": 0.0427,
+          "max_press_m": 0.02133,
+          "max_press_grasped_m": 0.0,
+          "action_variance": 0.70573,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": false,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": false,
+            "success": false
+          }
+        },
+        {
+          "condition": 19,
+          "hash": "6639633827d8171f",
+          "return": 15.042,
+          "disp_m": 0.3172,
+          "disp_xy_m": 0.313,
+          "final_dz_m": 0.0511,
+          "max_lift_m": 0.128,
+          "max_press_m": 0.00981,
+          "max_press_grasped_m": 0.00981,
+          "action_variance": 0.70065,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 20,
+          "hash": "28e4dae88b2738f6",
+          "return": 13.663,
+          "disp_m": 0.2999,
+          "disp_xy_m": 0.2971,
+          "final_dz_m": 0.0404,
+          "max_lift_m": 0.0793,
+          "max_press_m": 0.01231,
+          "max_press_grasped_m": 0.01231,
+          "action_variance": 0.71485,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 21,
+          "hash": "5b24a1b90643a0b4",
+          "return": 13.255,
+          "disp_m": 0.3098,
+          "disp_xy_m": 0.3072,
+          "final_dz_m": 0.0394,
+          "max_lift_m": 0.1155,
+          "max_press_m": 0.01119,
+          "max_press_grasped_m": 0.01119,
+          "action_variance": 0.70948,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 22,
+          "hash": "49d98c0f89e09e80",
+          "return": 16.194,
+          "disp_m": 0.3224,
+          "disp_xy_m": 0.317,
+          "final_dz_m": 0.0587,
+          "max_lift_m": 0.153,
+          "max_press_m": 0.01062,
+          "max_press_grasped_m": 0.01062,
+          "action_variance": 0.70379,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 23,
+          "hash": "280513feb0d5128b",
+          "return": 14.792,
+          "disp_m": 0.3152,
+          "disp_xy_m": 0.3111,
+          "final_dz_m": 0.0508,
+          "max_lift_m": 0.1151,
+          "max_press_m": 0.01096,
+          "max_press_grasped_m": 0.01096,
+          "action_variance": 0.70021,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        },
+        {
+          "condition": 24,
+          "hash": "33b7fa7b2ddf9cd1",
+          "return": 16.491,
+          "disp_m": 0.3267,
+          "disp_xy_m": 0.3173,
+          "final_dz_m": 0.0776,
+          "max_lift_m": 0.1492,
+          "max_press_m": 0.00951,
+          "max_press_grasped_m": 0.00846,
+          "action_variance": 0.69744,
+          "stages": {
+            "reach": true,
+            "grasp": true,
+            "lift": true,
+            "tube": false,
+            "press": false,
+            "dispense": false,
+            "plate": true,
+            "success": false
+          }
+        }
+      ]
+    }
+  },
+  "blend_steps": 0,
+  "filter_hz": 0.0,
+  "filter_dims": "all",
+  "reward_version": "v3_review_fixed",
+  "residual": {
+    "applied": true,
+    "feat_dim": 2048,
+    "hidden": [
+      512,
+      512
+    ],
+    "r_max": 0.15
+  },
+  "checkpoint_env_steps": 49680,
+  "checkpoint_grad_updates": 39,
+  "action_std_mean": 0.15000000596046448,
+  "action_std_active_mean": 0.15000000596046448,
+  "_status": "OK",
+  "cond_order": "forward",
+  "progress": {
+    "mode": "det",
+    "done": 25,
+    "of": 25
+  },
+  "wall_clock_s": 1352.1
+}

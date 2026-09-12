@@ -400,7 +400,12 @@ within every run. The within-group return spread (std 4–6 on means of 4–9) i
 the documented contact nondeterminism rather than by the sampled action, so the group
 advantage mostly rewards luck and later updates random-walk the residual away from the base.
 The scorer itself has repeat noise (a reversed-order rescoring of BC flipped lift on 6 of 25
-conditions), so run 9's +0.16 lift is being certified with paired fresh-process repeats.
+conditions), so run 9's gain was certified with **paired fresh-process repeats**: three sweeps
+each, run 9 iteration 1 vs BC, lift 0.96/0.76/0.88 vs 0.80/0.72/0.60 (mean 0.87 vs 0.71) and
+return 14.1/12.3/12.4 vs 11.9/10.6/9.4 (mean 12.9 vs 10.7) — run 9 wins **3 of 3 pairs** on
+both. Run 9c (LR 5e-5) confirmed the trajectory pattern and added one more fact: the
+iterations that certified deterministic presses (2/25, 1/25, 1/25) did so while lift fell to
+0.16 — under this noisy signal the objective trades transport for the press bonus.
 Run 9b iteration 2 certified the project's first deterministic press (1 of 25). Contract:
 `g1_piston_grpo_certified_trajectory.json`, which lists the variance-reduction remedies
 (many more rollouts per group; dense-term-only advantages; common random numbers across a

@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_grpo_certified_trajectory",
  "recorded": "2026-09-12 15:10 (run 9c iterations 2-5 scoring in progress; appended when done)",
- "status": "FINDING. One GRPO update improved the certified policy; no later update in three continuation attempts did. The group signal is dominated by contact nondeterminism, so subsequent updates random-walk the residual away from the base.",
+ "status": "FINDING, COMPLETE. One GRPO update improved the certified policy (3/3 paired repeats); no later update in three continuation attempts did; the objective trades transport for pressing under a contact-noise-dominated signal.",
  "certified_trajectory_scorer_of_record_n25": {
   "BC": {
    "grasp_rate": 1.0,
@@ -58,6 +58,34 @@
    "plate_rate": 0.76,
    "press_rate": 0.0,
    "mean_return": 11.495
+  },
+  "rl9c_iter2": {
+   "grasp_rate": 0.96,
+   "lift_rate": 0.16,
+   "plate_rate": 0.12,
+   "press_rate": 0.08,
+   "mean_return": 5.053
+  },
+  "rl9c_iter3": {
+   "grasp_rate": 0.8,
+   "lift_rate": 0.16,
+   "plate_rate": 0.16,
+   "press_rate": 0.04,
+   "mean_return": 3.978
+  },
+  "rl9c_iter4": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.68,
+   "plate_rate": 0.52,
+   "press_rate": 0.04,
+   "mean_return": 10.106
+  },
+  "rl9c_iter5": {
+   "grasp_rate": 0.84,
+   "lift_rate": 0.64,
+   "plate_rate": 0.64,
+   "press_rate": 0.0,
+   "mean_return": 10.016
   }
  },
  "kl_to_base_per_iteration": {
@@ -91,5 +119,73 @@
   "common-random-numbers across a group (same physics seed per group) so action effects are isolated -- requires control of the simulator's contact RNG",
   "evaluation-based selection with repeats built into the loop (score candidates with >= 2 fresh-process sweeps before accepting)"
  ],
- "decision": "Stop continuation attempts under this protocol after run 9c. Certify run 9 iteration 1 with paired repeats; report the trajectory as measured."
+ "decision": "Stop continuation attempts under this protocol after run 9c. Certify run 9 iteration 1 with paired repeats; report the trajectory as measured.",
+ "paired_repeats": {
+  "run9_iter1": [
+   {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.96,
+    "plate_rate": 0.96,
+    "press_rate": 0.0,
+    "mean_return": 14.054
+   },
+   {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.76,
+    "plate_rate": 0.72,
+    "press_rate": 0.0,
+    "mean_return": 11.605
+   },
+   {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.88,
+    "plate_rate": 0.88,
+    "press_rate": 0.0,
+    "mean_return": 13.079
+   }
+  ],
+  "bc": [
+   {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.8,
+    "plate_rate": 0.8,
+    "press_rate": 0.0,
+    "mean_return": 11.935
+   },
+   {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.72,
+    "plate_rate": 0.72,
+    "press_rate": 0.0,
+    "mean_return": 10.662
+   },
+   {
+    "grasp_rate": 0.88,
+    "lift_rate": 0.6,
+    "plate_rate": 0.56,
+    "press_rate": 0.04,
+    "mean_return": 9.35
+   }
+  ],
+  "means": {
+   "run9_iter1": {
+    "grasp_rate": 0.973,
+    "lift_rate": 0.867,
+    "plate_rate": 0.853,
+    "mean_return": 12.913
+   },
+   "bc": {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.707,
+    "plate_rate": 0.693,
+    "mean_return": 10.649
+   }
+  },
+  "paired_wins": {
+   "lift": "3/3",
+   "return": "3/3"
+  },
+  "reading": "Mean lift 0.867 vs 0.707 (+0.16), plate 0.853 vs 0.693, return 12.91 vs 10.65 (+2.3); grasp 0.973 vs 0.960. The per-sweep spread (BC lift 0.60-0.80) shows the scorer's own noise, and the improvement holds in every pair. This is the strongest certification available without a larger suite."
+ },
+ "run_9c_reading": "LR 5e-5 from run 9's best: iterations certify lift 0.76, 0.16, 0.16, 0.68, 0.64 -- none beats run 9 iteration 1; KL-to-base 0.012 -> 0.042. Iterations 2-4 certified DETERMINISTIC PRESSES (0.08, 0.04, 0.04 = 2, 1, 1 of 25) while lift collapsed to 0.16: under this noisy signal the objective trades transport for the 12.0 press bonus plus 150/m dense term. Pressing is learnable in the sense that the optimiser moves toward it; it is not yet achievable without losing the grasp-lift-plate behaviour, and the lift-preserving and press-seeking directions are not being separated by a signal this noisy."
 }

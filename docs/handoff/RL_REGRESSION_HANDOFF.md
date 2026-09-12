@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Table-press exploit and reward v4; run 10 (2026-09-12, 19:30)
+
+Every certified press in runs 9b/9c had **no lift**: the policy presses the plunger against the
+table while grasping, for a return (15–18) above a full transport (~14) — RL found the next
+exploit after v3 closed two. `g1_piston_reward_v4.py` gates the dense press term and the
+press stage on grasped AND lifted; thresholds unchanged; **v3 stays the scorer of record**.
+Run 10 = run 9's exact configuration with `TRAIN_REWARD=v4` (`run10_preregistration.json`);
+`chain_rl10.sh` scores every iteration twice under v3, selects by the registered rule, renders.
+Contract: `g1_piston_table_press_exploit.json`.
+
 ## CERTIFIED (2026-09-12, 18:20): run 9 beats BC in 3/3 paired repeats
 
 Three fresh-process sweeps each: run 9 iter 1 lift 0.96/0.76/0.88 (mean 0.87) vs BC

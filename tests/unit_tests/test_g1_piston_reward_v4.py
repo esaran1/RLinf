@@ -52,3 +52,58 @@ def test_table_press_exploit_is_on_the_record():
     import json
     c = json.load(open("docs/contracts/g1_piston_table_press_exploit.json"))
     assert all(p["lift"] is False for p in c["certified_presses"])
+
+
+# ------------------------------------------------------------ functional gate ----
+import numpy as np  # noqa: E402
+import pytest  # noqa: E402
+
+torch = pytest.importorskip("torch")
+from tests.unit_tests.test_g1_piston_reward_v3 import FakeScene  # noqa: E402
+
+
+def _v4(sc):
+    m = _load("g1r4_f", "rlinf/envs/isaaclab/tasks/g1_piston_reward_v4.py")
+    return m.PistonTaskRewardV4(sc, dt=0.02), m
+
+
+def _v3(sc):
+    m = _load("g1r3_f", "rlinf/envs/isaaclab/tasks/g1_piston_reward_v3.py")
+    return m.PistonTaskRewardV3(sc, dt=0.02)
+
+
+def _press_sequence(sc, rf, lift_dz):
+    """Grasp, optionally raise the barrel by lift_dz, then depress the plunger to 35 mm
+    over several steps (keeping the rod/fingers/thumb attached). Returns (total reward,
+    stages)."""
+    rf.reset(); rf.step()                       # rest pose registered
+    sc.grip(); rf.step()
+    total = 0.0
+    if lift_dz:
+        for k in range(1, 6):                    # raise slowly (below the ballistic limit)
+            dz = lift_dz * k / 5
+            sc.barrel = np.array([0.0, 0.0, 0.89 + dz]); sc.rod = sc.barrel + np.array([0, 0, 0.03])
+            sc.grip(); r, _ = rf.step(); total += r
+    for p in (0.010, 0.020, 0.030, 0.035):
+        sc.press = p; sc.grip(); r, info = rf.step(); total += r
+    return total, info["stages"]
+
+
+def test_v4_pays_nothing_for_a_grasped_table_press():
+    """The exploit: plunger pressed to 35 mm while grasped but never lifted."""
+    sc = FakeScene(); rf4, _ = _v4(sc)
+    r4, st4 = _press_sequence(sc, rf4, lift_dz=0.0)
+    assert st4["press"] is False
+    sc3 = FakeScene(); rf3 = _v3(sc3)
+    r3, st3 = _press_sequence(sc3, rf3, lift_dz=0.0)
+    assert st3["press"] is True                 # v3 paid for it -- that is the exploit
+    assert r3 - r4 > 10.0                        # the 12.0 bonus plus the dense term
+
+
+def test_v4_pays_for_a_press_while_lifted():
+    sc = FakeScene(); rf4, m = _v4(sc)
+    r_lift, st = _press_sequence(sc, rf4, lift_dz=0.12)
+    assert st["lift"] is True and st["press"] is True
+    sc2 = FakeScene(); rf4b, _ = _v4(sc2)
+    r_table, _ = _press_sequence(sc2, rf4b, lift_dz=0.0)
+    assert r_lift > r_table + 10.0

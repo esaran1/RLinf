@@ -106,6 +106,8 @@ GRASP_SPAN = 0.11
 
 # --- lift / transport ----------------------------------------------------------------
 #: Lift above resting height that counts as picked up.
+#: Identifies this TRAINING reward in run records. v3 (the scorer of record) is "v3_review_fixed".
+REWARD_VERSION = "v4_held_press"
 LIFT_H = 0.05
 #: Speed above which the pipette is considered thrown rather than carried [m/s].
 BALLISTIC_SPEED = 0.60

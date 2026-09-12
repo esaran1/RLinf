@@ -385,12 +385,30 @@ return std 4.1 on a mean of 4.8 (a clean signal), approx-KL ≤ 0.007, clip frac
 Videos: `verified_results/videos_rl_grpo/run9_best/` (12 clips). Contract:
 `g1_piston_run9_result.json`.
 
-Two honest caveats. The continuation (run 9b) picked its "best" by eight in-trainer
-conditions evaluated after stochastic rollouts, and that selection was noise: the certified
-number (lift 0.64) is below BC, so checkpoint selection must use the scorer of record —
-every intermediate checkpoint is being scored post hoc. And the plunger is still never
-pressed: the behaviour is absent from the data, although the deterministic policy already
-reaches 27.8 mm of the 28 mm press threshold on some conditions.
+**What further training did, certified iteration by iteration** (scorer of record, n=25):
+
+| checkpoint | grasp | lift | plate | press | return |
+|---|---|---|---|---|---|
+| BC | 1.00 | 0.80 | 0.80 | 0.00 | 11.94 |
+| **run 9, iteration 1** | **1.00** | **0.96** | **0.96** | 0.00 | **14.05** |
+| run 9, iteration 2 | 0.96 | 0.80 | 0.80 | 0.00 | 11.28 |
+| run 9b, iterations 1–4 (LR 1e-4) | 0.92–1.00 | 0.44–0.72 | 0.28–0.64 | 0.00–0.04 | 7.6–10.9 |
+| run 9c, iteration 1 (LR 5e-5) | 0.96 | 0.76 | 0.76 | 0.00 | 11.50 |
+
+No update after the first improved the certified policy, and KL-to-base grew monotonically
+within every run. The within-group return spread (std 4–6 on means of 4–9) is dominated by
+the documented contact nondeterminism rather than by the sampled action, so the group
+advantage mostly rewards luck and later updates random-walk the residual away from the base.
+The scorer itself has repeat noise (a reversed-order rescoring of BC flipped lift on 6 of 25
+conditions), so run 9's +0.16 lift is being certified with paired fresh-process repeats.
+Run 9b iteration 2 certified the project's first deterministic press (1 of 25). Contract:
+`g1_piston_grpo_certified_trajectory.json`, which lists the variance-reduction remedies
+(many more rollouts per group; dense-term-only advantages; common random numbers across a
+group; selection with built-in repeats), all untested.
+
+Two operational lessons are now load-bearing: select checkpoints only by the scorer of
+record, never by in-trainer evaluation after stochastic rollouts (run 9b's in-trainer "best"
+certified at lift 0.64); and treat a single n=25 sweep as one sample, not a verdict.
 
 ## Status and honest expectations
 

@@ -43,6 +43,12 @@ policy scored 0.76 grasp there vs 1.00 certified). Score every saved iteration:
 and pick the iteration with the highest mean return among those with grasp >= 0.87.
 (`runs_g1_piston/scripts/score_intermediates.sh`, `chain_rl9c.sh` do this.)
 
+A single n=25 sweep is one sample: the scorer's own repeats flip lift on ~6/25 conditions.
+Certify a candidate with at least two more fresh-process sweeps of it AND of the baseline
+(`scripts/repeat_scoring.sh`) before calling it an improvement. Expect one GRPO update on a
+clean group signal to help and later updates not to: the group spread is dominated by
+contact nondeterminism (`g1_piston_grpo_certified_trajectory.json`).
+
 ## 4. Render
 
     OUTDIR=<dir> CKPT=<ckpt> CONDS=<from the scored per_condition> MODE=deterministic TAG=<tag> \

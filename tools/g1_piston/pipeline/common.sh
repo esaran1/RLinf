@@ -5,7 +5,7 @@ D=/home/jren313/research/starvla_rl/runs_g1_piston
 T=/home/jren313/research/starvla_rl/RLinf/tools/g1_piston
 PY=$HOME/miniconda3/envs/env_isaaclab/bin/python
 BC=/home/jren313/research/starvla_rl/checkpoints/g1_piston_bc_working/bc_ckpt_latest.pt
-PAT="^[^ ]*bin/python tools/g1_piston/(train_sa[c]|eval_checkpoin[t]|render_rollout[s])\.py"
+PAT="^[^ ]*bin/python ([^ ]*/)?tools/g1_piston/(train_sa[c]|train_grp[o]|eval_checkpoin[t]|render_rollout[s]|probe_critic_rankin[g]|measure_deployed_action_erro[r])\.py"
 gpu_busy() { pgrep -f "$PAT" >/dev/null; }
 gpu_free_mib() { nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits | head -1; }
 wait_gpu() { while gpu_busy || [ "$(gpu_free_mib)" -lt 9500 ]; do sleep 60; done; }

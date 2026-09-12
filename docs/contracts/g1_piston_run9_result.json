@@ -94,5 +94,10 @@
   "videos": "verified_results/videos_rl_grpo/run9_best/ (12 clips, 11/12 grasp, 9/12 lift; best: cond 13, 14, 18)",
   "manifests": "verified_results/manifests/grpo_run9_best_v3_n25.json, grpo_run9_train.json"
  },
- "next": "Score every intermediate checkpoint of runs 9 and 9b with the scorer of record to learn the true training trajectory, then decide the continuation protocol (lower LR, select by a larger/fresh-process evaluation). Press remains 0.00 in every run: not in the data, not yet discovered."
+ "next": "Score every intermediate checkpoint of runs 9 and 9b with the scorer of record to learn the true training trajectory, then decide the continuation protocol (lower LR, select by a larger/fresh-process evaluation). Press remains 0.00 in every run: not in the data, not yet discovered.",
+ "first_press_stage_firing_in_the_project": {
+  "where": "run 9b, iteration 3 collection: press_rate 0.033 = 1 of 30 stochastic rollouts fired the v3 press stage (live-grasp gated, 28 mm), max plunger depth 31.2 mm that iteration. Iterations 2 and 4 also exceeded 28 mm (29.5, 29.8 mm) without the stage firing (not grasped at the time).",
+  "significance": "The press is reachable by exploration from this policy, so the functional act is a discovery problem the critic-free objective can in principle solve: a pressing rollout carries the 12.0 stage bonus plus the dense 150/m term and receives a large positive group advantage. One event in ~200 rollouts is too rare to have moved the policy yet.",
+  "collection_rates_note": "Collected (stochastic, sigma 0.15) grasp rates 0.50-0.75 and lift 0.13-0.63 are far below the deterministic policy's; exploration noise on 120 latent dimensions breaks many grasps, which is also what produces the within-group contrast the method learns from."
+ }
 }

@@ -1,0 +1,13 @@
+{
+ "id": "g1_piston_run9c_preregistration",
+ "recorded": "2026-09-12 09:45, BEFORE run 9c exists and BEFORE the intermediate-checkpoint scores are known",
+ "what": "Continuation of run 9 from its certified best residual (iteration 1) with the two defects of run 9b fixed: step size back to run 9's conservative regime (LR 5e-5, half of 9b's, since 9b's approx-KL hit the 0.02 stop in 3 of 4 iterations and its KL-to-base tripled while its certified score fell below BC), and NO in-trainer checkpoint selection -- every iteration is saved and scored post hoc by the scorer of record.",
+ "configuration": {"INIT_RESIDUAL": "runs_g1_piston/rl9/grpo_ckpt_best.pt (iteration 1)", "SIGMA": 0.15, "R_MAX": 0.15, "N_GROUPS": 6, "GROUP": 6, "PPO_EPOCHS": 3, "MB": 64, "LR": 5e-5, "CLIP": 0.2, "KL_BETA": 0.1, "KL_STOP": 0.02, "WALL_BUDGET": 10800, "SEED": 2, "N_EVAL_PERIODIC": 8, "reward": "v3 (unchanged; it already pays 150/m dense for best-so-far plunger depth while grasped and 12.0 at 28 mm)"},
+ "hypotheses": {
+  "H4": "scorer-of-record grasp >= 0.87 on the certified-best iteration",
+  "H11b": "at least one iteration's certified lift/plate >= run 9's 0.96, i.e. training beyond one update does not degrade the certified number when steps are conservative and selection is certified",
+  "H13_press": "press > 0 on the scorer of record for some iteration. Prior: LOW-to-MODERATE. Stochastic rollouts in run 9b reached 29.5 and 31.2 mm (threshold 28 mm) and v3's dense press term gives the group signal a gradient toward it. If press_rate in the COLLECTED rollouts stays 0.00 throughout, the press stage's live-grasp gate is not being met when the plunger is deep and the reward design, not the optimiser, is the limit."
+ },
+ "selection_rule": "The deliverable checkpoint is the iteration with the highest scorer-of-record mean return among those with grasp >= 0.87; in-trainer evaluations are recorded but never used to select.",
+ "no_tuning_after_results": "Constants fixed now."
+}

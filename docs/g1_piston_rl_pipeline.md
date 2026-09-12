@@ -27,6 +27,12 @@ positions; loss on the *squashed* action). Backed-up result:
 `BASE_CKPT` defaults to the BC checkpoint above; `INIT_RESIDUAL=<ckpt>` continues from a
 previous run's residual. Every iteration is saved as `grpo_ckpt_iter<k>.pt`.
 
+`TRAIN_REWARD=v4` trains against `g1_piston_reward_v4.py`, which pays for the plunger press
+only while the pipette is grasped AND lifted. Under v3 the optimiser learned to press the
+plunger against the table while grasping (return 15-18 vs ~14 for a full transport) — every
+certified press in runs 9b/9c had no lift (`g1_piston_table_press_exploit.json`). The
+scorer of record stays v3 regardless of the training reward, so comparisons remain valid.
+
 Why this and not SAC/RLPD: every actor-critic arm collapsed the policy because the critic
 could not rank actions (two independent critics rated exploration-scale perturbations of
 the BC action at chance). GRPO learns from the simulator's return directly. Contracts:

@@ -34,5 +34,10 @@
   "conclusion": "The discrepancy is NOT a code-path difference. What differs is the process history: the in-trainer evaluation runs in a simulator that has just executed ~18 noisy training episodes, while the scorer of record runs in a fresh process.",
   "leading_hypothesis": "Simulator state carried across env.reset(seed=0): residual velocities, contact caches, or the articulated pipette/tube state after noisy rollouts, so apply_reset_condition does not reproduce the same initial physics.",
   "decisive_test_queued": "eval_checkpoint.py with COND_ORDER=reverse on the BC checkpoint in a fresh process (scratchpad/after_chain.sh, runs after runs 6 and 7 release the GPU). If per-condition outcomes depend on order, state carries across resets and both evaluation paths inherit it; the scorer of record then remains comparable only under a FIXED order, which is how every number of record has been produced."
+ },
+ "observation_2026_09_12": {
+  "what": "train_grpo.py evaluates the zero-residual policy (= BC by construction) at iteration 0, in a FRESH process, BEFORE any training rollout: grasp 1.00, lift 0.375, return 7.22 on the first 8 EVAL conditions (8-condition prefix; the 25-condition scorer of record gives 1.00 / 0.80).",
+  "reading": "The same in-process evaluation code that scored a BC-identical policy at 0.76 grasp in train_sac.py (after ~18 noisy training episodes) scores it 1.00 here (before any). This is consistent with simulator state carried across env.reset from preceding noisy episodes, and inconsistent with a code-path difference. The reversed-order scorer-of-record probe agreed with forward order on 23/25 grasps, so the effect under deterministic evaluation-only sequences is small; after stochastic training rollouts it is large.",
+  "consequence": "Run 9's in-trainer evaluations AFTER training rollouts should be read with the same caution as train_sac.py's; iteration 0 is the clean in-process baseline for run 9."
  }
 }

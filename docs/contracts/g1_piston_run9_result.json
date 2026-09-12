@@ -1,0 +1,98 @@
+{
+ "id": "g1_piston_run9_result",
+ "recorded": "2026-09-12",
+ "status": "FIRST RL IMPROVEMENT OVER THE BC POLICY IN THIS PROJECT. Pre-registered H4 and H11 PASS on the scorer of record.",
+ "what_ran": "Critic-free GRPO-style PPO with a KL anchor on the frozen BC head + zero-init residual (run9_grpo_preregistration.json). 2 iterations x 48 episodes; 102 gradient updates; 6029 s.",
+ "scorer_of_record_run9_best_iteration1_n25_fresh_process": {
+  "grasp_rate": 1.0,
+  "lift_rate": 0.96,
+  "plate_rate": 0.96,
+  "press_rate": 0.0,
+  "dispense_rate": 0.0,
+  "mean_return": 14.054
+ },
+ "ci95": {
+  "success": [
+   0.0,
+   0.133
+  ],
+  "reach": [
+   0.867,
+   1.0
+  ],
+  "grasp": [
+   0.867,
+   1.0
+  ],
+  "lift": [
+   0.805,
+   0.993
+  ],
+  "plate": [
+   0.805,
+   0.993
+  ],
+  "tube": [
+   0.0,
+   0.133
+  ],
+  "press": [
+   0.0,
+   0.133
+  ],
+  "dispense": [
+   0.0,
+   0.133
+  ]
+ },
+ "bc_baseline_same_suite_same_tool": {
+  "grasp_rate": 1.0,
+  "lift_rate": 0.8,
+  "plate_rate": 0.8,
+  "press_rate": 0.0,
+  "dispense_rate": 0.0,
+  "mean_return": 11.935
+ },
+ "per_condition": "BC failed lift on conditions [6, 11, 14, 15, 19]; run 9 lifts 4 of those 5 (all but 15). Lift 24/25 vs 20/25; mean max lift 0.130 m vs 0.123 m.",
+ "hypotheses": {
+  "H4_preservation": "PASS (grasp 1.00)",
+  "H11_improvement": "PASS (lift/plate 0.80 -> 0.96, CI [0.81, 0.99]; press 0.00)",
+  "H12_no_collapse": "PASS (in-trainer grasp 1.00 / 0.88 / 0.88)"
+ },
+ "learning_signal": {
+  "iteration_1": {
+   "within_group_return_std": 4.11,
+   "mean_return": 4.8,
+   "approx_kl": [
+    0.0023,
+    0.00023,
+    0.00671
+   ],
+   "clipfrac": 0.0,
+   "kl_base": 0.00242
+  },
+  "reading": "One conservative update on a clean group signal produced the gain. The iteration-2 update did not improve the in-trainer evaluation (return 10.45 -> 4.29 on 8 post-rollout conditions) and its checkpoint has not been scored by the scorer of record yet."
+ },
+ "why_this_worked_where_actor_critic_did_not": "The learning signal is the simulator's return, standardised within groups of rollouts from the same initial condition. A perturbation that breaks the grasp is pushed down by what actually happened; no critic has to rank actions. Two independent critics (runs 7 and 8) rated exploration-scale perturbations of the BC action at chance (0.46, 0.49), so any actor that followed them drifted off-task.",
+ "continuation_run_9b": {
+  "what": "Same algorithm from run 9's best residual, groups 6x5, 4 iterations, SEED 1.",
+  "in_trainer_best": "iteration 4: return 13.81, grasp 1.00, lift 1.00 on 8 post-rollout conditions",
+  "scorer_of_record_run9b_best_n25": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.64,
+   "plate_rate": 0.6,
+   "press_rate": 0.0,
+   "dispense_rate": 0.0,
+   "mean_return": 10.125
+  },
+  "reading": "The certified number (lift 0.64) is BELOW BC. The in-trainer selection was fooled: 8 conditions evaluated after stochastic rollouts are noisy and under- or over-score (g1_piston_in_trainer_eval_underscores.json). Run 9b's KL-to-base grew 0.014 -> 0.038 and approx-KL hit the 0.02 stop in three of four iterations: it moved further from the base than run 9 did. Whether the intermediate checkpoints were better is being measured (post-hoc scorer-of-record on every saved iteration).",
+  "H4": "PASS (grasp 1.00)",
+  "H11": "FAIL"
+ },
+ "deliverables": {
+  "checkpoint": "checkpoints/g1_piston_grpo_working/run9_best.pt (backed up)",
+  "videos": "verified_results/videos_rl_grpo/run9_best/ (12 clips, 11/12 grasp, 9/12 lift; best: cond 13, 14, 18)",
+  "manifests": "verified_results/manifests/grpo_run9_best_v3_n25.json, grpo_run9_train.json"
+ },
+ "next": "Score every intermediate checkpoint of runs 9 and 9b with the scorer of record to learn the true training trajectory, then decide the continuation protocol (lower LR, select by a larger/fresh-process evaluation). Press remains 0.00 in every run: not in the data, not yet discovered."
+}

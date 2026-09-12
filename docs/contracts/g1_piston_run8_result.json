@@ -1,13 +1,26 @@
 {
  "id": "g1_piston_run8_result",
  "recorded": "2026-09-11",
- "status": "REGRESSION under the pre-registered H4 rule; stopped early per the pre-registered rule. The critic repair (10-critic RLPD-aggregated ensemble + 3-step returns) trained but did not prevent the collapse. Scorer-of-record and H10 numbers pending (queued).",
+ "status": "REGRESSION confirmed by the scorer of record (grasp 0.04). H10 FAIL: the critic repair did not restore action sensitivity. Closes the actor-critic line; see g1_piston_run9_result.json.",
  "what_ran": "Run 7's residual arm plus NUM_Q=10, TARGET_SUBSET=2, ACTOR_Q_AGG=mean, N_STEP=3 (run8_preregistration.json). Durable storage. 63,780 env steps, 450 updates (150 actor) before the stop.",
  "readout": {
-  "in_trainer_grasp_per_eval": {"15180": 0.92, "30360": 0.68, "45300": 0.00, "60480": 0.04},
-  "in_trainer_lift_per_eval": {"15180": 0.40, "30360": 0.40, "45300": 0.00, "60480": 0.00},
+  "in_trainer_grasp_per_eval": {
+   "15180": 0.92,
+   "30360": 0.68,
+   "45300": 0.0,
+   "60480": 0.04
+  },
+  "in_trainer_lift_per_eval": {
+   "15180": 0.4,
+   "30360": 0.4,
+   "45300": 0.0,
+   "60480": 0.0
+  },
   "note_on_scale": "in-trainer baseline for the unchanged policy is 0.76; 0.92 during warmup is the zero residual (BC). Collapse begins with the first actor updates, exactly as in runs 6 and 7.",
-  "post_warmup_first_checkpoint": {"deployed_err_deg": 2.708, "raw_head_abs_mean": 0.4151},
+  "post_warmup_first_checkpoint": {
+   "deployed_err_deg": 2.708,
+   "raw_head_abs_mean": 0.4151
+  },
   "critic": "loss 27.9 at update 75 (3-step targets) -> 0.85 by update 450: the ensemble fit its targets. Q rose to 3.42.",
   "entropy": "alpha 0.0501 -> 0.0467, logp 1.92 -> 1.91 at target 1.913: regulating correctly.",
   "H4": "FAIL"
@@ -20,5 +33,55 @@
   "B: shrink the RL action space to a handful of task-relevant dimensions and 1-2 DCT components, so ~8 transitions per dimension becomes hundreds.",
   "C: write up the measured anatomy with the BC result as the deliverable; no further RL runs.",
   "D: produce a pressing demonstration by extending the data (scripted or teleoperated press) and cloning it; not RL, but yields the functional video."
- ]
+ ],
+ "scorer_of_record_n25": {
+  "grasp_rate": 0.04,
+  "lift_rate": 0.04,
+  "plate_rate": 0.04,
+  "press_rate": 0.0,
+  "dispense_rate": 0.0,
+  "mean_return": -0.019
+ },
+ "H10_probe_final_critic": {
+  "num_q": 10,
+  "by_net": {
+   "critic": {
+    "Q_demo": 3.7022879123687744,
+    "Q_bc": 3.701470375061035,
+    "Q_policy": 3.7544350624084473,
+    "Q_pert_mean": 3.7013025283813477,
+    "frac_Q_bc_gt_Q_pert": 0.489130437374115,
+    "rel_gap_bc_vs_policy": 0.014309984631836414,
+    "frac_frames_Q_policy_gt_Q_bc": 0.95652174949646,
+    "Q_along_bc_to_policy": [
+     3.701470375061035,
+     3.7147297859191895,
+     3.7279770374298096,
+     3.7412123680114746,
+     3.7544350624084473
+    ],
+    "H10_sensitivity": false,
+    "H10_gap": false
+   },
+   "target": {
+    "Q_demo": 2.6969521045684814,
+    "Q_bc": 2.696535587310791,
+    "Q_policy": 2.717505693435669,
+    "Q_pert_mean": 2.696486711502075,
+    "frac_Q_bc_gt_Q_pert": 0.4728260934352875,
+    "rel_gap_bc_vs_policy": 0.007776767481118441,
+    "frac_frames_Q_policy_gt_Q_bc": 1.0,
+    "Q_along_bc_to_policy": [
+     2.696535587310791,
+     2.7017874717712402,
+     2.707033395767212,
+     2.7122726440429688,
+     2.717505693435669
+    ],
+    "H10_sensitivity": false,
+    "H10_gap": false
+   }
+  },
+  "verdict": "FAIL. frac(Q_bc > Q_perturbed) = 0.49 / 0.47 (chance), Q gap to its own drifted chunk 1.4% / 0.8%, drifted chunk rated higher on 96-100% of frames. A 10-critic RLPD-aggregated ensemble with 3-step targets is exactly as action-insensitive as the 2-head critic. The registered falsifier holds: ensemble and n-step are not sufficient; the remedy was to remove the critic (run 9)."
+ }
 }

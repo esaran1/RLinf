@@ -1,0 +1,391 @@
+{
+  "tag": "rl9_best",
+  "checkpoint": "/home/jren313/research/starvla_rl/runs_g1_piston/rl9/grpo_ckpt_best.pt",
+  "mode": "deterministic",
+  "conditions": [
+    12,
+    16,
+    17,
+    6,
+    13,
+    21,
+    0,
+    24,
+    19,
+    14,
+    18,
+    8
+  ],
+  "rollouts": [
+    {
+      "cond": 12,
+      "hash": "0ffd70a332336855",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond12_deterministic.mp4",
+      "row": {
+        "condition": 12,
+        "hash": "0ffd70a332336855",
+        "return": 3.54,
+        "disp_m": 0.2869,
+        "disp_xy_m": 0.2833,
+        "final_dz_m": 0.0448,
+        "max_lift_m": 0.0755,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 16,
+      "hash": "50d2414e0a64edbc",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond16_deterministic.mp4",
+      "row": {
+        "condition": 16,
+        "hash": "50d2414e0a64edbc",
+        "return": 13.333,
+        "disp_m": 0.2983,
+        "disp_xy_m": 0.2961,
+        "final_dz_m": 0.036,
+        "max_lift_m": 0.0519,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 17,
+      "hash": "9e0fbfd2161bcaac",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond17_deterministic.mp4",
+      "row": {
+        "condition": 17,
+        "hash": "9e0fbfd2161bcaac",
+        "return": 14.064,
+        "disp_m": 0.1595,
+        "disp_xy_m": 0.1558,
+        "final_dz_m": -0.0344,
+        "max_lift_m": 0.1886,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 6,
+      "hash": "dcc2fd8a069b75f6",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond6_deterministic.mp4",
+      "row": {
+        "condition": 6,
+        "hash": "dcc2fd8a069b75f6",
+        "return": 13.749,
+        "disp_m": 0.298,
+        "disp_xy_m": 0.2935,
+        "final_dz_m": 0.0519,
+        "max_lift_m": 0.0972,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 13,
+      "hash": "d9277cf3bd98fdf7",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond13_deterministic.mp4",
+      "row": {
+        "condition": 13,
+        "hash": "d9277cf3bd98fdf7",
+        "return": 15.352,
+        "disp_m": 0.2979,
+        "disp_xy_m": 0.2967,
+        "final_dz_m": 0.0272,
+        "max_lift_m": 0.2116,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 21,
+      "hash": "5b24a1b90643a0b4",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond21_deterministic.mp4",
+      "row": {
+        "condition": 21,
+        "hash": "5b24a1b90643a0b4",
+        "return": 13.526,
+        "disp_m": 0.2959,
+        "disp_xy_m": 0.2927,
+        "final_dz_m": 0.0435,
+        "max_lift_m": 0.1199,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 0,
+      "hash": "dffa437572f84d40",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond0_deterministic.mp4",
+      "row": {
+        "condition": 0,
+        "hash": "dffa437572f84d40",
+        "return": 4.235,
+        "disp_m": 0.0051,
+        "disp_xy_m": 0.0012,
+        "final_dz_m": 0.0049,
+        "max_lift_m": 0.1744,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": false,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "frames": 242
+    },
+    {
+      "cond": 24,
+      "hash": "33b7fa7b2ddf9cd1",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond24_deterministic.mp4",
+      "row": {
+        "condition": 24,
+        "hash": "33b7fa7b2ddf9cd1",
+        "return": 14.387,
+        "disp_m": 0.3042,
+        "disp_xy_m": 0.3013,
+        "final_dz_m": 0.0417,
+        "max_lift_m": 0.1772,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 19,
+      "hash": "6639633827d8171f",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond19_deterministic.mp4",
+      "row": {
+        "condition": 19,
+        "hash": "6639633827d8171f",
+        "return": -0.095,
+        "disp_m": 0.2623,
+        "disp_xy_m": 0.2552,
+        "final_dz_m": -0.0606,
+        "max_lift_m": 0.1333,
+        "stages": {
+          "reach": false,
+          "grasp": false,
+          "lift": false,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": false,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 14,
+      "hash": "d018c28710bb9fdd",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond14_deterministic.mp4",
+      "row": {
+        "condition": 14,
+        "hash": "d018c28710bb9fdd",
+        "return": 15.237,
+        "disp_m": 0.3262,
+        "disp_xy_m": 0.3195,
+        "final_dz_m": 0.0656,
+        "max_lift_m": 0.1502,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 18,
+      "hash": "4cc2a807c83d9f0e",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond18_deterministic.mp4",
+      "row": {
+        "condition": 18,
+        "hash": "4cc2a807c83d9f0e",
+        "return": 15.023,
+        "disp_m": 0.3294,
+        "disp_xy_m": 0.322,
+        "final_dz_m": 0.0694,
+        "max_lift_m": 0.1688,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    },
+    {
+      "cond": 8,
+      "hash": "33cdfb7b8ee5fecb",
+      "video": "/home/jren313/research/starvla_rl/runs_g1_piston/videos/rl9_best/rl9_best_step66240_cond8_deterministic.mp4",
+      "row": {
+        "condition": 8,
+        "hash": "33cdfb7b8ee5fecb",
+        "return": 14.292,
+        "disp_m": 0.3351,
+        "disp_xy_m": 0.3289,
+        "final_dz_m": 0.0639,
+        "max_lift_m": 0.1416,
+        "stages": {
+          "reach": true,
+          "grasp": true,
+          "lift": true,
+          "tube": false,
+          "press": false,
+          "dispense": false,
+          "plate": true,
+          "success": false
+        }
+      },
+      "frames": 345
+    }
+  ],
+  "residual": {
+    "applied": true,
+    "feat_dim": 2048,
+    "hidden": [
+      512,
+      512
+    ],
+    "r_max": 0.15
+  },
+  "checkpoint_env_steps": 66240,
+  "checkpoint_grad_updates": 51,
+  "_status": "OK",
+  "suite": {
+    "n_train": 400,
+    "n_eval": 50,
+    "reset_suite_seed": 20260817,
+    "eval_hashes": [
+      "dffa437572f84d40",
+      "f60fa5ca03c6a477",
+      "9bf42ffa96caaecd",
+      "f5537120a8d1ea37",
+      "00968119b01cb36a",
+      "ecab971237c428ef",
+      "dcc2fd8a069b75f6",
+      "271e8b94af4b9cb3",
+      "33cdfb7b8ee5fecb",
+      "20b0da5b1f52a49c",
+      "723816bdda5dcf5f",
+      "1df14a4bfcdd5f8d",
+      "0ffd70a332336855",
+      "d9277cf3bd98fdf7",
+      "d018c28710bb9fdd",
+      "03734cd7523b08b1",
+      "50d2414e0a64edbc",
+      "9e0fbfd2161bcaac",
+      "4cc2a807c83d9f0e",
+      "6639633827d8171f",
+      "28e4dae88b2738f6",
+      "5b24a1b90643a0b4",
+      "49d98c0f89e09e80",
+      "280513feb0d5128b",
+      "33b7fa7b2ddf9cd1",
+      "bfb9a20f41c23408",
+      "bfe68f0bf1533f07",
+      "c22ee26a83c0ac81",
+      "a23837af91767ffd",
+      "ef582e2419d8155c",
+      "4f5d9bc09d03c768",
+      "811c6bb59b69eb88",
+      "9e46511cfbfaef03",
+      "9d427f427ca9fa98",
+      "d9dcf5d4cbe59bab",
+      "fe8414b633cb5b2c",
+      "552212c6a249aa81",
+      "bcd1f013a70078fb",
+      "fad187b1acb39434",
+      "a532acf5dd7ef65f",
+      "d3d35d1a5666b761",
+      "9553ea2a8bff4ce1",
+      "9d6349968e5e1807",
+      "45c47cbbcfb9711f",
+      "43b4852df9b5fc78",
+      "959602134cbd0331",
+      "e9ec7799dfb062a7",
+      "67c0c6be5cabd47b",
+      "4af7ff3b684e6b40",
+      "2c3b8cacc6ea11bc"
+    ]
+  },
+  "wall_clock_s": 681.5
+}

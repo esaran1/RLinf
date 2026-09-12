@@ -124,6 +124,17 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Certified trajectory (2026-09-12, 15:10): only the first update helped
+
+Every later GRPO iteration (run 9 iter 2; run 9b iters 1–4 at LR 1e-4; run 9c at LR 5e-5)
+certifies at or below BC on lift while KL-to-base grows monotonically. Within-group return
+spread is dominated by contact nondeterminism, so the advantage mostly rewards luck.
+Run 9 iter 1's +0.16 lift is being certified against scorer repeat noise with paired
+repeats (`scripts/repeat_scoring.sh`, queued after `chain_rl9c`). Run 9b iter 2 certified
+the project's first deterministic press (1/25). Contract:
+`g1_piston_grpo_certified_trajectory.json`, which also lists the untested variance-reduction
+fixes. Decision: no more continuation attempts under this protocol.
+
 ## RESULT (2026-09-12, 09:30): critic-free RL beats BC
 
 Run 9 best (iteration 1), scorer of record n=25: **grasp 1.00, lift 0.96, plate 0.96,

@@ -29,6 +29,8 @@ from rlinf.envs.isaaclab.tasks.g1_piston_grpo import (  # noqa: E402
 )
 
 MASK = torch.tensor([True] * 20 + [False] * 10)
+# The real active set: both arms (0-13) and the right hand (20-25).
+REAL_MASK = torch.tensor([i < 14 or 20 <= i < 26 for i in range(30)])
 
 
 def test_logp_is_a_per_entry_mean_and_peaks_at_the_mean():
@@ -92,14 +94,17 @@ def test_per_dimension_sigma_reduces_to_the_scalar_case_and_targets_dims():
     scalar = gaussian_logp_mean(c, mu, 0.15, MASK)
     vec = gaussian_logp_mean(c, mu, torch.full((30,), 0.15), MASK)
     assert torch.allclose(scalar, vec)
-    # a larger sigma on the hand dims (20-25) must lower the density penalty there only
+    # a larger sigma on the hand dims (20-25) changes the density there -- and ONLY there:
+    # with a mask that excludes the hand dims the result is identical.
     sig = torch.full((30,), 0.15); sig[20:26] = 0.35
-    lp_hand = gaussian_logp_mean(c, mu, sig, MASK)
-    assert not torch.allclose(lp_hand, vec)
-    kl_s = kl_to_base_mean(torch.full((1, 6, 30), 0.1), 0.15, MASK)
-    kl_v = kl_to_base_mean(torch.full((1, 6, 30), 0.1), torch.full((30,), 0.15), MASK)
+    assert torch.allclose(gaussian_logp_mean(c, mu, sig, MASK), vec)
+    vec_real = gaussian_logp_mean(c, mu, torch.full((30,), 0.15), REAL_MASK)
+    lp_hand = gaussian_logp_mean(c, mu, sig, REAL_MASK)
+    assert not torch.allclose(lp_hand, vec_real)
+    kl_s = kl_to_base_mean(torch.full((1, 6, 30), 0.1), 0.15, REAL_MASK)
+    kl_v = kl_to_base_mean(torch.full((1, 6, 30), 0.1), torch.full((30,), 0.15), REAL_MASK)
     assert torch.allclose(kl_s, kl_v)
-    kl_h = kl_to_base_mean(torch.full((1, 6, 30), 0.1), sig, MASK)
+    kl_h = kl_to_base_mean(torch.full((1, 6, 30), 0.1), sig, REAL_MASK)
     assert float(kl_h) < float(kl_v)          # wider hand sigma -> smaller KL for the same mean
 
 

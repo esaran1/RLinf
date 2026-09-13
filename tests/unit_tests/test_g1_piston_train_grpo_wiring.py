@@ -53,7 +53,7 @@ def test_objective_is_the_tested_module():
 def test_checkpoint_format_is_loadable_by_the_scorers():
     src = _src()
     for key in ('"action_model": model.action_model.state_dict()', '"residual": residual.state_dict()',
-                '"residual_cfg"', '"actor_logstd": torch.full((30,), math.log(SIGMA))'):
+                '"residual_cfg"', '"actor_logstd": torch.log(SIG.detach().cpu())'):
         assert key in src, key
 
 

@@ -124,6 +124,13 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 11 (2026-09-13, 03:30): first LIFTED press, in a stochastic rollout
+
+Targeted exploration (hand σ 0.35, arm σ 0.10, v4 reward): iteration 2 collected press rate
+0.021 = 1 of 48 rollouts fired the lifted-press gate (36.8 mm) — H15 met; run 10 had 0 in
+144 isotropic rollouts. Transport under exploration preserved (H16). Certified sweeps follow.
+Contract: `g1_piston_run11_result.json`.
+
 ## CORRECTION (2026-09-13, 01:55): run 9's improvement is not established
 
 n=50: BC lift 0.80 / return 12.14 vs run 9 0.74 / 11.51; on conditions 0–24 run 9 16/25 vs

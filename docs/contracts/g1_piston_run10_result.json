@@ -1,0 +1,162 @@
+{
+ "id": "g1_piston_run10_result",
+ "recorded": "2026-09-12 21:55 (training complete; certified v3 sweeps in progress, appended by tools/g1_piston/report_run10.py)",
+ "status": "TRAINING COMPLETE. Under the v4 training reward no rollout pressed while lifted in 144 stochastic episodes; the table-press exploit was correctly unrewarded and the drift toward it stopped. Certification pending.",
+ "training": {
+  "iterations": [
+   {
+    "iteration": 1,
+    "collect": {
+     "n_episodes": 48,
+     "mean_return": 6.198,
+     "return_std_within_group_mean": 4.399,
+     "grasp_rate": 0.854,
+     "lift_rate": 0.5,
+     "plate_rate": 0.417,
+     "press_rate": 0.0,
+     "dispense_rate": 0.0,
+     "max_press_m_any": 0.02849,
+     "collect_s": 2457.9
+    },
+    "ppo": {
+     "epochs_run": 3,
+     "approx_kl": [
+      0.00164,
+      0.0079,
+      0.02143
+     ],
+     "clipfrac": 0.0,
+     "loss": 0.00453,
+     "kl_base": 0.00994,
+     "early_stop": true
+    }
+   },
+   {
+    "iteration": 2,
+    "collect": {
+     "n_episodes": 48,
+     "mean_return": 4.419,
+     "return_std_within_group_mean": 4.393,
+     "grasp_rate": 0.729,
+     "lift_rate": 0.25,
+     "plate_rate": 0.208,
+     "press_rate": 0.0,
+     "dispense_rate": 0.0,
+     "max_press_m_any": 0.02851,
+     "collect_s": 2465.7
+    },
+    "ppo": {
+     "epochs_run": 3,
+     "approx_kl": [
+      0.01098,
+      -0.00234,
+      0.00731
+     ],
+     "clipfrac": 0.0,
+     "loss": -0.00109,
+     "kl_base": 0.0336,
+     "early_stop": false
+    }
+   },
+   {
+    "iteration": 3,
+    "collect": {
+     "n_episodes": 48,
+     "mean_return": 4.42,
+     "return_std_within_group_mean": 3.704,
+     "grasp_rate": 0.708,
+     "lift_rate": 0.25,
+     "plate_rate": 0.229,
+     "press_rate": 0.0,
+     "dispense_rate": 0.0,
+     "max_press_m_any": 0.03033,
+     "collect_s": 2590.1
+    },
+    "ppo": {
+     "epochs_run": 3,
+     "approx_kl": [
+      0.00357,
+      -0.00028,
+      0.00683
+     ],
+     "clipfrac": 0.0,
+     "loss": 0.03071,
+     "kl_base": 0.03378,
+     "early_stop": false
+    }
+   }
+  ],
+  "in_trainer_evals": [
+   {
+    "iteration": 0,
+    "n": 8,
+    "mean_return": 9.657,
+    "reach_rate": 1.0,
+    "grasp_rate": 1.0,
+    "lift_rate": 0.625,
+    "plate_rate": 0.625,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.1177,
+    "max_press_m_any": 0.02136
+   },
+   {
+    "iteration": 1,
+    "n": 8,
+    "mean_return": 10.263,
+    "reach_rate": 0.875,
+    "grasp_rate": 0.875,
+    "lift_rate": 0.875,
+    "plate_rate": 0.625,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.1171,
+    "max_press_m_any": 0.02255
+   },
+   {
+    "iteration": 2,
+    "n": 8,
+    "mean_return": 9.85,
+    "reach_rate": 1.0,
+    "grasp_rate": 1.0,
+    "lift_rate": 0.625,
+    "plate_rate": 0.5,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.1134,
+    "max_press_m_any": 0.01123
+   },
+   {
+    "iteration": 3,
+    "n": 8,
+    "mean_return": 1.21,
+    "reach_rate": 0.5,
+    "grasp_rate": 0.5,
+    "lift_rate": 0.0,
+    "plate_rate": 0.0,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.0661,
+    "max_press_m_any": 0.02115
+   }
+  ],
+  "totals": {
+   "iterations": 3,
+   "grad_updates": 159,
+   "wall_clock_s": 9284.6,
+   "peak_vram_mib": 4347
+  },
+  "train_reward": "v4"
+ },
+ "reading": [
+  "Collected press credit 0.000 in every iteration (v4 pays only while lifted); the plunger still reached 28.5-30.3 mm, i.e. table presses continued to occur under exploration but no longer earned anything.",
+  "Collected grasp/lift under exploration: 0.85/0.50 -> 0.73/0.25 -> 0.71/0.25, the same drift pattern as runs 9b/9c once past the first update; KL-to-base 0.010 -> 0.034 -> 0.034.",
+  "In-trainer evaluation (8 post-rollout conditions, noisy): lift 0.62 (base) -> 0.88 -> 0.62 -> 0.00.",
+  "H14 (no press without lift on the scorer of record) can only be confirmed by the certified sweeps; H13b (a lifted press) did not occur in training and is not expected in certification."
+ ],
+ "interpretation": "Fixing the reward removes the exploit but does not create the lifted press: it is a rare event that sigma-0.15 exploration around this policy does not produce (0 in 144 episodes), so there is no positive example for the group signal to amplify. Discovering it needs either targeted exploration of the thumb/plunger dimensions while lifted, or a demonstration of the act to clone from."
+}

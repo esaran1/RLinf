@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 10 training done (2026-09-12, 21:50)
+
+Three iterations under v4: **no lifted press in 144 rollouts**, table presses no longer
+rewarded (press credit 0.000), same post-first-update drift as before (KL-to-base → 0.034).
+Chain is scoring each iteration twice under v3, then `certify_n50.sh` scores run 9 best and
+BC on all 50 conditions. `tools/g1_piston/report_run10.py` fills `FINAL_REPORT.md`.
+The lifted press is a rare event that exploration around this policy does not produce;
+discovering it needs targeted exploration of the thumb/plunger dims while lifted, or a
+demonstration to clone. Contract: `g1_piston_run10_result.json`.
+
 ## Table-press exploit and reward v4; run 10 (2026-09-12, 19:30)
 
 Every certified press in runs 9b/9c had **no lift**: the policy presses the plunger against the

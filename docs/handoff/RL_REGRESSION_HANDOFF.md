@@ -124,6 +124,12 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Pooled verdict for run 9 (2026-09-13, 09:44)
+
+9 paired sweeps, 225 condition-evaluations per policy: lift 0.742 vs 0.698 (+0.044, CI −0.13
+to +0.19), return 11.37 vs 10.79, 6W/2L/1T — **not established**. Run 11 iteration 2's paired
+repeats are the last queued measurement (`scripts/rl11_iter2_repeats.sh`).
+
 ## Run 11 certified (2026-09-13, 06:31): iteration 2 selected
 
 Two fresh-process sweeps: grasp 1.00/1.00, lift 0.92/0.84, plate 0.92/0.84, return 13.9/12.9 —

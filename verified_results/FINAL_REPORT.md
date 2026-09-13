@@ -1,30 +1,25 @@
 # G1 piston RL fine-tuning: final report (living document, updated as runs certify)
 
-## Deliverable — and an honest correction
+## Deliverable — with the certified verdict
 
-**Run 9, iteration 1** (critic-free GRPO on a frozen BC head + residual) is the only RL run
-that ever scored above behaviour cloning, and the pipeline that produced it is reproducible
-(`docs/g1_piston_rl_pipeline.md`). But the improvement is **small and not established**:
+The pipeline works end to end and is reproducible (`docs/g1_piston_rl_pipeline.md`), and two
+RL checkpoints have scored above behaviour cloning on individual sweeps. Whether either is a
+real improvement is a question this benchmark's evaluation variance makes expensive to
+answer, and the answer for run 9 is now in:
 
-| paired sweep (first 25 conditions) | BC lift | run 9 lift |
-|---|---|---|
-| 1 | 0.80 | 0.96 |
-| 2 | 0.72 | 0.76 |
-| 3 | 0.60 | 0.88 |
-| 4 (first half of the 50-condition sweep) | 0.84 | 0.64 |
-| conditions 25–49 | 0.76 | 0.84 |
-| **pooled, 125 paired condition-evaluations each** | **0.744** | **0.816** |
+**Run 9, iteration 1 vs BC — 9 paired fresh-process sweeps, 225 condition-evaluations each:**
+lift **0.742 vs 0.698** (+0.044, paired-bootstrap 95 % CI −0.133 to +0.191); return
+**11.37 vs 10.79**; 6 wins, 2 losses, 1 tie. **Not established.** The same deterministic
+checkpoint scored lift anywhere from 0.36 to 0.96 across sweeps; BC from 0.48 to 0.88.
 
-A deterministic policy's lift rate on the same fixed conditions swings by ~0.2 between
-fresh processes, so three paired wins were never strong evidence and the fourth sweep
-reversed them. The pooled point estimate favours run 9 by +0.07 lift; the full
-50-condition sweep favoured BC (0.80 vs 0.74 lift, 12.14 vs 11.51 return). Four more paired
-sweeps are queued to reach ~300 condition-evaluations per policy. Contract:
-`g1_piston_eval_variance.json`.
+**Run 11, iteration 2** (targeted hand exploration, v4 training reward) is the remaining
+candidate: grasp 1.00/1.00, lift 0.92/0.84, plate 0.92/0.84, return 13.9/12.9 over its first two
+sweeps, and it is the iteration trained on the project's first lifted press. Its four paired
+repeats against BC are being scored; the pooled verdict is appended below when done.
 
-* checkpoint: `checkpoints/g1_piston_grpo_working/run9_best.pt`
-* videos: `verified_results/videos_rl_grpo/run9_best/` (12 clips) and BC's
-  `verified_results/videos_bc_working/`
+* checkpoints: `checkpoints/g1_piston_grpo_working/run9_best.pt`, `run11_iter2.pt`
+* videos: `verified_results/videos_rl_grpo/run9_best/`, `run11_iter2/` (12 clips each; run 11
+  iteration 2 renders at 12/12 grasp, 11/12 lift), and BC's `verified_results/videos_bc_working/`
 * recipe: `docs/g1_piston_rl_pipeline.md`
 
 ### Pooled paired comparison: run 9 best vs BC (every fresh-process sweep)
@@ -44,6 +39,18 @@ sweeps are queued to reach ~300 condition-evaluations per policy. Contract:
 **Pooled over 225 paired condition-evaluations per policy:** lift 0.742 vs 0.698 (difference +0.044, paired-bootstrap 95% CI -0.133 to +0.191); return 11.37 vs 10.79. Candidate won 6 of 9 pairs on lift (1 ties).
 
 Verdict: **Not established** (CI includes zero).
+
+### 50-condition certification (all frozen eval conditions, fresh processes)
+
+| | BC (n=50) | **run 9 best** (n=50) |
+|---|---|---|
+| grasp | 1.00 | **0.94** |
+| lift | 0.80 (CI 0.67–0.89) | **0.74** (CI 0.60–0.84) |
+| plate | 0.76 (CI 0.63–0.86) | **0.74** (CI 0.60–0.84) |
+| press / dispense | 0.00 / 0.00 | 0.00 / 0.00 |
+| mean return | 12.14 | **11.51** |
+
+Manifests: `verified_results/manifests/grpo_rl9_best_v3_n50.json`, `bc_v3_n50.json`.
 
 ## What did not work, and why (all measured)
 

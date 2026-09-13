@@ -43,6 +43,9 @@ Environment:
     RAISE_M     P1 raise height (default 0.03)
     YAW_CMD     thumb-yaw command in P2/P3 (default 0.42)
     KEEP_FAILED "1" to also save episodes whose press did not certify (default 0)
+    VARIANTS    JSON list of primitive variants to run per episode/condition, each a dict
+                with optional keys: raise_m, yaw_cmd, ramp_steps, wrist (dict of action dim
+                -> offset, ramped in with the thumb during P2), name. Default: one baseline.
 """
 import json
 import os
@@ -60,6 +63,7 @@ CONDS = [c.strip() for c in os.environ.get("CONDS", "canonical").split(",") if c
 RAISE_M = float(os.environ.get("RAISE_M", "0.03"))
 YAW_CMD = float(os.environ.get("YAW_CMD", "0.42"))
 KEEP_FAILED = os.environ.get("KEEP_FAILED", "0") == "1"
+VARIANTS = json.loads(os.environ.get("VARIANTS", "[{}]"))
 EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))
 H = 30
 os.makedirs(OUTDIR, exist_ok=True)
@@ -145,7 +149,13 @@ try:
     for ep in EPISODES:
         A = np.load(f"{DEMO_DIR}/ep{ep:03d}.npz")["actions"].reshape(-1, 30)
         n_demo_chunks = len(A) // H
-        for cond_name in CONDS:
+        for cond_name, var in [(c, v) for c in CONDS for v in VARIANTS]:
+            raise_m = float(var.get("raise_m", RAISE_M)); yaw_cmd = float(var.get("yaw_cmd", YAW_CMD))
+            ramp_steps = int(var.get("ramp_steps", 10)); wrist = {int(k): float(v) for k, v in var.get("wrist", {}).items()}
+            extra_chunks = int(var.get("extra_chunks", 0))      # demo chunks to keep after the plate stage
+            to_end = bool(var.get("to_end", False))              # keep the whole demonstration
+            settle_chunks = int(var.get("settle_chunks", 0))     # hold-still chunks before the raise
+            vname = var.get("name", "base")
             t0 = time.time()
             env.reset(seed=0)
             cond = None
@@ -155,7 +165,9 @@ try:
             reward_fn.reset(); csb.reset()
             imgs, acts, rews, states = [], [], [], []
             stages = {}
-            rec = {"episode": ep, "cond": cond_name, "cond_hash": cond.hash() if cond else None}
+            rec = {"episode": ep, "cond": cond_name, "cond_hash": cond.hash() if cond else None,
+                   "variant": vname, "variant_cfg": {"raise_m": raise_m, "yaw_cmd": yaw_cmd, "ramp_steps": ramp_steps, "wrist": wrist,
+                                                     "extra_chunks": extra_chunks, "to_end": to_end, "settle_chunks": settle_chunks}}
             # ---- 1. human transport, truncated at the plate stage ----------------------
             plate_chunk = None
             for c in range(n_demo_chunks):
@@ -166,28 +178,32 @@ try:
                 for t in range(H):
                     r, info = step_phys(chunk[t]); tot += r; merge(stages, info)
                 rews.append(np.float32(tot))
-                if stages.get("plate") and stages.get("lift"):
+                if plate_chunk is None and stages.get("plate") and stages.get("lift"):
                     plate_chunk = c
+                if plate_chunk is not None and not to_end and c >= plate_chunk + extra_chunks:
                     break
             rec["transport_chunks"] = len(acts)
             rec["plate_chunk"] = plate_chunk
             rec["transport_stages"] = {k: bool(v) for k, v in stages.items()}
-            if plate_chunk is None or not info["grasped"]:
+            if plate_chunk is None or not info["finger_hold"]:
                 rec["outcome"] = "transport_failed"; rec["wall_s"] = round(time.time() - t0, 1)
                 summary["episodes"].append(rec); emit(); continue
             # ---- 2. scripted press primitive ------------------------------------------
-            st = {"last": A[plate_chunk * H + H - 1].copy()}
+            st = {"last": A[c * H + H - 1].copy()}
             press_log = []
             def run_primitive_chunk(kind, c_index):
                 last = st["last"]
                 imgs.append(grab()); states.append(csb.build(stages=stages, chunk=c_index))
                 chunk_acts = []; tot = 0.0
-                y0 = float(last[25])
+                y0 = float(last[25]); w0 = {d: float(last[d]) for d in wrist}
                 for t in range(H):
                     if kind == "raise":
-                        last = ik_step(last, np.array([0.0, 0.0, RAISE_M / H]))
+                        last = ik_step(last, np.array([0.0, 0.0, raise_m / H]))
                     elif kind == "press":
-                        last = last.copy(); last[25] = y0 + (YAW_CMD - y0) * min(1.0, (t + 1) / 10.0)
+                        frac = min(1.0, (t + 1) / ramp_steps)
+                        last = last.copy(); last[25] = y0 + (yaw_cmd - y0) * frac
+                        for d, off in wrist.items():
+                            last[d] = w0[d] + off * frac
                     chunk_acts.append(last.copy())
                     st["last"] = last
                     r, info = step_phys(last); tot += r; merge(stages, info)
@@ -196,6 +212,8 @@ try:
                                       "d_pot_xy": info["d_pot_xy"]})
                 acts.append(np.asarray(chunk_acts, dtype=np.float32)); rews.append(np.float32(tot))
             c_next = len(acts)
+            for _k in range(settle_chunks):
+                run_primitive_chunk("hold", c_next); c_next += 1
             run_primitive_chunk("raise", c_next)
             run_primitive_chunk("press", c_next + 1)
             run_primitive_chunk("hold", c_next + 2)
@@ -214,14 +232,15 @@ try:
                 "finger_hold_frac_during_press": round(float(np.mean([x["finger_hold"] for x in pl])), 3),
                 "max_sustain_steps": int(max(x["sustain"] for x in pl)),
                 "d_pot_xy_end": round(pl[-1]["d_pot_xy"], 4),
-                "lift_after_raise": round(press_log[H - 1]["lift"], 4),
+                "lift_after_raise": round(press_log[settle_chunks * H + H - 1]["lift"], 4),
                 "wall_s": round(time.time() - t0, 1),
             })
             ok = bool(stages.get("dispense"))
             rec["outcome"] = "press_certified" if ok else "press_failed"
             if ok or KEEP_FAILED:
                 tag = "c" if cond_name == "canonical" else f"t{int(cond_name):03d}"
-                out = os.path.join(OUTDIR, f"ep{ep:03d}_{tag}.npz")
+                vtag = "" if len(VARIANTS) == 1 else f"_{vname}"
+                out = os.path.join(OUTDIR, f"ep{ep:03d}_{tag}{vtag}.npz")
                 np.savez_compressed(out, images=np.stack(imgs), actions=np.stack(acts),
                                     rewards=np.stack(rews), critic_state=np.stack(states).astype(np.float32))
                 rec["file"] = out

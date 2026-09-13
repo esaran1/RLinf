@@ -124,6 +124,31 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## The press, measured (2026-09-13, 19:30): two silent defects, both fixed in code
+
+Before scripting a press primitive I measured the press itself in the simulator
+(`tools/g1_piston/probe_press_geometry.py`, `probe_press_mechanics.py`; contract
+`g1_piston_press_geometry.json`). Two things the whole project had been assuming were wrong:
+
+1. **The v3 press threshold was physically unreachable.** The rod protrudes 25 mm above the
+   barrel at rest and the barrel's collision hull is a convex hull that fills the bore, so
+   nothing can push the rod below flush without interpenetration. v3 asked for 28 mm. Every
+   certified v3 press (28-32 mm) was a table press under the arm's full PD force.
+2. **The thumb was a constant.** The policy's thumb-yaw dim is normalised on the
+   demonstrations' [-0.10, 0.25] rad, so after the squash it can emit at most 0.46 rad; the
+   retargeter holds the closed hand's thumb yaw at max(recorded, 0.9). No RL run could have
+   learned the only press mechanism there is: a thumb-yaw sweep to 1.3 rad, which puts the
+   thumb over the rod top and presses to exactly the 24.5 mm ceiling (measured, steady).
+
+Fixes: reward v5 (`g1_piston_reward_v5.py`: 20 mm held 15 steps, finger-held, lifted;
+dispense = that press over the plate; transport stages bit-identical to v3), a press
+channel in the retargeter (recorded yaw 0.30-0.42 -> 0.9-1.3 rad; bit-identical below 0.30,
+contract `g1_piston_thumb_press_channel.json`), and `make_press_demos.py`, which appends a
+scripted raise/thumb/hold primitive to the demonstrations' transport and keeps an episode only
+if v5 dispense certifies. First result: from the plate-arrival pose the thumb press reaches
+only 4-19 mm on most episodes; it reached 24.5 mm from ep40's settled end pose. The press is a
+function of where the rod top sits in the hand frame; `probe_press_handframe.py` measures that.
+
 ## Pooled verdict for run 11 iteration 2 (2026-09-13, 11:18) — last queued measurement
 
 6 paired fresh-process sweeps, 150 condition-evaluations per policy: lift 0.747 vs BC 0.680 (+0.067,

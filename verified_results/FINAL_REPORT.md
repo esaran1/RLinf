@@ -72,6 +72,22 @@ Training: 3 iterations from the BC base, run 9's configuration, SEED 3. Collecte
 Selected by the registered rule (grasp ≥ 0.87 in both sweeps, highest mean return): **iter3**.
 Reference: run 9 iteration 1 paired mean lift 0.87 / return 12.9; BC 0.71 / 10.7.
 
+## Run 11 (targeted exploration: hand sigma 0.35, arm 0.10; v4) — certified
+
+Training: 3 iterations from the BC base, run 9's configuration, SEED 3. Collected press rate per iteration: 0.000, 0.021, 0.000 (v4 pays nothing for a table press).
+
+| checkpoint | sweep | grasp | lift | plate | press (w/ lift, w/o lift) | return |
+|---|---|---|---|---|---|---|
+| rl11 iter1 | 1 | 1.00 | 0.76 | 0.72 | 0.00 (0, 0) | 11.08 |
+| rl11 iter1 | 2 | 1.00 | 0.88 | 0.84 | 0.00 (0, 0) | 11.76 |
+| rl11 iter2 | 1 | 1.00 | 0.92 | 0.92 | 0.00 (0, 0) | 13.88 |
+| rl11 iter2 | 2 | 1.00 | 0.84 | 0.84 | 0.00 (0, 0) | 12.87 |
+| rl11 iter3 | 1 | 0.96 | 0.68 | 0.68 | 0.00 (0, 0) | 10.73 |
+| rl11 iter3 | 2 | 1.00 | 0.80 | 0.80 | 0.00 (0, 0) | 12.64 |
+
+Selected by the registered rule (grasp ≥ 0.87 in both sweeps, highest mean return): **iter2**.
+Reference: run 9 iteration 1 paired mean lift 0.87 / return 12.9; BC 0.71 / 10.7.
+
 ## Evaluation caveats carried throughout
 
 * A single n=25 sweep is one sample: the scorer flips lift on ~6/25 conditions between

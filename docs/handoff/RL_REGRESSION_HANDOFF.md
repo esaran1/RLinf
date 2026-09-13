@@ -124,6 +124,13 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 10 certified (2026-09-13, 00:10)
+
+Selected iteration 3: lift 0.72/0.76, plate 0.72/0.76, return 11.3 (BC level; run 9 is 0.87).
+Six sweeps, zero rewarded table presses (one incidental), zero lifted presses. v4 removed the
+exploit; it did not create the press or improve transport. Run 11 (hand σ 0.35, arm σ 0.10,
+v4) is chained after the n=50 certification. Contract: `g1_piston_run10_result.json`.
+
 ## Run 10 training done (2026-09-12, 21:50)
 
 Three iterations under v4: **no lifted press in 144 rollouts**, table presses no longer

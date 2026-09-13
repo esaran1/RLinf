@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_run10_result",
  "recorded": "2026-09-12 21:55 (training complete; certified v3 sweeps in progress, appended by tools/g1_piston/report_run10.py)",
- "status": "TRAINING COMPLETE. Under the v4 training reward no rollout pressed while lifted in 144 stochastic episodes; the table-press exploit was correctly unrewarded and the drift toward it stopped. Certification pending.",
+ "status": "CERTIFIED. H4 PASS, H14 essentially PASS (table presses no longer produced by training; one incidental un-lifted press in 150 condition-evaluations), H11 FAIL (lift at BC level, below run 9), H13b FAIL (no lifted press).",
  "training": {
   "iterations": [
    {
@@ -156,7 +156,77 @@
   "Collected press credit 0.000 in every iteration (v4 pays only while lifted); the plunger still reached 28.5-30.3 mm, i.e. table presses continued to occur under exploration but no longer earned anything.",
   "Collected grasp/lift under exploration: 0.85/0.50 -> 0.73/0.25 -> 0.71/0.25, the same drift pattern as runs 9b/9c once past the first update; KL-to-base 0.010 -> 0.034 -> 0.034.",
   "In-trainer evaluation (8 post-rollout conditions, noisy): lift 0.62 (base) -> 0.88 -> 0.62 -> 0.00.",
-  "H14 (no press without lift on the scorer of record) can only be confirmed by the certified sweeps; H13b (a lifted press) did not occur in training and is not expected in certification."
+  "H14 (no press without lift on the scorer of record) can only be confirmed by the certified sweeps; H13b (a lifted press) did not occur in training and is not expected in certification.",
+  "Removing the exploit did not produce a lifted press and did not improve transport beyond BC. Run 11 (targeted hand exploration) is the registered test of whether a lifted press can appear at all."
  ],
- "interpretation": "Fixing the reward removes the exploit but does not create the lifted press: it is a rare event that sigma-0.15 exploration around this policy does not produce (0 in 144 episodes), so there is no positive example for the group signal to amplify. Discovering it needs either targeted exploration of the thumb/plunger dimensions while lifted, or a demonstration of the act to clone from."
+ "interpretation": "Fixing the reward removes the exploit but does not create the lifted press: it is a rare event that sigma-0.15 exploration around this policy does not produce (0 in 144 episodes), so there is no positive example for the group signal to amplify. Discovering it needs either targeted exploration of the thumb/plunger dimensions while lifted, or a demonstration of the act to clone from.",
+ "certified_v3_two_sweeps_per_iteration": {
+  "iter1": {
+   "1": {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.68,
+    "plate_rate": 0.6,
+    "press_rate": 0.0,
+    "mean_return": 9.677,
+    "press_without_lift": 0,
+    "press_with_lift": 0
+   },
+   "2": {
+    "grasp_rate": 0.88,
+    "lift_rate": 0.52,
+    "plate_rate": 0.48,
+    "press_rate": 0.04,
+    "mean_return": 8.794,
+    "press_without_lift": 1,
+    "press_with_lift": 0
+   }
+  },
+  "iter2": {
+   "1": {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.48,
+    "plate_rate": 0.48,
+    "press_rate": 0.0,
+    "mean_return": 7.719,
+    "press_without_lift": 0,
+    "press_with_lift": 0
+   },
+   "2": {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.4,
+    "plate_rate": 0.36,
+    "press_rate": 0.0,
+    "mean_return": 7.166,
+    "press_without_lift": 0,
+    "press_with_lift": 0
+   }
+  },
+  "iter3": {
+   "1": {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.72,
+    "plate_rate": 0.72,
+    "press_rate": 0.0,
+    "mean_return": 11.324,
+    "press_without_lift": 0,
+    "press_with_lift": 0
+   },
+   "2": {
+    "grasp_rate": 0.96,
+    "lift_rate": 0.76,
+    "plate_rate": 0.76,
+    "press_rate": 0.0,
+    "mean_return": 11.29,
+    "press_without_lift": 0,
+    "press_with_lift": 0
+   }
+  }
+ },
+ "selected": "iter3 (grasp 1.00/0.96, lift 0.72/0.76, plate 0.72/0.76, return 11.32/11.29); rendered to runs_g1_piston/videos/rl10_iter3",
+ "verdicts": {
+  "H4": "PASS (grasp 1.00 and 0.96)",
+  "H14_no_table_press": "5 of 6 sweeps have zero presses without lift; iter1 sweep 2 has one (incidental, unrewarded under v4). Under v3 training 5/5 certified presses were table presses.",
+  "H11_lift": "FAIL: selected mean lift 0.74 vs BC paired mean 0.71 and run 9 paired mean 0.87",
+  "H13b_lifted_press": "FAIL: 0 lifted presses in 150 certified condition-evaluations and 0 in 144 training rollouts"
+ }
 }

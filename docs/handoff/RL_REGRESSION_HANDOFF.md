@@ -124,6 +124,15 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## CORRECTION (2026-09-13, 01:55): run 9's improvement is not established
+
+n=50: BC lift 0.80 / return 12.14 vs run 9 0.74 / 11.51; on conditions 0–24 run 9 16/25 vs
+BC 21/25 (reversing the 3/3 paired wins). A deterministic policy's lift swings ~0.2 between
+fresh-process sweeps. Pooled 125 paired condition-evals each: run 9 0.816 vs BC 0.744 (+0.07),
+inside the noise. Four more paired sweeps queued before run 11
+(`scripts/paired_sweeps_then_rl11.sh`). Contract: `g1_piston_eval_variance.json`.
+Any improvement claim on this benchmark needs ~300 pooled condition-evaluations per policy.
+
 ## Run 10 certified (2026-09-13, 00:10)
 
 Selected iteration 3: lift 0.72/0.76, plate 0.72/0.76, return 11.3 (BC level; run 9 is 0.87).

@@ -370,7 +370,13 @@ recipe for RL fine-tuning of OFT-style VLA heads ([GRPO](https://arxiv.org/abs/2
 SimpleVLA-RL, RLinf's embodied PPO) on a [ResFiT](https://arxiv.org/abs/2509.19301) policy.
 Pre-registered before its data (`g1_piston_run9_grpo_preregistration.json`).
 
-Scored by the scorer of record on the frozen 25-condition suite, fresh process:
+**Correction (2026-09-13).** On all 50 frozen conditions BC scored lift 0.80 / return 12.14
+against run 9's 0.74 / 11.51, and on conditions 0–24 run 9 lifted 16/25 vs BC 21/25,
+reversing the earlier paired wins. A deterministic policy's lift rate swings ~0.2 between
+fresh-process sweeps on these conditions, so the improvement below is **suggestive, not
+established**: pooled over 125 paired condition-evaluations each, run 9 leads by +0.07 lift.
+More paired sweeps are queued (`g1_piston_eval_variance.json`). The first sweep, as
+originally reported:
 
 | | BC | **run 9 best** |
 |---|---|---|

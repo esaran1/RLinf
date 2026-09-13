@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_run9_result",
  "recorded": "2026-09-12",
- "status": "FIRST RL IMPROVEMENT OVER THE BC POLICY, CERTIFIED WITH PAIRED REPEATS: run 9 iteration 1 beats BC on lift and return in 3 of 3 paired fresh-process sweeps.",
+ "status": "RL RESULT: pooled +0.07 lift over BC, NOT established (evaluation variance); see DOWNGRADE_2026_09_13: run 9 iteration 1 beats BC on lift and return in 3 of 3 paired fresh-process sweeps.",
  "what_ran": "Critic-free GRPO-style PPO with a KL anchor on the frozen BC head + zero-init residual (run9_grpo_preregistration.json). 2 iterations x 48 episodes; 102 gradient updates; 6029 s.",
  "scorer_of_record_run9_best_iteration1_n25_fresh_process": {
   "grasp_rate": 1.0,
@@ -166,5 +166,6 @@
    "return": "3/3"
   },
   "reading": "Mean lift 0.867 vs 0.707 (+0.16), plate 0.853 vs 0.693, return 12.91 vs 10.65 (+2.3); grasp 0.973 vs 0.960. The per-sweep spread (BC lift 0.60-0.80) shows the scorer's own noise, and the improvement holds in every pair. This is the strongest certification available without a larger suite."
- }
+ },
+ "DOWNGRADE_2026_09_13": "On all 50 conditions BC scored lift 0.80 / return 12.14 vs run 9's 0.74 / 11.51, and on conditions 0-24 run 9 lifted 16/25 vs BC 21/25 -- reversing the 3/3 paired wins. Pooled over 125 paired condition-evaluations run 9 leads by only +0.07 lift, inside sweep-to-sweep noise (SD ~0.12 per sweep). The improvement is suggestive, not established. See g1_piston_eval_variance.json; more paired sweeps are queued."
 }

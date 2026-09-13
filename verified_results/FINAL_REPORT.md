@@ -1,36 +1,31 @@
 # G1 piston RL fine-tuning: final report (living document, updated as runs certify)
 
-## Deliverable
+## Deliverable — and an honest correction
 
-**Run 9, iteration 1** — critic-free GRPO on a frozen BC head + residual — is the first RL
-fine-tuning in this project that improves the policy, certified by the scorer of record
-(`eval_checkpoint.py`, v3 predicate, fresh process) with paired repeats:
+**Run 9, iteration 1** (critic-free GRPO on a frozen BC head + residual) is the only RL run
+that ever scored above behaviour cloning, and the pipeline that produced it is reproducible
+(`docs/g1_piston_rl_pipeline.md`). But the improvement is **small and not established**:
 
-| sweep | BC lift | run 9 lift | BC return | run 9 return |
-|---|---|---|---|---|
-| 1 | 0.80 | **0.96** | 11.94 | **14.05** |
-| 2 | 0.72 | **0.76** | 10.6 | **12.3** |
-| 3 | 0.60 | **0.88** | 9.4 | **12.4** |
-| **mean** | 0.71 | **0.87** | 10.65 | **12.91** |
+| paired sweep (first 25 conditions) | BC lift | run 9 lift |
+|---|---|---|
+| 1 | 0.80 | 0.96 |
+| 2 | 0.72 | 0.76 |
+| 3 | 0.60 | 0.88 |
+| 4 (first half of the 50-condition sweep) | 0.84 | 0.64 |
+| conditions 25–49 | 0.76 | 0.84 |
+| **pooled, 125 paired condition-evaluations each** | **0.744** | **0.816** |
 
-Run 9 wins all three pairs on lift and on return; grasp 0.97 vs 0.96; plate 0.85 vs 0.69.
-A 50-condition certification of both is queued.
+A deterministic policy's lift rate on the same fixed conditions swings by ~0.2 between
+fresh processes, so three paired wins were never strong evidence and the fourth sweep
+reversed them. The pooled point estimate favours run 9 by +0.07 lift; the full
+50-condition sweep favoured BC (0.80 vs 0.74 lift, 12.14 vs 11.51 return). Four more paired
+sweeps are queued to reach ~300 condition-evaluations per policy. Contract:
+`g1_piston_eval_variance.json`.
 
 * checkpoint: `checkpoints/g1_piston_grpo_working/run9_best.pt`
-* videos: `verified_results/videos_rl_grpo/run9_best/` (12 clips; best: cond 13, 14, 18)
+* videos: `verified_results/videos_rl_grpo/run9_best/` (12 clips) and BC's
+  `verified_results/videos_bc_working/`
 * recipe: `docs/g1_piston_rl_pipeline.md`
-
-### 50-condition certification (all frozen eval conditions, fresh processes)
-
-| | BC (n=50) | **run 9 best** (n=50) |
-|---|---|---|
-| grasp | 1.00 | **0.94** |
-| lift | 0.80 (CI 0.67–0.89) | **0.74** (CI 0.60–0.84) |
-| plate | 0.76 (CI 0.63–0.86) | **0.74** (CI 0.60–0.84) |
-| press / dispense | 0.00 / 0.00 | 0.00 / 0.00 |
-| mean return | 12.14 | **11.51** |
-
-Manifests: `verified_results/manifests/grpo_rl9_best_v3_n50.json`, `bc_v3_n50.json`.
 
 ## What did not work, and why (all measured)
 

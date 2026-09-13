@@ -1,0 +1,52 @@
+{
+ "id": "g1_piston_eval_variance",
+ "recorded": "2026-09-13 01:55",
+ "status": "FINDING. A deterministic policy's lift rate on the SAME fixed conditions swings by ~0.2 between fresh-process sweeps. Single sweeps, and even three paired sweeps, cannot establish a 0.1-0.2 improvement.",
+ "evidence": {
+  "run9_best_first25_lift_per_sweep": [
+   0.96,
+   0.76,
+   0.88,
+   0.64
+  ],
+  "bc_first25_lift_per_sweep": [
+   0.8,
+   0.72,
+   0.6,
+   0.84
+  ],
+  "n50": {
+   "rl9_best": {
+    "grasp_rate": 0.94,
+    "lift_rate": 0.74,
+    "plate_rate": 0.74,
+    "mean_return": 11.508
+   },
+   "bc": {
+    "grasp_rate": 1.0,
+    "lift_rate": 0.8,
+    "plate_rate": 0.76,
+    "mean_return": 12.14
+   }
+  },
+  "conds_25_49_lift": {
+   "rl9": 21,
+   "bc": 19
+  }
+ },
+ "pooled_lift_over_all_paired_condition_evaluations": {
+  "rl9": {
+   "lift_events": 102,
+   "n": 125,
+   "rate": 0.816
+  },
+  "bc": {
+   "lift_events": 93,
+   "n": 125,
+   "rate": 0.744
+  }
+ },
+ "reading": "Pooled point estimate favours run 9 by about +0.07 lift (0.816 vs 0.744 over 125 paired condition-evaluations each), but per-sweep standard deviation is ~0.12, so the difference of two single sweeps has SD ~0.17: the earlier 3/3 paired wins (p = 0.125 under the null) and the n=50 loss are both consistent with a small true effect plus large evaluation noise. The source is the documented post-grasp contact nondeterminism plus process-level nondeterminism; the policy is deterministic.",
+ "consequence": "Claims are downgraded: run 9's improvement is 'suggestive, small, not established'. Four more paired sweeps are queued (scripts/paired_sweeps_then_rl11.sh) to reach ~300 condition-evaluations per policy (SE ~0.03). Any future improvement claim on this benchmark needs pooled paired sweeps of that size.",
+ "what_this_does_not_change": "The mechanism findings (entropy mean-force, critic action-insensitivity, table-press exploit) are measured on training dynamics and critics, not on single evaluation sweeps."
+}

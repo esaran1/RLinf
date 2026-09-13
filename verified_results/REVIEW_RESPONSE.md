@@ -421,6 +421,28 @@ Two operational lessons are now load-bearing: select checkpoints only by the sco
 record, never by in-trainer evaluation after stochastic rollouts (run 9b's in-trainer "best"
 certified at lift 0.64); and treat a single n=25 sweep as one sample, not a verdict.
 
+## Runs 10 and 11: the reward exploit, targeted exploration, and the first lifted press
+
+Every certified press through run 9c had been a **table press** — plunger pushed down while
+grasping, never lifting — worth more under v3 (15–18) than a full transport (~14). RL found
+the exploit that inspection had missed. Reward **v4** pays for the press only while the
+pipette is grasped *and* lifted; thresholds are unchanged and v3 remains the scorer of
+record. Run 10 (run 9's configuration, v4 training reward) produced **zero rewarded table
+presses** in 144 rollouts and six certified sweeps, and also zero lifted presses: removing the
+exploit did not create the act (`g1_piston_table_press_exploit.json`, `g1_piston_run10_result.json`).
+
+Run 11 put the exploration where the press happens — σ 0.35 on the hand dimensions that work
+the plunger, σ 0.10 on the arm that carries the pipette. In its second iteration, **one of 48
+stochastic rollouts pressed the plunger while lifted** (36.8 mm): the project's first lifted
+press, the registered precondition for learning it. The iteration updated on that group
+certifies at **grasp 1.00/1.00, lift 0.92/0.84, plate 0.92/0.84, return 13.9/12.9** over two
+fresh-process sweeps — the best two-sweep result in the project — and renders at 12/12 grasp,
+11/12 lift (`verified_results/videos_rl_grpo/run11_iter2/`). The deterministic policy does not
+press; one positive example in ~150 rollouts proves reachability, not learnability.
+
+Given the evaluation variance documented above, no improvement over BC is claimed until the
+queued paired repeats are pooled (`g1_piston_run11_result.json`).
+
 ## Status and honest expectations
 
 **A policy now performs the transport task**: reach 1.00, grasp 1.00, lift 0.80,

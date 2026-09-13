@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_run11_result",
- "recorded": "2026-09-13 03:30 (training in progress: iteration 2 of ~3; certified sweeps to follow)",
- "status": "CERTIFIED. Selected iteration 2: grasp 1.00/1.00, lift 0.92/0.84, plate 0.92/0.84, return 13.88/12.87 over two fresh-process v3 sweeps -- the best two-sweep result in the project. H4 PASS, H15 PASS (one lifted press in training), H16 PASS, H13c FAIL (no certified lifted press). Paired repeats vs BC queued before any improvement claim.",
+ "recorded": "2026-09-13 03:30; certified 06:31; pooled paired verdict 11:18",
+ "status": "CERTIFIED and POOLED. Selected iteration 2: grasp 1.00/1.00, lift 0.92/0.84 over its first two sweeps; pooled over 6 paired fresh-process sweeps (150 condition-evaluations per policy) lift 0.747 vs BC 0.680 (+0.067, paired-bootstrap 95% CI -0.087..+0.207), return 11.70 vs 10.58, 4W/2L. NOT ESTABLISHED. H4 PASS, H15 PASS, H16 PASS, H13c FAIL, H11 NOT ESTABLISHED.",
  "configuration": "targeted exploration: sigma 0.10 on arm dims 0-13, 0.35 on hand dims 20-25; v4 training reward; run 9's GRPO configuration; BC base; SEED 4 (run11_preregistration.json)",
  "training_so_far": [
   {
@@ -107,9 +107,10 @@
   "H15 PASS: run 10 produced 0 lifted presses in 144 isotropic rollouts; run 11 produced 1 in its first 96 targeted rollouts. One event is enough to give the group advantage a positive example for the press, though far too few to expect the deterministic policy to have learned it yet.",
   "The iteration-2 PPO step hit the approx-KL stop (0.024) and KL-to-base rose to 0.037: the update moved the residual materially, consistent with a large-advantage pressing episode.",
   "Iteration 3 shows the cost of the larger hand noise plus a large-advantage update: transport under exploration fell to grasp 0.58 / lift 0.19 and the residual drifted 2x further from the base than any earlier run. A single lifted-press example in ~150 rollouts is not enough to learn the act; it is enough to prove it is reachable by exploration.",
-  "Iteration 2 is the iteration updated on the group containing the lifted-press episode; its certified transport is the strongest in the project (two sweeps), while the press itself was not retained deterministically. Whether the improvement over BC is real is being measured with four more paired sweeps (scripts/rl11_iter2_repeats.sh)."
+  "Iteration 2 is the iteration updated on the group containing the lifted-press episode; its certified transport is the strongest in the project (two sweeps), while the press itself was not retained deterministically. Whether the improvement over BC is real is being measured with four more paired sweeps (scripts/rl11_iter2_repeats.sh).",
+  "Pooled verdict (11:18): +0.067 lift over BC across 150 paired evaluations, CI straddles zero. Same picture as run 9 (+0.044): the RL candidates are at least as good as BC and the benchmark's evaluation variance (per-sweep lift 0.56-0.96 for one deterministic checkpoint) hides differences of this size at this sample count."
  ],
- "pending": "iteration 3; six certified v3 sweeps (two per iteration); selection; render.",
+ "pending": "none",
  "training_complete": {
   "totals": {
    "iterations": 3,
@@ -326,6 +327,54 @@
   "H15_lifted_press_in_collection": "PASS (1 of 48 rollouts, iteration 2)",
   "H16_transport_under_targeted_noise": "PASS (collected grasp 0.83 / 0.69 / 0.58 vs 0.71-0.85 isotropic; iteration 3 fell below as the residual drifted)",
   "H13c_certified_lifted_press": "FAIL (0 in 150 certified condition-evaluations)",
-  "H11_vs_BC": "PENDING paired repeats: two-sweep mean lift 0.88 vs BC's pooled 0.744 is suggestive; g1_piston_eval_variance.json shows why two sweeps are not enough"
+  "H11_vs_BC": "NOT ESTABLISHED: 6 paired sweeps, 150 evals/policy, lift 0.747 vs 0.680 (+0.067, CI -0.087..+0.207), return 11.70 vs 10.58, 4W/2L (report: runs_g1_piston/report_pooled_rl11.txt; verified_results/FINAL_REPORT.md)"
+ },
+ "pooled_paired_vs_bc": {
+  "pairs": {
+   "s1": [
+    23,
+    20
+   ],
+   "s2": [
+    21,
+    18
+   ],
+   "rep4": [
+    14,
+    12
+   ],
+   "rep5": [
+    16,
+    22
+   ],
+   "rep6": [
+    24,
+    15
+   ],
+   "rep7": [
+    14,
+    15
+   ]
+  },
+  "pairs_note": "[candidate lift /25, BC lift /25] on the same 25 frozen conditions, same seeds, fresh processes",
+  "lift": [
+   0.747,
+   0.68
+  ],
+  "lift_diff": 0.067,
+  "lift_diff_ci95": [
+   -0.087,
+   0.207
+  ],
+  "return": [
+   11.7,
+   10.58
+  ],
+  "wins_losses_ties": [
+   4,
+   2,
+   0
+  ],
+  "verdict": "not established"
  }
 }

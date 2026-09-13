@@ -5,17 +5,26 @@
 The pipeline works end to end and is reproducible (`docs/g1_piston_rl_pipeline.md`), and two
 RL checkpoints have scored above behaviour cloning on individual sweeps. Whether either is a
 real improvement is a question this benchmark's evaluation variance makes expensive to
-answer, and the answer for run 9 is now in:
+answer, and both answers are now in:
 
 **Run 9, iteration 1 vs BC — 9 paired fresh-process sweeps, 225 condition-evaluations each:**
 lift **0.742 vs 0.698** (+0.044, paired-bootstrap 95 % CI −0.133 to +0.191); return
 **11.37 vs 10.79**; 6 wins, 2 losses, 1 tie. **Not established.** The same deterministic
 checkpoint scored lift anywhere from 0.36 to 0.96 across sweeps; BC from 0.48 to 0.88.
 
-**Run 11, iteration 2** (targeted hand exploration, v4 training reward) is the remaining
-candidate: grasp 1.00/1.00, lift 0.92/0.84, plate 0.92/0.84, return 13.9/12.9 over its first two
-sweeps, and it is the iteration trained on the project's first lifted press. Its four paired
-repeats against BC are being scored; the pooled verdict is appended below when done.
+**Run 11, iteration 2 vs BC — 6 paired fresh-process sweeps, 150 condition-evaluations each:**
+lift **0.747 vs 0.680** (+0.067, paired-bootstrap 95 % CI −0.087 to +0.207); return
+**11.70 vs 10.58**; 4 wins, 2 losses. **Not established.** This is the iteration trained on the
+project's first lifted press (targeted hand exploration, v4 training reward); its sweeps ranged
+lift 0.56 to 0.96, BC's 0.48 to 0.88 on the same conditions.
+
+**Bottom line.** Both RL candidates are ahead of BC on pooled lift and return, by similar
+margins (+0.04 to +0.07 lift, +0.6 to +1.1 return), and neither margin clears the evaluation
+noise of this benchmark at 150–225 paired evaluations. No policy, BC or RL, presses the plunger
+while holding the pipette deterministically; the press has been reached once, stochastically,
+in training. The honest deliverable is: a BC policy that transports reliably, an RL pipeline that
+is correct by construction and by measurement and does not degrade it, two RL checkpoints that
+are at least as good as BC, and a precise account of what blocks the last stage.
 
 * checkpoints: `checkpoints/g1_piston_grpo_working/run9_best.pt`, `run11_iter2.pt`
 * videos: `verified_results/videos_rl_grpo/run9_best/`, `run11_iter2/` (12 clips each; run 11

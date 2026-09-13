@@ -124,6 +124,12 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Pooled verdict for run 11 iteration 2 (2026-09-13, 11:18) — last queued measurement
+
+6 paired fresh-process sweeps, 150 condition-evaluations per policy: lift 0.747 vs BC 0.680 (+0.067,
+CI −0.087 to +0.207), return 11.70 vs 10.58, 4W/2L — **not established**, same as run 9. Nothing is
+queued; the GPU is free. `verified_results/FINAL_REPORT.md` carries the final deliverable.
+
 ## Pooled verdict for run 9 (2026-09-13, 09:44)
 
 9 paired sweeps, 225 condition-evaluations per policy: lift 0.742 vs 0.698 (+0.044, CI −0.13

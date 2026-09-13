@@ -20,6 +20,18 @@ A 50-condition certification of both is queued.
 * videos: `verified_results/videos_rl_grpo/run9_best/` (12 clips; best: cond 13, 14, 18)
 * recipe: `docs/g1_piston_rl_pipeline.md`
 
+### 50-condition certification (all frozen eval conditions, fresh processes)
+
+| | BC (n=50) | **run 9 best** (n=50) |
+|---|---|---|
+| grasp | 1.00 | **0.94** |
+| lift | 0.80 (CI 0.67–0.89) | **0.74** (CI 0.60–0.84) |
+| plate | 0.76 (CI 0.63–0.86) | **0.74** (CI 0.60–0.84) |
+| press / dispense | 0.00 / 0.00 | 0.00 / 0.00 |
+| mean return | 12.14 | **11.51** |
+
+Manifests: `verified_results/manifests/grpo_rl9_best_v3_n50.json`, `bc_v3_n50.json`.
+
 ## What did not work, and why (all measured)
 
 1. **SAC/RLPD on the head (runs 1–5)**: the entropy term flattened the policy

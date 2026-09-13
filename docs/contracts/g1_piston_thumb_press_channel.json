@@ -1,0 +1,11 @@
+{
+ "id": "g1_piston_thumb_press_channel",
+ "recorded": "2026-09-13 19:15",
+ "status": "EMBODIMENT ADAPTER EXTENSION. The unused top of the recorded thumb-yaw range now drives the thumb over the rod top.",
+ "why": "see g1_piston_press_geometry.json: thumb yaw is the only press mechanism, and the policy could not command it (ceiling 0.46 rad < 0.9 rad grip floor).",
+ "mapping": "yaw_cmd = max(rec_yaw, gate*0.9) + (0.40/0.12) * max(rec_yaw - 0.30, 0), clamped to 1.3. rec_yaw 0.42 -> 1.30.",
+ "backward_compatibility": "recorded yaw <= 0.30 leaves every output bit-identical (tested over the demonstrated range -0.10..0.25 and 0.30). The demonstrations' maximum is 0.25 (= q99). Existing checkpoints are affected only if they emit thumb yaw > 0.30, which lies above the data they were trained on; their certified numbers remain valid for the retargeter version they were scored under and are re-scored where it matters.",
+ "policy_range": "0.42 rad is normalised 1.97 (inside the +/-2.2 squash range, off the asymptote); 0.46 is the ceiling and also maps to 1.3 after the clamp.",
+ "tests": "tests/unit_tests/test_g1_piston_hand_retarget.py::test_press_channel_*",
+ "module": "rlinf/envs/isaaclab/tasks/g1_piston_hand_retarget.py (InspireRetargetParams.thumb_press_start / thumb_press_gain)"
+}

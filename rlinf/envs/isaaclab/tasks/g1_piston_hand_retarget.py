@@ -82,6 +82,19 @@ class InspireRetargetParams:
     grip_gate_full: float = 0.8
     #: Finger closure below which the thumb stays at its recorded pose.
     grip_gate_start: float = 0.2
+    #: PRESS CHANNEL (added 2026-09-13, g1_piston_thumb_press_channel.json). The policy's
+    #: thumb-yaw dim is normalised on the demonstrations' range [-0.10, 0.25] rad and
+    #: squashed to +/-2.2, so the largest yaw a policy can emit is 0.46 rad -- below the
+    #: 0.9 rad grip floor above, i.e. the thumb was UNCONTROLLABLE once the hand closed.
+    #: Measured (runs_g1_piston/diag/press_mechanics): sweeping the thumb yaw to 1.3 rad
+    #: with the pipette held brings the thumb over the rod top and depresses the plunger
+    #: to its 24.5 mm geometric ceiling, steadily. This channel maps the top of the
+    #: recorded range, which no demonstration ever uses (max 0.25), onto that press:
+    #:     yaw += thumb_press_gain * max(rec_yaw - thumb_press_start, 0)
+    #: Recorded yaw <= thumb_press_start leaves every output bit-identical to before.
+    thumb_press_start: float = 0.30
+    #: 0.42 rad recorded (normalised ~1.97, inside the squash range) -> +0.40 -> 1.30 rad.
+    thumb_press_gain: float = 0.40 / 0.12
 
     def as_dict(self):
         return {
@@ -92,6 +105,8 @@ class InspireRetargetParams:
             "thumb_distal_gain": self.thumb_distal_gain,
             "grip_gate_full": self.grip_gate_full,
             "grip_gate_start": self.grip_gate_start,
+            "thumb_press_start": self.thumb_press_start,
+            "thumb_press_gain": self.thumb_press_gain,
         }
 
 
@@ -157,6 +172,9 @@ class InspireHandRetargeter:
             # recorded command.
             pitch = torch.maximum(rec_pitch, gate * p.thumb_pitch_floor)
             yaw = torch.maximum(rec_yaw, gate * p.thumb_yaw_target)
+            # Press channel: the unused top of the recorded yaw range drives the thumb
+            # over the rod top (see InspireRetargetParams.thumb_press_start).
+            yaw = yaw + (rec_yaw - p.thumb_press_start).clamp(min=0.0) * p.thumb_press_gain
             out[..., g["t_pitch"]] = pitch.clamp(-0.1, THUMB_PITCH_LIMIT)
             out[..., g["t_yaw"]] = yaw.clamp(-0.1, THUMB_YAW_LIMIT)
             out[..., g["t_inter"]] = (gate * p.thumb_intermediate).clamp(0.0, THUMB_INTERMEDIATE_LIMIT)

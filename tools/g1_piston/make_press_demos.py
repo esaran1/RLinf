@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+# Copyright 2025 The RLinf Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Synthesise pressing demonstrations: human transport + scripted thumb press.
+
+The demonstrations transport the pipette to the plate but never press the plunger
+(g1_piston_plunger_dof.json); RL found the press once in ~300 rollouts. This tool adds
+the missing behaviour to the data instead of waiting for exploration to find it:
+
+1. Replay an executable demonstration (frozen mapper + retargeter, the deployment path)
+   until its ``plate`` stage fires -- the pipette is held over the plate.
+2. Append a scripted primitive, three 30-step chunks at the policy's 50 Hz:
+     P1  raise the pipette 3 cm (differential IK on the live Jacobian, arm dims only),
+         so the lift gate has margin -- a pressing hand sags ~1.5 cm;
+     P2  hold the arm, ramp the thumb-yaw dim (25) to ``YAW_CMD`` (0.42 rad: the press
+         channel of the retargeter drives the thumb to its 1.3 rad limit, over the rod top);
+     P3  hold -- the press is sustained.
+3. Score with reward v5 and KEEP the episode only if ``dispense`` fired (sustained 20 mm
+   press while lifted and over the plate). Failures are recorded, not saved.
+
+Output is a demonstration buffer in the shipped format (images at chunk starts, PHYSICAL
+action chunks, rewards, critic_state), so ``train_bc.py`` consumes it unchanged. The
+transport chunks are the demonstration's own; only the press chunks are synthetic, and the
+manifest marks where each episode's synthetic part begins.
+
+Environment:
+    OUTDIR      destination (required)
+    EPISODES    comma-separated demo ids (default: the 16 lifting episodes)
+    CONDS       reset conditions per episode: "canonical" and/or train-split indices,
+                e.g. "canonical,0,1" (default "canonical")
+    RAISE_M     P1 raise height (default 0.03)
+    YAW_CMD     thumb-yaw command in P2/P3 (default 0.42)
+    KEEP_FAILED "1" to also save episodes whose press did not certify (default 0)
+"""
+import json
+import os
+import sys
+import time
+import traceback
+
+import numpy as np
+
+OUTDIR = os.environ["OUTDIR"]
+DEMO_DIR = os.environ.get("DEMO_DIR", "/home/jren313/research/starvla_rl/demo_buffer_v3")
+LIFTING = [0, 4, 5, 39, 40, 43, 46, 47, 48, 49, 50, 51, 52, 53, 54, 59]
+EPISODES = [int(x) for x in os.environ.get("EPISODES", ",".join(map(str, LIFTING))).split(",") if x.strip()]
+CONDS = [c.strip() for c in os.environ.get("CONDS", "canonical").split(",") if c.strip()]
+RAISE_M = float(os.environ.get("RAISE_M", "0.03"))
+YAW_CMD = float(os.environ.get("YAW_CMD", "0.42"))
+KEEP_FAILED = os.environ.get("KEEP_FAILED", "0") == "1"
+EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23"))
+H = 30
+os.makedirs(OUTDIR, exist_ok=True)
+summary = {"_status": "RUNNING", "config": {"episodes": EPISODES, "conds": CONDS, "raise_m": RAISE_M,
+                                             "yaw_cmd": YAW_CMD, "reward": "v5_geometric_press"},
+           "episodes": []}
+
+
+def emit(s="RUNNING"):
+    summary["_status"] = s
+    with open(os.path.join(OUTDIR, "_build_status.json"), "w") as f:
+        json.dump(summary, f, indent=1, default=str)
+
+
+try:
+    os.environ.pop("DISPLAY", None)
+    import torch
+    import importlib.util as ilu
+
+    def _load(m, p):
+        sp = ilu.spec_from_file_location(m, p); mo = ilu.module_from_spec(sp)
+        sys.modules[m] = mo; sp.loader.exec_module(mo); return mo
+
+    RL = "/home/jren313/research/starvla_rl/RLinf/rlinf/envs/isaaclab/tasks/"
+    Mapper = _load("g1a", RL + "g1_piston_action.py").G1PistonActionMapper
+    HR = _load("g1h", RL + "g1_piston_hand_retarget.py")
+    RW5 = _load("g1r5", RL + "g1_piston_reward_v5.py")
+    CST = _load("g1cs", RL + "g1_piston_critic_state.py")
+
+    from isaaclab.app import AppLauncher
+    app = AppLauncher(headless=True, enable_cameras=True).app
+    sys.path.append("/home/jren313/miniconda3/envs/isaac/lib/python3.11/site-packages")
+    sys.path.insert(0, "/home/jren313/unitree_sim_isaaclab")
+    import gymnasium as gym
+    import tasks  # noqa: F401
+    from isaaclab_tasks.utils import load_cfg_from_registry
+    sys.path.insert(0, "/home/jren313/research/starvla_rl/RLinf")
+    from rlinf.envs.isaaclab.tasks.g1_piston_reset import apply_reset_condition, build_reset_suite
+
+    TID = "Isaac-PickPlace-Piston-G129-Inspire-Joint"
+    ecfg = load_cfg_from_registry(TID, "env_cfg_entry_point")
+    ecfg.seed = 0; ecfg.scene.num_envs = 1
+    ecfg.scene.left_wrist_camera = None; ecfg.scene.right_wrist_camera = None
+    env = gym.make(TID, cfg=ecfg, render_mode="rgb_array").unwrapped
+    sc = env.scene; robot = sc["robot"]
+    jn = list(robot.data.joint_names); bn = list(robot.data.body_names)
+    mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
+    reward_fn = RW5.PistonTaskRewardV5(sc, jn)
+    csb = CST.CriticStateBuilder(sc, max_chunks=EP_CHUNKS)
+    obj = sc["object"]; pj = list(obj.data.joint_names).index("PistonJoint")
+    ee_idx = bn.index("right_wrist_yaw_link")
+    arm_j = [jn.index(n) for n in (
+        "right_shoulder_pitch_joint", "right_shoulder_roll_joint", "right_shoulder_yaw_joint",
+        "right_elbow_joint", "right_wrist_roll_joint", "right_wrist_pitch_joint", "right_wrist_yaw_joint")]
+    TRAIN_CONDS, _ = build_reset_suite(n_train=400, n_eval=50, seed=20260817)
+    summary["retarget_params"] = retarget.params.as_dict()
+    emit()
+
+    def grab():
+        return sc["front_camera"].data.output["rgb"][0].cpu().numpy().copy()[..., :3].astype(np.uint8)
+
+    def step_phys(phys30):
+        phys = torch.as_tensor(phys30, dtype=torch.float32).unsqueeze(0)
+        cmd = retarget.apply(mapper.map(phys).to(env.device), phys.to(env.device))
+        for _ in range(2):
+            env.step(cmd)
+        return reward_fn.step()
+
+    def jac():
+        J = robot.root_physx_view.get_jacobians()[0]
+        bi = ee_idx - 1 if J.shape[0] == len(bn) - 1 else ee_idx
+        return J[bi].cpu().numpy()[:, arm_j]
+
+    def ik_step(last, dx, lam=1e-3):
+        J = jac(); t = np.concatenate([dx, np.zeros(3)])
+        dq = J.T @ np.linalg.solve(J @ J.T + lam * np.eye(6), t)
+        new = np.array(last, dtype=np.float32).copy(); new[7:14] += dq.astype(np.float32); return new
+
+    def merge(stages, info):
+        for k, v in info["stages"].items():
+            stages[k] = stages.get(k, False) or v
+
+    for ep in EPISODES:
+        A = np.load(f"{DEMO_DIR}/ep{ep:03d}.npz")["actions"].reshape(-1, 30)
+        n_demo_chunks = len(A) // H
+        for cond_name in CONDS:
+            t0 = time.time()
+            env.reset(seed=0)
+            cond = None
+            if cond_name != "canonical":
+                cond = TRAIN_CONDS[int(cond_name)]
+                apply_reset_condition(env, cond)
+            reward_fn.reset(); csb.reset()
+            imgs, acts, rews, states = [], [], [], []
+            stages = {}
+            rec = {"episode": ep, "cond": cond_name, "cond_hash": cond.hash() if cond else None}
+            # ---- 1. human transport, truncated at the plate stage ----------------------
+            plate_chunk = None
+            for c in range(n_demo_chunks):
+                chunk = A[c * H:(c + 1) * H]
+                imgs.append(grab()); states.append(csb.build(stages=stages, chunk=c))
+                acts.append(np.asarray(chunk, dtype=np.float32))
+                tot = 0.0
+                for t in range(H):
+                    r, info = step_phys(chunk[t]); tot += r; merge(stages, info)
+                rews.append(np.float32(tot))
+                if stages.get("plate") and stages.get("lift"):
+                    plate_chunk = c
+                    break
+            rec["transport_chunks"] = len(acts)
+            rec["plate_chunk"] = plate_chunk
+            rec["transport_stages"] = {k: bool(v) for k, v in stages.items()}
+            if plate_chunk is None or not info["grasped"]:
+                rec["outcome"] = "transport_failed"; rec["wall_s"] = round(time.time() - t0, 1)
+                summary["episodes"].append(rec); emit(); continue
+            # ---- 2. scripted press primitive ------------------------------------------
+            st = {"last": A[plate_chunk * H + H - 1].copy()}
+            press_log = []
+            def run_primitive_chunk(kind, c_index):
+                last = st["last"]
+                imgs.append(grab()); states.append(csb.build(stages=stages, chunk=c_index))
+                chunk_acts = []; tot = 0.0
+                y0 = float(last[25])
+                for t in range(H):
+                    if kind == "raise":
+                        last = ik_step(last, np.array([0.0, 0.0, RAISE_M / H]))
+                    elif kind == "press":
+                        last = last.copy(); last[25] = y0 + (YAW_CMD - y0) * min(1.0, (t + 1) / 10.0)
+                    chunk_acts.append(last.copy())
+                    st["last"] = last
+                    r, info = step_phys(last); tot += r; merge(stages, info)
+                    press_log.append({"kind": kind, "press": info["press_m"], "lift": info["lift"],
+                                      "finger_hold": info["finger_hold"], "sustain": info["press_sustain_steps"],
+                                      "d_pot_xy": info["d_pot_xy"]})
+                acts.append(np.asarray(chunk_acts, dtype=np.float32)); rews.append(np.float32(tot))
+            c_next = len(acts)
+            run_primitive_chunk("raise", c_next)
+            run_primitive_chunk("press", c_next + 1)
+            run_primitive_chunk("hold", c_next + 2)
+            # trailing observation so (s, a, r, s') pairs exist for every chunk
+            imgs.append(grab()); states.append(csb.build(stages=stages, chunk=len(acts)))
+            acts.append(acts[-1]); rews.append(np.float32(0.0))
+            pl = [x for x in press_log if x["kind"] != "raise"]
+            rec.update({
+                "stages": {k: bool(v) for k, v in stages.items()},
+                "return_v5": round(float(sum(rews)), 3),
+                "n_chunks": len(acts) - 1,
+                "synthetic_from_chunk": c_next,
+                "press_max_m": round(max(x["press"] for x in pl), 5),
+                "press_end_m": round(pl[-1]["press"], 5),
+                "lift_min_during_press": round(min(x["lift"] for x in pl), 4),
+                "finger_hold_frac_during_press": round(float(np.mean([x["finger_hold"] for x in pl])), 3),
+                "max_sustain_steps": int(max(x["sustain"] for x in pl)),
+                "d_pot_xy_end": round(pl[-1]["d_pot_xy"], 4),
+                "lift_after_raise": round(press_log[H - 1]["lift"], 4),
+                "wall_s": round(time.time() - t0, 1),
+            })
+            ok = bool(stages.get("dispense"))
+            rec["outcome"] = "press_certified" if ok else "press_failed"
+            if ok or KEEP_FAILED:
+                tag = "c" if cond_name == "canonical" else f"t{int(cond_name):03d}"
+                out = os.path.join(OUTDIR, f"ep{ep:03d}_{tag}.npz")
+                np.savez_compressed(out, images=np.stack(imgs), actions=np.stack(acts),
+                                    rewards=np.stack(rews), critic_state=np.stack(states).astype(np.float32))
+                rec["file"] = out
+            summary["episodes"].append(rec); emit()
+    eps = summary["episodes"]
+    summary["n_certified"] = sum(1 for e in eps if e.get("outcome") == "press_certified")
+    summary["n_press_failed"] = sum(1 for e in eps if e.get("outcome") == "press_failed")
+    summary["n_transport_failed"] = sum(1 for e in eps if e.get("outcome") == "transport_failed")
+    emit("OK"); os._exit(0)
+except Exception as e:  # noqa: BLE001
+    summary["error"] = f"{type(e).__name__}: {e}"; summary["tb"] = traceback.format_exc(); emit("FAIL"); os._exit(1)

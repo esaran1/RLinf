@@ -54,6 +54,8 @@ REWARD_V2 = os.environ.get("REWARD_V2", "0") == "1"
 #: penalty). Takes precedence over REWARD_V2. See
 #: docs/contracts/g1_piston_reward_v3_review_fixes.json.
 REWARD_V3 = os.environ.get("REWARD_V3", "0") == "1"
+#: Reward v5 (geometry-grounded press); takes precedence over v3/v2.
+REWARD_V5 = os.environ.get("REWARD_V5", "0") == "1"
 #: Control steps over which a new chunk ramps in from the previous chunk's last command.
 #: 0 (the default) reproduces the study's execution exactly. Non-zero is a DIFFERENT
 #: EXECUTION MODE and must be reported as its own arm -- see
@@ -126,6 +128,7 @@ try:
     # docs/contracts/g1_piston_plunger_dof.json.
     RW2 = _load("g1r2", RL + "g1_piston_reward_v2.py") if REWARD_V2 else None
     RW3 = _load("g1r3", RL + "g1_piston_reward_v3.py") if REWARD_V3 else None
+    RW5 = _load("g1r5", RL + "g1_piston_reward_v5.py") if REWARD_V5 else None
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
     RESP = _load("g1rp", RL + "g1_piston_residual_policy.py")
     CB = _load("g1cb", RL + "g1_piston_chunk_blend.py")
@@ -147,7 +150,8 @@ try:
     sc = env.scene
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = (RW3.PistonTaskRewardV3(sc, jn) if REWARD_V3
+    reward_fn = (RW5.PistonTaskRewardV5(sc, jn) if REWARD_V5
+                 else RW3.PistonTaskRewardV3(sc, jn) if REWARD_V3
                  else RW2.PistonTaskRewardV2(sc, jn) if REWARD_V2
                  else RW.PistonTaskReward(sc, jn))
     act_filter = (AF.DemoEnvelopeFilter(
@@ -446,7 +450,7 @@ try:
             "blend_steps": BLEND_STEPS,
             "filter_hz": FILTER_HZ,
             "filter_dims": FILTER_DIMS,
-            "reward_version": ("v3_review_fixed" if REWARD_V3 else "v2_functional" if REWARD_V2 else "v1_transport"),
+            "reward_version": ("v5_geometric_press" if REWARD_V5 else "v3_review_fixed" if REWARD_V3 else "v2_functional" if REWARD_V2 else "v1_transport"),
             "rng_seed": SEED,
             "episode_chunks": len(per_chunk),
             "sim_done_chunk": sim_done_chunk,

@@ -103,3 +103,51 @@ def test_output_shape_preserved():
     a = torch.zeros(2, 30, 30)
     out = rt.apply(_mapped(a, names), a)
     assert out.shape == (2, 30, 53)
+
+
+# ------------------------------------------------------------ press channel ----
+from rlinf.envs.isaaclab.tasks.g1_piston_hand_retarget import InspireRetargetParams  # noqa: E402
+import dataclasses  # noqa: E402
+
+
+def _closed_right_hand(yaw):
+    a = torch.zeros((1, 30))
+    a[0, 20:24] = 1.3          # the demonstrations' closed grip
+    a[0, 24] = 0.0
+    a[0, 25] = yaw
+    a[0, 14:18] = 1.7; a[0, 18] = 0.35; a[0, 19] = 0.25   # frozen left-hand grip
+    return a
+
+
+def test_press_channel_is_inert_over_the_whole_demonstrated_yaw_range():
+    names = _joint_names()
+    rt = InspireHandRetargeter(names)
+    rt0 = InspireHandRetargeter(names, dataclasses.replace(DEFAULT_PARAMS, thumb_press_gain=0.0))
+    for yaw in (-0.10, 0.0, 0.10, 0.25, 0.30):
+        a = _closed_right_hand(yaw)
+        assert torch.equal(rt.apply(_mapped(a, names), a), rt0.apply(_mapped(a, names), a)), yaw
+
+
+def test_press_channel_drives_thumb_yaw_to_its_limit_at_0_42():
+    names = _joint_names()
+    rt = InspireHandRetargeter(names)
+    a = _closed_right_hand(0.42)
+    out = rt.apply(_mapped(a, names), a)
+    assert out[0, names.index("R_thumb_proximal_yaw_joint")].item() == pytest.approx(1.30, abs=1e-6)
+    # the left hand's frozen yaw (0.25) is below the channel start: untouched
+    assert out[0, names.index("L_thumb_proximal_yaw_joint")].item() == pytest.approx(0.9, abs=1e-6)
+    # nothing but the thumb yaw differs from the pre-channel output
+    rt0 = InspireHandRetargeter(names, dataclasses.replace(DEFAULT_PARAMS, thumb_press_gain=0.0))
+    diff = (out - rt0.apply(_mapped(a, names), a)).abs()[0]
+    assert diff.nonzero().flatten().tolist() == [names.index("R_thumb_proximal_yaw_joint")]
+
+
+def test_press_channel_is_monotone_and_reaches_limit_inside_the_policy_range():
+    names = _joint_names()
+    rt = InspireHandRetargeter(names)
+    j = names.index("R_thumb_proximal_yaw_joint")
+    ys = [rt.apply(_mapped(_closed_right_hand(y), names), _closed_right_hand(y))[0, j].item()
+          for y in (0.30, 0.33, 0.36, 0.39, 0.42, 0.46)]
+    assert all(b >= a for a, b in zip(ys, ys[1:]))
+    assert ys[-1] == pytest.approx(1.3, abs=1e-6)   # 0.46 = the policy's ceiling, clamped
+    assert InspireRetargetParams().as_dict()["thumb_press_start"] == 0.30

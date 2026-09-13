@@ -72,6 +72,9 @@ try:
     RW3 = _load("g1r3", RL + "g1_piston_reward_v3.py")
     TRAIN_REWARD = os.environ.get("TRAIN_REWARD", "v3").lower()
     RW4 = _load("g1r4", RL + "g1_piston_reward_v4.py") if TRAIN_REWARD == "v4" else None
+    RW5 = _load("g1r5", RL + "g1_piston_reward_v5.py") if TRAIN_REWARD == "v5" else None
+    if TRAIN_REWARD not in ("v3", "v4", "v5"):
+        raise SystemExit(f"TRAIN_REWARD must be v3, v4 or v5, got {TRAIN_REWARD!r}")
     RESP = _load("g1rp", RL + "g1_piston_residual_policy.py")
     GRPO = _load("g1g", RL + "g1_piston_grpo.py")
     RLSP = _load("g1s", RL + "g1_piston_rl_space.py")
@@ -89,7 +92,8 @@ try:
     sc = env.scene
     jn = list(sc["robot"].data.joint_names)
     mapper = Mapper(jn); retarget = HR.InspireHandRetargeter(jn)
-    reward_fn = RW4.PistonTaskRewardV4(sc, jn) if TRAIN_REWARD == "v4" else RW3.PistonTaskRewardV3(sc, jn)
+    reward_fn = (RW5.PistonTaskRewardV5(sc, jn) if TRAIN_REWARD == "v5"
+                 else RW4.PistonTaskRewardV4(sc, jn) if TRAIN_REWARD == "v4" else RW3.PistonTaskRewardV3(sc, jn))
     res["config"]["train_reward"] = TRAIN_REWARD
     res["sim_ok"] = True; emit()
     mcfg = OmegaConf.load(CFGY)

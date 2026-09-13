@@ -29,15 +29,19 @@ sweeps are queued to reach ~300 condition-evaluations per policy. Contract:
 
 ### Pooled paired comparison: run 9 best vs BC (every fresh-process sweep)
 
-| pair | run 9 lift | BC lift | run 9 return | BC return |
+| pair | candidate lift | BC lift | candidate return | BC return |
 |---|---|---|---|---|
 | grpo_run9_best_v3_n25.json | 24/25 | 20/25 | 14.05 | 11.93 |
 | rl9_best_rep2_v3_n25.json | 19/25 | 18/25 | 11.60 | 10.66 |
 | rl9_best_rep3_v3_n25.json | 22/25 | 15/25 | 13.08 | 9.35 |
+| rl9_best_rep4_v3_n25.json | 20/25 | 12/25 | 10.99 | 7.80 |
+| rl9_best_rep5_v3_n25.json | 9/25 | 22/25 | 6.63 | 14.00 |
+| rl9_best_rep6_v3_n25.json | 15/25 | 15/25 | 9.65 | 9.89 |
+| rl9_best_rep7_v3_n25.json | 21/25 | 15/25 | 13.27 | 9.17 |
 | n50 first half | 16/25 | 21/25 | 10.03 | 12.51 |
 | n50 second half | 21/25 | 19/25 | 12.98 | 11.77 |
 
-**Pooled over 125 paired condition-evaluations per policy:** lift 0.816 vs 0.744 (difference +0.072, paired-bootstrap 95% CI -0.080 to +0.200); return 12.35 vs 11.25. Run 9 won 4 of 5 pairs on lift (0 ties).
+**Pooled over 225 paired condition-evaluations per policy:** lift 0.742 vs 0.698 (difference +0.044, paired-bootstrap 95% CI -0.133 to +0.191); return 11.37 vs 10.79. Candidate won 6 of 9 pairs on lift (1 ties).
 
 Verdict: **Not established** (CI includes zero).
 

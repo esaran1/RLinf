@@ -188,5 +188,23 @@
   "reading": "Mean lift 0.867 vs 0.707 (+0.16), plate 0.853 vs 0.693, return 12.91 vs 10.65 (+2.3); grasp 0.973 vs 0.960. The per-sweep spread (BC lift 0.60-0.80) shows the scorer's own noise, and the improvement holds in every pair. This is the strongest certification available without a larger suite."
  },
  "run_9c_reading": "LR 5e-5 from run 9's best: iterations certify lift 0.76, 0.16, 0.16, 0.68, 0.64 -- none beats run 9 iteration 1; KL-to-base 0.012 -> 0.042. Iterations 2-4 certified DETERMINISTIC PRESSES (0.08, 0.04, 0.04 = 2, 1, 1 of 25) while lift collapsed to 0.16: under this noisy signal the objective trades transport for the 12.0 press bonus plus 150/m dense term. Pressing is learnable in the sense that the optimiser moves toward it; it is not yet achievable without losing the grasp-lift-plate behaviour, and the lift-preserving and press-seeking directions are not being separated by a signal this noisy.",
- "DOWNGRADE_2026_09_13": "On all 50 conditions BC scored lift 0.80 / return 12.14 vs run 9's 0.74 / 11.51, and on conditions 0-24 run 9 lifted 16/25 vs BC 21/25 -- reversing the 3/3 paired wins. Pooled over 125 paired condition-evaluations run 9 leads by only +0.07 lift, inside sweep-to-sweep noise (SD ~0.12 per sweep). The improvement is suggestive, not established. See g1_piston_eval_variance.json; more paired sweeps are queued."
+ "DOWNGRADE_2026_09_13": "On all 50 conditions BC scored lift 0.80 / return 12.14 vs run 9's 0.74 / 11.51, and on conditions 0-24 run 9 lifted 16/25 vs BC 21/25 -- reversing the 3/3 paired wins. Pooled over 125 paired condition-evaluations run 9 leads by only +0.07 lift, inside sweep-to-sweep noise (SD ~0.12 per sweep). The improvement is suggestive, not established. See g1_piston_eval_variance.json; more paired sweeps are queued.",
+ "FINAL_POOLED_VERDICT_2026_09_13": {
+  "pooled_paired_condition_evaluations_per_policy": 225,
+  "lift": {
+   "run9_best": 0.742,
+   "bc": 0.698,
+   "difference": 0.044,
+   "bootstrap95": [
+    -0.133,
+    0.191
+   ]
+  },
+  "return": {
+   "run9_best": 11.37,
+   "bc": 10.79
+  },
+  "pairs": "6 wins, 2 losses, 1 tie",
+  "verdict": "NOT ESTABLISHED. A small positive point estimate inside the evaluation noise."
+ }
 }

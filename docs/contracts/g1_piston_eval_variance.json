@@ -48,5 +48,23 @@
  },
  "reading": "Pooled point estimate favours run 9 by about +0.07 lift (0.816 vs 0.744 over 125 paired condition-evaluations each), but per-sweep standard deviation is ~0.12, so the difference of two single sweeps has SD ~0.17: the earlier 3/3 paired wins (p = 0.125 under the null) and the n=50 loss are both consistent with a small true effect plus large evaluation noise. The source is the documented post-grasp contact nondeterminism plus process-level nondeterminism; the policy is deterministic.",
  "consequence": "Claims are downgraded: run 9's improvement is 'suggestive, small, not established'. Four more paired sweeps are queued (scripts/paired_sweeps_then_rl11.sh) to reach ~300 condition-evaluations per policy (SE ~0.03). Any future improvement claim on this benchmark needs pooled paired sweeps of that size.",
- "what_this_does_not_change": "The mechanism findings (entropy mean-force, critic action-insensitivity, table-press exploit) are measured on training dynamics and critics, not on single evaluation sweeps."
+ "what_this_does_not_change": "The mechanism findings (entropy mean-force, critic action-insensitivity, table-press exploit) are measured on training dynamics and critics, not on single evaluation sweeps.",
+ "pooled_verdict_after_9_pairs": {
+  "pooled_paired_condition_evaluations_per_policy": 225,
+  "lift": {
+   "run9_best": 0.742,
+   "bc": 0.698,
+   "difference": 0.044,
+   "bootstrap95": [
+    -0.133,
+    0.191
+   ]
+  },
+  "return": {
+   "run9_best": 11.37,
+   "bc": 10.79
+  },
+  "pairs": "6 wins, 2 losses, 1 tie",
+  "verdict": "NOT ESTABLISHED. A small positive point estimate inside the evaluation noise."
+ }
 }

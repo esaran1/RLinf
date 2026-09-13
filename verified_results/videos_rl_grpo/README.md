@@ -33,3 +33,12 @@ not discovered within the budget.
 
 Checkpoints: `checkpoints/g1_piston_grpo_working/run9_best.pt` (and `run9b_best.pt`).
 Score or render with the same commands as the BC policy (the tools apply the residual).
+
+## Run 11 iteration 2 (targeted hand exploration + v4 reward) — `run11_iter2/`
+
+Selected by the registered rule from two fresh-process sweeps: grasp 1.00/1.00, lift
+0.92/0.84, plate 0.92/0.84, return 13.9/12.9 — the best two-sweep result in the project.
+This is the iteration updated on the group that contained the project's first lifted press
+(a stochastic rollout); the deterministic policy does not press. Paired repeats against BC
+are recorded in `FINAL_REPORT.md` before any improvement claim. Best clips: cond 16, 15, 12.
+Checkpoint: `checkpoints/g1_piston_grpo_working/run11_iter2.pt`.

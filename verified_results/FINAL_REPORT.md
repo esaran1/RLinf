@@ -52,6 +52,21 @@ Verdict: **Not established** (CI includes zero).
 
 Manifests: `verified_results/manifests/grpo_rl9_best_v3_n50.json`, `bc_v3_n50.json`.
 
+### Pooled paired comparison: run 11 iteration 2 vs BC (every fresh-process sweep)
+
+| pair | candidate lift | BC lift | candidate return | BC return |
+|---|---|---|---|---|
+| rl11_iter2_s1_v3_n25.json | 23/25 | 20/25 | 13.88 | 11.93 |
+| rl11_iter2_s2_v3_n25.json | 21/25 | 18/25 | 12.87 | 10.66 |
+| rl11_iter2_rep4_v3_n25.json | 14/25 | 12/25 | 9.06 | 7.80 |
+| rl11_iter2_rep5_v3_n25.json | 16/25 | 22/25 | 10.80 | 14.00 |
+| rl11_iter2_rep6_v3_n25.json | 24/25 | 15/25 | 14.35 | 9.89 |
+| rl11_iter2_rep7_v3_n25.json | 14/25 | 15/25 | 9.24 | 9.17 |
+
+**Pooled over 150 paired condition-evaluations per policy:** lift 0.747 vs 0.680 (difference +0.067, paired-bootstrap 95% CI -0.087 to +0.207); return 11.70 vs 10.58. Candidate won 4 of 6 pairs on lift (0 ties).
+
+Verdict: **Not established** (CI includes zero).
+
 ## What did not work, and why (all measured)
 
 1. **SAC/RLPD on the head (runs 1–5)**: the entropy term flattened the policy

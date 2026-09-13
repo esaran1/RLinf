@@ -124,6 +124,14 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 11 certified (2026-09-13, 06:31): iteration 2 selected
+
+Two fresh-process sweeps: grasp 1.00/1.00, lift 0.92/0.84, plate 0.92/0.84, return 13.9/12.9 —
+best two-sweep result in the project; no certified lifted press (H13c fail). Backed up at
+`checkpoints/g1_piston_grpo_working/run11_iter2.pt`; render in `videos/rl11_iter2`. Four
+paired repeats vs BC are queued (`scripts/rl11_iter2_repeats.sh`) before any claim — run 9's
+lesson. Contract: `g1_piston_run11_result.json`.
+
 ## Run 11 (2026-09-13, 03:30): first LIFTED press, in a stochastic rollout
 
 Targeted exploration (hand σ 0.35, arm σ 0.10, v4 reward): iteration 2 collected press rate

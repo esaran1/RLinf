@@ -37,22 +37,33 @@ import math
 import torch
 
 
-def gaussian_logp_mean(c: torch.Tensor, mu: torch.Tensor, sigma: float,
+def _sigma_view(sigma, like: torch.Tensor) -> torch.Tensor:
+    """Scalar or per-dimension [D] sigma -> broadcastable [1, 1, D] tensor."""
+    s = torch.as_tensor(sigma, dtype=like.dtype, device=like.device)
+    return s.view(1, 1, -1) if s.dim() == 1 else s.view(1, 1, 1)
+
+
+def gaussian_logp_mean(c: torch.Tensor, mu: torch.Tensor, sigma,
                        mask: torch.Tensor) -> torch.Tensor:
     """Per-chunk log-density of latent coefficients ``c`` under N(mu, sigma^2), averaged
-    over the active (k, d) entries. Shapes: c, mu [B, K, D]; mask [D] bool -> [B]."""
+    over the active (k, d) entries. ``sigma`` is a scalar or a per-dimension [D] tensor
+    (targeted exploration: larger on the hand dims, smaller on the arm).
+    Shapes: c, mu [B, K, D]; mask [D] bool -> [B]."""
     m = mask.to(c.dtype).view(1, 1, -1)
-    per = -0.5 * ((c - mu) / sigma) ** 2 - math.log(sigma) - 0.5 * math.log(2 * math.pi)
+    sg = _sigma_view(sigma, c)
+    per = -0.5 * ((c - mu) / sg) ** 2 - torch.log(sg) - 0.5 * math.log(2 * math.pi)
     n = m.sum() * c.shape[1]
     return (per * m).sum(dim=(-2, -1)) / n
 
 
-def kl_to_base_mean(mu: torch.Tensor, sigma: float, mask: torch.Tensor) -> torch.Tensor:
+def kl_to_base_mean(mu: torch.Tensor, sigma, mask: torch.Tensor) -> torch.Tensor:
     """KL(N(mu, s^2) || N(0, s^2)) per chunk, averaged over active entries: the distance
-    of the residual policy from the frozen base, which has zero residual. [B]."""
+    of the residual policy from the frozen base, which has zero residual. ``sigma`` scalar
+    or per-dimension [D]. [B]."""
     m = mask.to(mu.dtype).view(1, 1, -1)
+    sg = _sigma_view(sigma, mu)
     n = m.sum() * mu.shape[1]
-    return ((mu ** 2) * m).sum(dim=(-2, -1)) / (2 * sigma ** 2) / n
+    return ((mu ** 2) / (2 * sg ** 2) * m).sum(dim=(-2, -1)) / n
 
 
 def returns_to_go(rewards: torch.Tensor, gamma: float = 1.0) -> torch.Tensor:

@@ -1,0 +1,14 @@
+{
+ "id": "g1_piston_run11_preregistration",
+ "recorded": "2026-09-12 22:15, BEFORE run 11 exists and BEFORE run 10's certified numbers are known",
+ "what": "Targeted exploration for the lifted press. Run 10 showed that with the table-press exploit removed (v4), isotropic sigma 0.15 exploration produced ZERO lifted presses in 144 rollouts, so the group signal has no positive example to amplify. Run 11 puts the exploration where the press happens: sigma 0.35 on the right-hand dims (20-25, which work the plunger) and sigma 0.10 on the arm dims (0-13, which carry the pipette), so transport stays stable while the hand explores. Everything else is run 9's configuration with TRAIN_REWARD=v4, from the BC base.",
+ "configuration": {"SIGMA": 0.10, "SIGMA_HAND": 0.35, "R_MAX": 0.15, "N_GROUPS": 8, "GROUP": 6, "PPO_EPOCHS": 3, "MB": 64, "LR": 1e-4, "CLIP": 0.2, "KL_BETA": 0.1, "KL_STOP": 0.02, "WALL_BUDGET": 7200, "SEED": 4, "TRAIN_REWARD": "v4_held_press", "SCORER": "v3, every iteration, 2 sweeps"},
+ "hypotheses": {
+  "H15_lifted_press_in_collection": "At least one stochastic rollout fires the v4 press stage (grasped AND lifted AND > 28 mm) during collection (collect press_rate > 0 in some iteration). Run 10: 0 in 144. This is the precondition for learning it.",
+  "H4": "grasp >= 0.87 on the selected iteration (two sweeps)",
+  "H13c_certified_lifted_press": "press > 0 on the scorer of record with lift on the same condition. Prior LOW; H15 is the realistic target.",
+  "H16_transport_preserved_under_targeted_noise": "collected grasp rate under exploration >= run 10's 0.71-0.85 despite the larger hand sigma, because the arm sigma is smaller."
+ },
+ "selection": "as run 10: highest two-sweep mean return with grasp >= 0.87 in both.",
+ "no_tuning_after_results": "Constants fixed now."
+}

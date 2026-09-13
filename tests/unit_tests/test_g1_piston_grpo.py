@@ -85,3 +85,27 @@ def test_ppo_loss_gradient_direction_and_clipping():
     loss2, info2 = ppo_clipped_loss(lp, torch.zeros(2), torch.ones(2))
     loss2.backward()
     assert float(lp.grad.abs().max()) == 0.0 and info2["clipfrac"] == 1.0
+
+
+def test_per_dimension_sigma_reduces_to_the_scalar_case_and_targets_dims():
+    mu = torch.zeros(2, 6, 30); c = mu + 0.1
+    scalar = gaussian_logp_mean(c, mu, 0.15, MASK)
+    vec = gaussian_logp_mean(c, mu, torch.full((30,), 0.15), MASK)
+    assert torch.allclose(scalar, vec)
+    # a larger sigma on the hand dims (20-25) must lower the density penalty there only
+    sig = torch.full((30,), 0.15); sig[20:26] = 0.35
+    lp_hand = gaussian_logp_mean(c, mu, sig, MASK)
+    assert not torch.allclose(lp_hand, vec)
+    kl_s = kl_to_base_mean(torch.full((1, 6, 30), 0.1), 0.15, MASK)
+    kl_v = kl_to_base_mean(torch.full((1, 6, 30), 0.1), torch.full((30,), 0.15), MASK)
+    assert torch.allclose(kl_s, kl_v)
+    kl_h = kl_to_base_mean(torch.full((1, 6, 30), 0.1), sig, MASK)
+    assert float(kl_h) < float(kl_v)          # wider hand sigma -> smaller KL for the same mean
+
+
+def test_trainer_wires_targeted_exploration():
+    src = open("tools/g1_piston/train_grpo.py").read()
+    assert 'SIGMA_HAND = float(os.environ.get("SIGMA_HAND", str(SIGMA)))' in src
+    assert "SIG[20:26] = SIGMA_HAND" in src
+    assert "SIG.view(1, 1, -1) * torch.randn_like(c_mean)" in src
+    assert '"actor_logstd": torch.log(SIG.detach().cpu())' in src

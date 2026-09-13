@@ -35,6 +35,8 @@ import numpy as np
 OUT = os.environ["OUTF"]; RUN_DIR = os.environ["RUN_DIR"]; os.makedirs(RUN_DIR, exist_ok=True)
 BASE_CKPT = os.environ.get("BASE_CKPT", "/home/jren313/research/starvla_rl/checkpoints/g1_piston_bc_working/bc_ckpt_latest.pt")
 SIGMA = float(os.environ.get("SIGMA", "0.15")); R_MAX = float(os.environ.get("R_MAX", "0.15"))
+#: Targeted exploration: a different sigma on the HAND dims (20-25, which work the plunger).
+SIGMA_HAND = float(os.environ.get("SIGMA_HAND", str(SIGMA)))
 N_GROUPS = int(os.environ.get("N_GROUPS", "8")); GROUP = int(os.environ.get("GROUP", "6"))
 PPO_EPOCHS = int(os.environ.get("PPO_EPOCHS", "3")); MB = int(os.environ.get("MB", "64"))
 LR = float(os.environ.get("LR", "1e-4")); CLIP = float(os.environ.get("CLIP", "0.2"))
@@ -43,7 +45,7 @@ GAMMA_RTG = float(os.environ.get("GAMMA_RTG", "1.0")); WALL = float(os.environ.g
 EP_CHUNKS = int(os.environ.get("EP_CHUNKS", "23")); N_EVAL_PERIODIC = int(os.environ.get("N_EVAL_PERIODIC", "8"))
 RESET_SUITE_SEED = int(os.environ.get("RESET_SUITE_SEED", "20260817")); SEED = int(os.environ.get("SEED", "0"))
 res = {"_status": "RUNNING", "algo": "grpo_residual", "config": {k: globals()[k] for k in
-       ("SIGMA","R_MAX","N_GROUPS","GROUP","PPO_EPOCHS","MB","LR","CLIP","KL_BETA","KL_STOP","GAMMA_RTG","WALL","EP_CHUNKS","N_EVAL_PERIODIC","RESET_SUITE_SEED","SEED","BASE_CKPT")},
+       ("SIGMA","SIGMA_HAND","R_MAX","N_GROUPS","GROUP","PPO_EPOCHS","MB","LR","CLIP","KL_BETA","KL_STOP","GAMMA_RTG","WALL","EP_CHUNKS","N_EVAL_PERIODIC","RESET_SUITE_SEED","SEED","BASE_CKPT")},
        "iterations": [], "evals": [], "best": None}
 def emit(s="RUNNING"):
     res["_status"] = s
@@ -117,6 +119,9 @@ try:
         res["config"]["init_residual"] = INIT_RESIDUAL
         res["config"]["init_residual_iteration"] = int(_prev.get("iteration", -1))
     K = residual.n_basis
+    # Per-dimension exploration std: SIGMA on arm dims, SIGMA_HAND on hand dims 20-25.
+    SIG = torch.full((30,), SIGMA, device=DEV); SIG[20:26] = SIGMA_HAND
+    res["config"]["sigma_per_dim"] = [round(float(x), 4) for x in SIG.tolist()]
     opt = torch.optim.Adam(residual.parameters(), lr=LR)
     TRAIN_CONDITIONS, EVAL_CONDITIONS = build_reset_suite(n_train=400, n_eval=50, seed=RESET_SUITE_SEED)
     res["reset_suite"] = suite_manifest(TRAIN_CONDITIONS, EVAL_CONDITIONS)
@@ -171,7 +176,7 @@ try:
             aq = vlm_encode(get_img()); a_base = base_action(aq)
             with torch.no_grad():
                 c_mean = residual.coeff_mean(aq, a_base)
-                c = c_mean + SIGMA * torch.randn_like(c_mean) if stochastic else c_mean
+                c = c_mean + SIG.view(1, 1, -1) * torch.randn_like(c_mean) if stochastic else c_mean
                 a = residual.compose(a_base, c, ACT_MASK)
                 a = torch.where(ACT_MASK, a, FROZEN_V.expand_as(a))
             r, done, info = run_chunk(a[0])
@@ -190,7 +195,7 @@ try:
     def save_ckpt(name, it, n_updates):
         ck = {"action_model": model.action_model.state_dict(), "residual": residual.state_dict(),
               "residual_cfg": {"feat_dim": HID, "hidden": [512, 512], "r_max": R_MAX},
-              "actor_logstd": torch.full((30,), math.log(SIGMA)), "env_steps": it * N_GROUPS * GROUP * EP_CHUNKS * H * 2,
+              "actor_logstd": torch.log(SIG.detach().cpu()), "env_steps": it * N_GROUPS * GROUP * EP_CHUNKS * H * 2,
               "grad_updates": n_updates, "iteration": it, "algo": "grpo_residual"}
         torch.save(ck, f"{RUN_DIR}/{name}")
 
@@ -238,7 +243,7 @@ try:
                 aq = torch.stack(AQ[i:i + MB]).to(DEV).float(); bs = torch.stack(BS[i:i + MB]).to(DEV).float()
                 c = torch.stack(CC[i:i + MB]).to(DEV)
                 mu = residual.coeff_mean(aq, bs)
-                logp_old[i:i + MB] = GRPO.gaussian_logp_mean(c, mu, SIGMA, ACT_MASK).cpu()
+                logp_old[i:i + MB] = GRPO.gaussian_logp_mean(c, mu, SIG, ACT_MASK).cpu()
         # ---- PPO epochs ----
         ppo = {"epochs_run": 0, "approx_kl": [], "clipfrac": [], "loss": [], "kl_base": [], "early_stop": False}
         for ep in range(PPO_EPOCHS):
@@ -248,9 +253,9 @@ try:
                 aq = torch.stack([AQ[j] for j in idx]).to(DEV).float(); bs = torch.stack([BS[j] for j in idx]).to(DEV).float()
                 c = torch.stack([CC[j] for j in idx]).to(DEV); adv = ADV_t[idx].to(DEV); lpo = logp_old[idx].to(DEV)
                 mu = residual.coeff_mean(aq, bs)
-                lpn = GRPO.gaussian_logp_mean(c, mu, SIGMA, ACT_MASK)
+                lpn = GRPO.gaussian_logp_mean(c, mu, SIG, ACT_MASK)
                 loss_pg, info = GRPO.ppo_clipped_loss(lpn, lpo, adv, CLIP)
-                kl_b = GRPO.kl_to_base_mean(mu, SIGMA, ACT_MASK).mean()
+                kl_b = GRPO.kl_to_base_mean(mu, SIG, ACT_MASK).mean()
                 loss = loss_pg + KL_BETA * kl_b
                 opt.zero_grad(); loss.backward()
                 torch.nn.utils.clip_grad_norm_(residual.parameters(), 1.0); opt.step(); n_updates += 1

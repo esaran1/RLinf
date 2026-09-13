@@ -35,10 +35,6 @@ A 50-condition certification of both is queued.
    reward exploit worth more than a full transport. Reward v4 gates the press on a lifted
    pipette; run 10 trains against it (certification stays on v3). Status below.
 
-## Run 10 (training reward v4) — in progress
-
-(filled in when certified)
-
 ## Run 10 (training reward v4: press pays only while lifted) — certified
 
 Training: 3 iterations from the BC base, run 9's configuration, SEED 3. Collected press rate per iteration: 0.000, 0.000, 0.000 (v4 pays nothing for a table press).

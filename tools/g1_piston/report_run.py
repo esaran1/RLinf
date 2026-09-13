@@ -58,6 +58,7 @@ lines += ["", f"Selected by the registered rule (grasp ≥ 0.87 in both sweeps, 
 block = "\n".join(lines)
 print(block)
 rep = open(REPORT).read()
+rep = re.sub(r"## Run \d+ \([^\n]*\) — in progress\n\n\(filled in when certified\)\n\n", "", rep)
 if TITLE in rep:
     start = rep.index(TITLE); end = rep.index("## Evaluation caveats")
 else:

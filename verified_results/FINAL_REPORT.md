@@ -27,6 +27,20 @@ sweeps are queued to reach ~300 condition-evaluations per policy. Contract:
   `verified_results/videos_bc_working/`
 * recipe: `docs/g1_piston_rl_pipeline.md`
 
+### Pooled paired comparison: run 9 best vs BC (every fresh-process sweep)
+
+| pair | run 9 lift | BC lift | run 9 return | BC return |
+|---|---|---|---|---|
+| grpo_run9_best_v3_n25.json | 24/25 | 20/25 | 14.05 | 11.93 |
+| rl9_best_rep2_v3_n25.json | 19/25 | 18/25 | 11.60 | 10.66 |
+| rl9_best_rep3_v3_n25.json | 22/25 | 15/25 | 13.08 | 9.35 |
+| n50 first half | 16/25 | 21/25 | 10.03 | 12.51 |
+| n50 second half | 21/25 | 19/25 | 12.98 | 11.77 |
+
+**Pooled over 125 paired condition-evaluations per policy:** lift 0.816 vs 0.744 (difference +0.072, paired-bootstrap 95% CI -0.080 to +0.200); return 12.35 vs 11.25. Run 9 won 4 of 5 pairs on lift (0 ties).
+
+Verdict: **Not established** (CI includes zero).
+
 ## What did not work, and why (all measured)
 
 1. **SAC/RLPD on the head (runs 1–5)**: the entropy term flattened the policy

@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_run11_result",
  "recorded": "2026-09-13 03:30 (training in progress: iteration 2 of ~3; certified sweeps to follow)",
- "status": "H15 MET IN TRAINING: the first LIFTED press in the project occurred in a stochastic rollout (run 11, iteration 2: collected press rate 0.021 = 1 of 48 under the v4 gate, which requires grasped AND lift > 0.05 m; max plunger depth 36.8 mm). Certification pending.",
+ "status": "TRAINING COMPLETE (3 iterations). H15 met once (iteration 2: 1 of 48 rollouts pressed while lifted); iteration 3: no press, collected grasp 0.58, KL-to-base 0.074 (the residual moved far from the base). Certified sweeps in progress.",
  "configuration": "targeted exploration: sigma 0.10 on arm dims 0-13, 0.35 on hand dims 20-25; v4 training reward; run 9's GRPO configuration; BC base; SEED 4 (run11_preregistration.json)",
  "training_so_far": [
   {
@@ -105,7 +105,156 @@
  "reading": [
   "H16 PASS so far: collected grasp 0.83 / 0.69 under the larger hand noise, within the range of isotropic runs (0.65-0.85), so the arm-sigma split preserved transport during exploration.",
   "H15 PASS: run 10 produced 0 lifted presses in 144 isotropic rollouts; run 11 produced 1 in its first 96 targeted rollouts. One event is enough to give the group advantage a positive example for the press, though far too few to expect the deterministic policy to have learned it yet.",
-  "The iteration-2 PPO step hit the approx-KL stop (0.024) and KL-to-base rose to 0.037: the update moved the residual materially, consistent with a large-advantage pressing episode."
+  "The iteration-2 PPO step hit the approx-KL stop (0.024) and KL-to-base rose to 0.037: the update moved the residual materially, consistent with a large-advantage pressing episode.",
+  "Iteration 3 shows the cost of the larger hand noise plus a large-advantage update: transport under exploration fell to grasp 0.58 / lift 0.19 and the residual drifted 2x further from the base than any earlier run. A single lifted-press example in ~150 rollouts is not enough to learn the act; it is enough to prove it is reachable by exploration."
  ],
- "pending": "iteration 3; six certified v3 sweeps (two per iteration); selection; render."
+ "pending": "iteration 3; six certified v3 sweeps (two per iteration); selection; render.",
+ "training_complete": {
+  "totals": {
+   "iterations": 3,
+   "grad_updates": 136,
+   "wall_clock_s": 8570.0,
+   "peak_vram_mib": 4347
+  },
+  "iterations": [
+   {
+    "iteration": 1,
+    "collect": {
+     "n_episodes": 48,
+     "mean_return": 5.685,
+     "return_std_within_group_mean": 4.393,
+     "grasp_rate": 0.833,
+     "lift_rate": 0.396,
+     "plate_rate": 0.25,
+     "press_rate": 0.0,
+     "dispense_rate": 0.0,
+     "max_press_m_any": 0.02763,
+     "collect_s": 2351.7
+    },
+    "ppo": {
+     "epochs_run": 3,
+     "approx_kl": [
+      0.00077,
+      0.00638,
+      0.01512
+     ],
+     "clipfrac": 0.0,
+     "loss": -6e-05,
+     "kl_base": 0.00521,
+     "early_stop": false
+    }
+   },
+   {
+    "iteration": 2,
+    "collect": {
+     "n_episodes": 48,
+     "mean_return": 5.315,
+     "return_std_within_group_mean": 4.865,
+     "grasp_rate": 0.688,
+     "lift_rate": 0.312,
+     "plate_rate": 0.271,
+     "press_rate": 0.021,
+     "dispense_rate": 0.0,
+     "max_press_m_any": 0.03681,
+     "collect_s": 2251.1
+    },
+    "ppo": {
+     "epochs_run": 2,
+     "approx_kl": [
+      0.01699,
+      0.02429
+     ],
+     "clipfrac": 0.0022,
+     "loss": -0.00668,
+     "kl_base": 0.03666,
+     "early_stop": true
+    }
+   },
+   {
+    "iteration": 3,
+    "collect": {
+     "n_episodes": 48,
+     "mean_return": 3.546,
+     "return_std_within_group_mean": 4.165,
+     "grasp_rate": 0.583,
+     "lift_rate": 0.188,
+     "plate_rate": 0.146,
+     "press_rate": 0.0,
+     "dispense_rate": 0.0,
+     "max_press_m_any": 0.03362,
+     "collect_s": 2369.8
+    },
+    "ppo": {
+     "epochs_run": 3,
+     "approx_kl": [
+      0.00416,
+      0.01583,
+      0.01882
+     ],
+     "clipfrac": 0.00153,
+     "loss": -0.00094,
+     "kl_base": 0.07351,
+     "early_stop": false
+    }
+   }
+  ],
+  "in_trainer_evals": [
+   {
+    "iteration": 0,
+    "n": 8,
+    "mean_return": 9.611,
+    "reach_rate": 1.0,
+    "grasp_rate": 1.0,
+    "lift_rate": 0.625,
+    "plate_rate": 0.625,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.1314,
+    "max_press_m_any": 0.02377
+   },
+   {
+    "iteration": 1,
+    "n": 8,
+    "mean_return": 10.449,
+    "reach_rate": 1.0,
+    "grasp_rate": 1.0,
+    "lift_rate": 0.625,
+    "plate_rate": 0.625,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.0944,
+    "max_press_m_any": 0.03322
+   },
+   {
+    "iteration": 2,
+    "n": 8,
+    "mean_return": 4.086,
+    "reach_rate": 0.75,
+    "grasp_rate": 0.75,
+    "lift_rate": 0.125,
+    "plate_rate": 0.125,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.079,
+    "max_press_m_any": 0.02422
+   },
+   {
+    "iteration": 3,
+    "n": 8,
+    "mean_return": 1.292,
+    "reach_rate": 0.5,
+    "grasp_rate": 0.5,
+    "lift_rate": 0.0,
+    "plate_rate": 0.0,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0,
+    "mean_max_lift_m": 0.0437,
+    "max_press_m_any": 0.02352
+   }
+  ]
+ }
 }

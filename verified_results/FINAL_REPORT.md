@@ -39,6 +39,22 @@ A 50-condition certification of both is queued.
 
 (filled in when certified)
 
+## Run 10 (training reward v4: press pays only while lifted) — certified
+
+Training: 3 iterations from the BC base, run 9's configuration, SEED 3. Collected press rate per iteration: 0.000, 0.000, 0.000 (v4 pays nothing for a table press).
+
+| checkpoint | sweep | grasp | lift | plate | press (w/ lift, w/o lift) | return |
+|---|---|---|---|---|---|---|
+| rl10 iter1 | 1 | 0.96 | 0.68 | 0.60 | 0.00 (0, 0) | 9.68 |
+| rl10 iter1 | 2 | 0.88 | 0.52 | 0.48 | 0.04 (0, 1) | 8.79 |
+| rl10 iter2 | 1 | 0.96 | 0.48 | 0.48 | 0.00 (0, 0) | 7.72 |
+| rl10 iter2 | 2 | 0.96 | 0.40 | 0.36 | 0.00 (0, 0) | 7.17 |
+| rl10 iter3 | 1 | 1.00 | 0.72 | 0.72 | 0.00 (0, 0) | 11.32 |
+| rl10 iter3 | 2 | 0.96 | 0.76 | 0.76 | 0.00 (0, 0) | 11.29 |
+
+Selected by the registered rule (grasp ≥ 0.87 in both sweeps, highest mean return): **iter3**.
+Reference: run 9 iteration 1 paired mean lift 0.87 / return 12.9; BC 0.71 / 10.7.
+
 ## Evaluation caveats carried throughout
 
 * A single n=25 sweep is one sample: the scorer flips lift on ~6/25 conditions between

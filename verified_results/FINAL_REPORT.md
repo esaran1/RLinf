@@ -20,9 +20,10 @@ lift 0.56 to 0.96, BC's 0.48 to 0.88 on the same conditions.
 
 **Bottom line.** Both RL candidates are ahead of BC on pooled lift and return, by similar
 margins (+0.04 to +0.07 lift, +0.6 to +1.1 return), and neither margin clears the evaluation
-noise of this benchmark at 150–225 paired evaluations. No policy, BC or RL, presses the plunger
-while holding the pipette deterministically; the press has been reached once, stochastically,
-in training. The honest deliverable is: a BC policy that transports reliably, an RL pipeline that
+noise of this benchmark at 150–225 paired evaluations. The plunger press was blocked by two measured defects (a physically unreachable threshold and
+an uncommandable thumb); with those fixed and a scripted palm press added to the data, the
+pressing policy dispenses on 12 % of conditions and completes the whole task on 6 % at a
+40-chunk horizon (section at the end). The honest deliverable is: a BC policy that transports reliably, an RL pipeline that
 is correct by construction and by measurement and does not degrade it, two RL checkpoints that
 are at least as good as BC, and a precise account of what blocks the last stage.
 
@@ -149,3 +150,30 @@ Transport under v3 (scorer of record) and the press under v5 (geometry-grounded 
 | bc_press | v5 | bc_press_s2_v5_n25.json | 1.00 | 0.88 | 0.88 | 0.00 | 0.00 | 12.81 | 12.6 |
 
 **Paired dispense under v5 (50 condition-evaluations per policy):** bc_press 0.000 vs BC 0.020; per-condition wins 0, losses 1, ties 49.
+
+## The press, delivered: pressing policy at the 40-chunk horizon (2026-09-14)
+
+The pressing policy (`bc_press`: behaviour cloning on 40 scripted palm-press episodes plus the
+human transport, `docs/contracts/g1_piston_press_primitive.json`) presses the plunger onto the
+plate. The 23-chunk sweeps above could not show it: the human demonstrations are 22-23 chunks
+long, the press adds ~20 chunks after the plate, and the task has no time-out termination, so
+the horizon, not the policy, produced the zeros. At 40 chunks, two fresh-process v5 sweeps on
+the frozen 25-condition suite:
+
+| policy | horizon | sweep | grasp | lift | plate | press | dispense | full success | return | mean max press (mm) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bc_press | 40 | s1 | 1.00 | 0.88 | 0.88 | 0.08 | 0.16 | 0.04 | 16.96 | 16.4 |
+| bc_press | 40 | s2 | 1.00 | 0.96 | 0.96 | 0.08 | 0.08 | 0.08 | 17.26 | 17.9 |
+| bc_press | 40 | pooled | 1.00 | 0.92 | 0.92 | 0.08 | 0.12 | 0.06 | 17.11 | 17.1 |
+| BC (working) | 23 | s1, s2 | 1.00, 0.96 | 0.80, 0.80 | 0.80, 0.76 | 0.04, 0.00 | 0.04, 0.00 | 0.00, 0.00 | 14.29, 11.57 | 12.1, - |
+
+`dispense` (v5) = plunger held past 20 mm for 0.3 s with the fingers on the barrel and the
+pipette over the plate after transport; `full success` = dispensed, then placed on the plate at
+rest and released -- the task's own terminal predicate, reached for the first time in this
+project (3 of 50 condition-evaluations). The working BC policy's single 23-chunk "dispense" was
+a contact accident (31 mm, interpenetration). A paired 40-chunk baseline sweep is appended
+below when it lands, and run 12 (critic-free GRPO under v5 from this policy, 40-chunk
+episodes) follows.
+
+Manifests: `verified_results/manifests/bc_press_s{1,2}_v5_h40_n25.json`; checkpoint
+`checkpoints/g1_piston_bc_press/bc_ckpt_latest.pt`; videos `verified_results/videos_bc_press_h40/`.

@@ -124,6 +124,16 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## The press, delivered (2026-09-14, 10:50)
+
+`bc_press` (BC on 40 scripted palm-press episodes + the human transport, 1653 transitions, MSE
+0.00069, normaliser identical to the SFT file) scores at a 40-chunk horizon, two v5 sweeps:
+lift 0.88/0.96, press 0.08/0.08, dispense 0.16/0.08, FULL TASK SUCCESS 0.04/0.08, return
+16.96/17.26. At the 23-chunk horizon the same checkpoint scores dispense 0.00: the press adds
+~20 chunks after the plate and the task has no time-out termination. ALWAYS certify pressing
+policies with `EP_CHUNKS=40`. Checkpoint backed up at `checkpoints/g1_piston_bc_press/`. Run
+12 (GRPO under v5 from it, 40-chunk episodes) is queued in `chain_rl12.sh`.
+
 ## The adopted press primitive (2026-09-14, 01:50): single-arm palm press, uprighted by a twist
 
 After the bimanual variants (tube in the fist, palm-up back of hand, side approaches) all

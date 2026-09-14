@@ -95,6 +95,12 @@ class InspireRetargetParams:
     thumb_press_start: float = 0.30
     #: 0.42 rad recorded (normalised ~1.97, inside the squash range) -> +0.40 -> 1.30 rad.
     thumb_press_gain: float = 0.40 / 0.12
+    #: Recorded-yaw span over which the press channel ramps from 0 to 1 (0.30 -> 0.42).
+    thumb_press_span: float = 0.12
+    #: Extra thumb intermediate/distal flexion at full press (added to the grip values,
+    #: clamped to the joint limits). 0.0 = the thumb curl is unchanged by the channel.
+    thumb_press_inter_gain: float = 0.0
+    thumb_press_distal_gain: float = 0.0
 
     def as_dict(self):
         return {
@@ -107,6 +113,9 @@ class InspireRetargetParams:
             "grip_gate_start": self.grip_gate_start,
             "thumb_press_start": self.thumb_press_start,
             "thumb_press_gain": self.thumb_press_gain,
+            "thumb_press_span": self.thumb_press_span,
+            "thumb_press_inter_gain": self.thumb_press_inter_gain,
+            "thumb_press_distal_gain": self.thumb_press_distal_gain,
         }
 
 
@@ -175,8 +184,11 @@ class InspireHandRetargeter:
             # Press channel: the unused top of the recorded yaw range drives the thumb
             # over the rod top (see InspireRetargetParams.thumb_press_start).
             yaw = yaw + (rec_yaw - p.thumb_press_start).clamp(min=0.0) * p.thumb_press_gain
+            press_frac = ((rec_yaw - p.thumb_press_start) / max(p.thumb_press_span, 1e-6)).clamp(0.0, 1.0)
             out[..., g["t_pitch"]] = pitch.clamp(-0.1, THUMB_PITCH_LIMIT)
             out[..., g["t_yaw"]] = yaw.clamp(-0.1, THUMB_YAW_LIMIT)
-            out[..., g["t_inter"]] = (gate * p.thumb_intermediate).clamp(0.0, THUMB_INTERMEDIATE_LIMIT)
-            out[..., g["t_distal"]] = (gate * p.thumb_distal_gain).clamp(0.0, THUMB_DISTAL_LIMIT)
+            out[..., g["t_inter"]] = (gate * p.thumb_intermediate
+                                      + press_frac * p.thumb_press_inter_gain).clamp(0.0, THUMB_INTERMEDIATE_LIMIT)
+            out[..., g["t_distal"]] = (gate * p.thumb_distal_gain
+                                       + press_frac * p.thumb_press_distal_gain).clamp(0.0, THUMB_DISTAL_LIMIT)
         return out

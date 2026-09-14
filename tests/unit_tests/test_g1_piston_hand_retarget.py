@@ -151,3 +151,19 @@ def test_press_channel_is_monotone_and_reaches_limit_inside_the_policy_range():
     assert all(b >= a for a, b in zip(ys, ys[1:]))
     assert ys[-1] == pytest.approx(1.3, abs=1e-6)   # 0.46 = the policy's ceiling, clamped
     assert InspireRetargetParams().as_dict()["thumb_press_start"] == 0.30
+
+
+def test_press_curl_gains_default_off_and_ramp_with_the_channel():
+    names = _joint_names()
+    rt = InspireHandRetargeter(names)
+    rt_curl = InspireHandRetargeter(names, dataclasses.replace(DEFAULT_PARAMS, thumb_press_inter_gain=0.4, thumb_press_distal_gain=0.6))
+    ji, jd = names.index("R_thumb_intermediate_joint"), names.index("R_thumb_distal_joint")
+    a = _closed_right_hand(0.25)                        # below the channel: identical
+    assert torch.equal(rt.apply(_mapped(a, names), a), rt_curl.apply(_mapped(a, names), a))
+    a = _closed_right_hand(0.42)                        # full press: +0.4 / +0.6, at the limits
+    o0 = rt.apply(_mapped(a, names), a); o1 = rt_curl.apply(_mapped(a, names), a)
+    assert o0[0, ji].item() == pytest.approx(0.4, abs=1e-6) and o0[0, jd].item() == pytest.approx(0.6, abs=1e-6)
+    assert o1[0, ji].item() == pytest.approx(0.8, abs=1e-6) and o1[0, jd].item() == pytest.approx(1.2, abs=1e-6)
+    a = _closed_right_hand(0.36)                        # half way up the channel
+    o = rt_curl.apply(_mapped(a, names), a)
+    assert o[0, ji].item() == pytest.approx(0.6, abs=1e-6) and o[0, jd].item() == pytest.approx(0.9, abs=1e-6)

@@ -137,11 +137,48 @@ try:
         bi = ee_idx - 1 if J.shape[0] == len(bn) - 1 else ee_idx
         return J[bi].cpu().numpy()[:, arm_j]
 
-    def ik_step(last, dx, lam=1e-3):
+    L_EE = bn.index("left_wrist_yaw_link")
+    L_J = [jn.index(n) for n in (
+        "left_shoulder_pitch_joint", "left_shoulder_roll_joint", "left_shoulder_yaw_joint",
+        "left_elbow_joint", "left_wrist_roll_joint", "left_wrist_pitch_joint", "left_wrist_yaw_joint")]
+    LIM = robot.data.soft_joint_pos_limits[0].cpu().numpy()          # [ndof, 2]
+    R_LIM = LIM[arm_j]; L_LIM = LIM[L_J]
+    tube = sc["tube"]
+
+    def _axis_z(q):
+        w_, x_, y_, z_ = [float(v) for v in q]
+        return np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
+
+    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05):
+        """One damped-least-squares step for an arm; commanded targets clamped to the soft
+        joint limits (minus a margin) so a blocked motion cannot wind the arm up."""
         dx = np.asarray(dx, dtype=np.float64)
-        J = jac(); t = np.concatenate([dx, np.zeros(3)])
-        dq = J.T @ np.linalg.solve(J @ J.T + lam * np.eye(6), t)
-        new = np.array(last, dtype=np.float32).copy(); new[7:14] += dq.astype(np.float32); return new
+        J = robot.root_physx_view.get_jacobians()[0]
+        bi = ee_idx - 1 if J.shape[0] == len(bn) - 1 else ee_idx
+        J = J[bi].cpu().numpy()[:, joint_ids]
+        if hold_rot:
+            t = np.concatenate([dx, np.zeros(3)])
+        else:
+            J = J[:3]; t = dx
+        dq = J.T @ np.linalg.solve(J @ J.T + lam * np.eye(J.shape[0]), t)
+        new = np.array(last, dtype=np.float32).copy()
+        new[sl] = np.clip(new[sl] + dq.astype(np.float32), lim[:, 0] + margin, lim[:, 1] - margin)
+        return new
+
+    def ik_step(last, dx, lam=1e-3):
+        return ik_arm(last, ee_idx, arm_j, slice(7, 14), R_LIM, dx, lam)
+
+    def ik_left(last, dx, lam=1e-3):
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=False)
+
+    def rod_top():
+        return obj.data.body_pos_w[0, 0].cpu().numpy() + 0.09 * _axis_z(obj.data.body_quat_w[0, 0].cpu().numpy())
+
+    def tube_bottom():
+        return tube.data.root_pos_w[0].cpu().numpy() - 0.05 * _axis_z(tube.data.root_quat_w[0].cpu().numpy())
+
+    def tube_fist_dist():
+        return float(np.linalg.norm(tube.data.root_pos_w[0].cpu().numpy() - robot.data.body_pos_w[0, L_EE].cpu().numpy()))
 
     def merge(stages, info):
         for k, v in info["stages"].items():
@@ -160,11 +197,16 @@ try:
             seat_push_m = float(var.get("seat_push_m", 0.02))    # extra descent after contact
             seat_raise_m = float(var.get("seat_raise_m", 0.09))  # raise after seating (replaces raise_m)
             potpress = bool(var.get("potpress", False))          # palm press with the tip on the plate
-            pp_target = float(var.get("pp_target", 0.023))       # stop pushing at this plunger depth
-            pp_max_m = float(var.get("pp_max_m", 0.12))          # max hand descent after contact
+            pp_target = float(var.get("pp_target", 0.0215))      # stop pushing at this plunger depth
+            pp_max_m = float(var.get("pp_max_m", 0.10))          # max hand descent after contact
             pp_rate = float(var.get("pp_rate", 0.0008))          # descent per control step (m)
             pp_raise_m = float(var.get("pp_raise_m", 0.05))      # raise after the press
             pp_upright_gain = float(var.get("pp_upright_gain", 0.004))  # lateral m/step per unit axis_xy
+            pp_thumb = bool(var.get("pp_thumb", True))           # sweep the thumb over the rod top at contact
+            inject = bool(var.get("inject", False))              # bimanual: tube in the left fist presses the rod
+            inj_present = np.array(var.get("inj_present", [-0.15, 0.32, 1.05]), dtype=np.float64)  # barrel centre target
+            inj_target = float(var.get("inj_target", 0.0215))    # plunger depth to reach
+            inj_clear = float(var.get("inj_clear", 0.05))        # tube bottom height above the rod top before descending
             vname = var.get("name", "base")
             t0 = time.time()
             env.reset(seed=0)
@@ -184,7 +226,8 @@ try:
                                                      "extra_chunks": extra_chunks, "to_end": to_end, "settle_chunks": settle_chunks,
                                                      "seat": seat, "seat_push_m": seat_push_m, "seat_raise_m": seat_raise_m,
                                                      "potpress": potpress, "pp_target": pp_target, "pp_max_m": pp_max_m,
-                                                     "pp_rate": pp_rate, "pp_raise_m": pp_raise_m, "pp_upright_gain": pp_upright_gain}}
+                                                     "pp_rate": pp_rate, "pp_raise_m": pp_raise_m, "pp_upright_gain": pp_upright_gain, "pp_thumb": pp_thumb,
+                                                     "inject": inject, "inj_present": inj_present.tolist(), "inj_target": inj_target, "inj_clear": inj_clear}}
             # ---- 1. human transport, truncated at the plate stage ----------------------
             plate_chunk = None
             for c in range(n_demo_chunks):
@@ -274,7 +317,12 @@ try:
                             n = np.linalg.norm(lat)
                             if n > 0.002:
                                 lat = lat / n * 0.002
-                        last = ik_step(last, np.array([lat[0], lat[1], -pp_rate])); st["last"] = last
+                        last = ik_step(last, np.array([lat[0], lat[1], -pp_rate]))
+                        if pp_thumb and contact_ee is not None:
+                            # thumb over the rod top (press channel): a rigid pusher above the
+                            # rod, where the index finger alone deflects and lets the rod slip
+                            y_now = float(last[25]); last[25] = min(yaw_cmd, y_now + 0.02)
+                        st["last"] = last
                         yield kind, last
                         bz = float(obj.data.body_pos_w[0, 1, 2]) - 0.095
                         ee_z = float(robot.data.body_pos_w[0, ee_idx, 2])
@@ -291,6 +339,48 @@ try:
                         if contact_ee is not None and (pressed >= pp_target or contact_ee - ee_z > pp_max_m):
                             rec["pp_descent_after_contact"] = round(contact_ee - ee_z, 4); rec["pp_press_reached"] = round(pressed, 4)
                             break
+                elif kind == "present":
+                    # right arm: bring the barrel centre to the presentation point (closed loop)
+                    for t in range(300):
+                        err = inj_present - obj.data.body_pos_w[0, 1].cpu().numpy()
+                        if np.linalg.norm(err) < 0.01:
+                            break
+                        step = err / max(np.linalg.norm(err), 1e-9) * min(0.003, float(np.linalg.norm(err)))
+                        last = ik_step(last, step); st["last"] = last
+                        yield kind, last
+                    rec["present_steps"] = t; rec["present_err_m"] = round(float(np.linalg.norm(err)), 4)
+                elif kind == "approach":
+                    # left arm, three legs so the tube never sweeps through the right hand:
+                    # up to clearance height, over the rod top, then the descend phase
+                    d0 = tube_fist_dist()
+                    for leg in ("up", "over"):
+                        for t in range(300):
+                            goal = rod_top() + np.array([0.0, 0.0, inj_clear])
+                            cur = tube_bottom()
+                            err = (np.array([0.0, 0.0, goal[2] - cur[2]]) if leg == "up" else goal - cur)
+                            if np.linalg.norm(err) < 0.012:
+                                break
+                            step = err / max(np.linalg.norm(err), 1e-9) * min(0.003, float(np.linalg.norm(err)))
+                            last = ik_left(last, step); st["last"] = last
+                            yield kind, last
+                        rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
+                    rec["tube_fist_dist_start_end"] = [round(d0, 4), round(tube_fist_dist(), 4)]
+                elif kind == "inject":
+                    # left arm descends, servoing the tube bottom over the rod top, until the
+                    # plunger reaches the target depth (closed loop) or the descent cap
+                    z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
+                    for t in range(250):
+                        err_xy = (rod_top() - tube_bottom())[:2]
+                        lat = err_xy / max(np.linalg.norm(err_xy), 1e-9) * min(0.002, float(np.linalg.norm(err_xy)))
+                        last = ik_left(last, np.array([lat[0], lat[1], -0.0008])); st["last"] = last
+                        yield kind, last
+                        pressed = float(obj.data.joint_pos[0, pj])
+                        if t % 10 == 0:
+                            trace.append([t, round(pressed, 4), round(float(np.linalg.norm(err_xy)), 4), round(tube_fist_dist(), 4)])
+                        if pressed >= inj_target or z0 - float(robot.data.body_pos_w[0, L_EE, 2]) > 0.12:
+                            break
+                    rec["inject_steps"] = t; rec["inject_descent_m"] = round(z0 - float(robot.data.body_pos_w[0, L_EE, 2]), 4)
+                    rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, tube_fist_dist]"] = trace
                 elif kind == "raise_after":
                     for t in range(int(round(pp_raise_m / 0.001))):
                         last = ik_step(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
@@ -330,7 +420,9 @@ try:
 
             c_next = len(acts)
             phases = [("hold", H)] * settle_chunks
-            if potpress:
+            if inject:
+                phases += [("present", None), ("approach", None), ("inject", None), ("hold", H), ("hold", H)]
+            elif potpress:
                 phases += [("centre", None), ("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
             else:
                 phases += [("seat", None)] if seat else [("raise", H)]
@@ -339,8 +431,8 @@ try:
             # trailing observation so (s, a, r, s') pairs exist for every chunk
             imgs.append(grab()); states.append(csb.build(stages=stages, chunk=len(acts)))
             acts.append(acts[-1]); rews.append(np.float32(0.0))
-            pl = [x for x in press_log if x["kind"] in ("press", "hold", "potpress", "raise_after")] or press_log
-            pre = [x for x in press_log if x["kind"] in ("raise", "seat", "centre")]
+            pl = [x for x in press_log if x["kind"] in ("press", "hold", "potpress", "raise_after", "inject")] or press_log
+            pre = [x for x in press_log if x["kind"] in ("raise", "seat", "centre", "present", "approach")]
             rec.update({
                 "stages": {k: bool(v) for k, v in stages.items()},
                 "return_v5": round(float(sum(rews)), 3),
@@ -358,7 +450,9 @@ try:
                 "finger_hold_after_raise": bool(pre[-1]["finger_hold"]) if pre else None,
                 "wall_s": round(time.time() - t0, 1),
             })
-            ok = bool(stages.get("dispense"))
+            ok = bool(stages.get("press")) if inject else bool(stages.get("dispense"))
+            if inject:
+                rec["tube_fist_dist_end"] = round(tube_fist_dist(), 4)
             rec["outcome"] = "press_certified" if ok else "press_failed"
             if ok or KEEP_FAILED:
                 tag = "c" if cond_name == "canonical" else f"t{int(cond_name):03d}"

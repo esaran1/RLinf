@@ -339,6 +339,7 @@ try:
             av = float(np.var(np.concatenate([x.reshape(-1) for x in acts])))
             rows.append({"condition": cond.index, "hash": cond.hash(),
                          "return": round(float(ret), 3),
+                         "chunks_run": int(_ci + 1), "ended_by_done": bool(done),
                          "disp_m": round(float(np.linalg.norm(bar - bar0)), 4),
                          # Carry/throw test HORIZONTAL transport; disp_m is a 3-D
                          # norm and a vertical fling could clear the threshold on

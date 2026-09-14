@@ -186,8 +186,10 @@ try:
         return ik_arm(last, ee_idx, arm_j, slice(7, 14), R_LIM, dx, lam)
 
     def ik_left(last, dx, lam=1e-3, point=None):
-        # translation of ``point`` (rotation free)
-        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=False, point=point)
+        # translation of ``point`` with the wrist rotation softly held (weight 0.3). Free
+        # rotation let the solver put the motion into wrist rotations the PD-driven arm did
+        # not realise, and the servo stalled 1.5-2 cm short with no joint at a limit.
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=True, rot_weight=0.3, point=point)
 
     def ik_left_twist(last, v, w, lam=1e-3):
         return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([v, w]), lam)

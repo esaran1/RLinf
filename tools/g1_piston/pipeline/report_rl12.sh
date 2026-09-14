@@ -3,7 +3,7 @@
 # pressing policy and the working BC, appended to the final report; manifests copied; commit.
 source /home/jren313/research/starvla_rl/runs_g1_piston/scripts/common.sh
 cd /home/jren313/research/starvla_rl/RLinf
-while ! grep -q "CHAIN RL12 DONE" $D/chain_rl12.log 2>/dev/null; do sleep 120; done
+while ! grep -q "SCORE RL12 DONE" $D/chain_rl12.log 2>/dev/null; do sleep 120; done
 $PY - > $D/report_rl12.txt <<'PY'
 import json, glob, re
 D = "/home/jren313/research/starvla_rl/runs_g1_piston/filter_ab"

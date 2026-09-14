@@ -25,6 +25,6 @@ OUTF=$D/rl12/run.json RUN_DIR=$D/rl12 BASE_CKPT=$CK TRAIN_REWARD=v5 \
   WALL_BUDGET=10800 N_EVAL_PERIODIC=8 RESET_SUITE_SEED=20260817 EP_CHUNKS=40 SEED=5 \
   timeout 18000 $PY $T/train_grpo.py > $D/rl12/train.log 2>&1
 echo "$(date +%H:%M:%S) run 12 ended exit=$?" >> $LOG
-score() { wait_gpu; OUTF=$D/filter_ab/$1_n25.json CKPT=$2 RUN_DIR=$D/filter_ab/$1 N_EVAL=25 MODES=det $3=1 RESET_SUITE_SEED=20260817 EP_CHUNKS=40 timeout 9000 $PY $T/eval_checkpoint.py > $D/filter_ab/$1_eval.log 2>&1; echo "$(date +%H:%M:%S) scored $1 exit=$?" >> $LOG; }
+score() { wait_gpu; OUTF=$D/filter_ab/$1_n25.json CKPT=$2 RUN_DIR=$D/filter_ab/$1 N_EVAL=25 MODES=det RESET_SUITE_SEED=20260817 EP_CHUNKS=40 timeout 9000 env $3=1 $PY $T/eval_checkpoint.py > $D/filter_ab/$1_eval.log 2>&1; echo "$(date +%H:%M:%S) scored $1 exit=$?" >> $LOG; }
 for f in $(ls $D/rl12/grpo_ckpt_iter*.pt 2>/dev/null | grep -v iter0 | sort -t r -k3 -n); do n=$(basename $f .pt | sed 's/grpo_ckpt_//'); score rl12_${n}_s1_v5_h40 $f REWARD_V5; score rl12_${n}_s2_v5_h40 $f REWARD_V5; score rl12_${n}_s1_v3_h40 $f REWARD_V3; done
 echo "$(date +%H:%M:%S) CHAIN RL12 DONE" >> $LOG

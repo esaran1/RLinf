@@ -184,4 +184,4 @@ def test_restore_scene_props_writes_default_pose_and_zero_velocity():
     assert torch.equal(pot.written[0, 7:], torch.zeros(6))
     pot.written = None
     apply_reset_condition(env, CANONICAL)                          # canonical also restores
-    assert pot.written is not None and "pot" in RESTORED_PROPS and "tube" in RESTORED_PROPS
+    assert pot.written is not None and "pot" in RESTORED_PROPS and "tube" not in RESTORED_PROPS

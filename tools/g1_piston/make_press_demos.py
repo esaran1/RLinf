@@ -403,12 +403,12 @@ try:
                     rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, tube_fist_dist]"] = trace
                 elif kind == "upright":
                     # tip on the plate: move the hand horizontally until the barrel is vertical
-                    for t in range(80):
+                    for t in range(250):
                         ax = _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())
                         tilt = float(np.degrees(np.arccos(np.clip(ax[2], -1, 1))))
                         if tilt < 3.0:
                             break
-                        lat = -pp_upright_gain * ax[:2]; n = np.linalg.norm(lat)
+                        lat = -1.5 * pp_upright_gain * ax[:2]; n = np.linalg.norm(lat)
                         if n > 0.002:
                             lat = lat / n * 0.002
                         last = ik_step(last, np.array([lat[0], lat[1], 0.0])); st["last"] = last

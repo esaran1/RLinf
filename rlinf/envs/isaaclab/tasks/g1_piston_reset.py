@@ -156,11 +156,14 @@ def build_reset_suite(n_train: int = EXPERIMENT_N_TRAIN, n_eval: int = 50,
 CANONICAL = ResetCondition(index=-1, split="canonical", joint_delta={}, piston_dxy=(0.0, 0.0))
 
 
-#: Dynamic scene props the upstream task does NOT reset between episodes. Measured
-#: 2026-09-13: a pressing episode shoved the pot 16-27 cm, and every later episode's
-#: ``plate`` stage then failed because the plate was no longer where the demonstrations
-#: carry the pipette. The upstream reset event restores only the piston (``object``).
-RESTORED_PROPS = ("pot", "tube")
+#: Scene props restored to their default root state at every reset. The upstream reset
+#: event restores only the piston (``object``). The plate ("pot") is a kinematic body and
+#: never moves, so restoring it is a harmless no-op kept for scenes where it is dynamic.
+#: The tube is deliberately NOT restored: it is dynamic and settles inside the closed left
+#: fist during the upstream reset; rewriting its spawn pose over the closed fingers pops it
+#: out (measured 2026-09-13: tube-to-wrist distance 0.20-0.30 m instead of 0.16 m, and
+#: the flying tube disturbed the pick).
+RESTORED_PROPS = ("pot",)
 
 
 def restore_scene_props(env, names=RESTORED_PROPS):

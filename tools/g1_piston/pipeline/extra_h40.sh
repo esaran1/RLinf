@@ -28,7 +28,7 @@ if n:
     random.seed(0); boots = []
     for _ in range(4000):
         smp = [diffs[random.randrange(n)] for _ in range(n)]; boots.append(sum(smp) / n)
-    boots.sort(); lo, hi = boots[int(0.025 * n and 100)], boots[int(0.975 * 4000) - 1]; lo = boots[100]
+    boots.sort(); lo, hi = boots[100], boots[3899]          # 2.5th and 97.5th percentiles of 4000
     print(); print(f"**Pooled over {n} paired condition-evaluations per policy (v5, 40 chunks):** dispense rl12 iter2 {sum(db)/n:.3f} vs bc_press {sum(da)/n:.3f} (difference {sum(diffs)/n:+.3f}, paired-bootstrap 95% CI {lo:+.3f} to {hi:+.3f}); "
           f"full success {rate(pb,'success'):.3f} vs {rate(pa,'success'):.3f}; lift {rate(pb,'lift'):.3f} vs {rate(pa,'lift'):.3f}.")
     print(); print("Verdict: **" + ("established" if lo > 0 or hi < 0 else "not established") + "** on dispense (CI " + ("excludes" if lo > 0 or hi < 0 else "includes") + " zero).")

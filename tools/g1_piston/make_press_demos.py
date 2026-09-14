@@ -101,7 +101,7 @@ try:
     import tasks  # noqa: F401
     from isaaclab_tasks.utils import load_cfg_from_registry
     sys.path.insert(0, "/home/jren313/research/starvla_rl/RLinf")
-    from rlinf.envs.isaaclab.tasks.g1_piston_reset import apply_reset_condition, build_reset_suite
+    from rlinf.envs.isaaclab.tasks.g1_piston_reset import CANONICAL, apply_reset_condition, build_reset_suite
 
     TID = "Isaac-PickPlace-Piston-G129-Inspire-Joint"
     ecfg = load_cfg_from_registry(TID, "env_cfg_entry_point")
@@ -138,6 +138,7 @@ try:
         return J[bi].cpu().numpy()[:, arm_j]
 
     def ik_step(last, dx, lam=1e-3):
+        dx = np.asarray(dx, dtype=np.float64)
         J = jac(); t = np.concatenate([dx, np.zeros(3)])
         dq = J.T @ np.linalg.solve(J @ J.T + lam * np.eye(6), t)
         new = np.array(last, dtype=np.float32).copy(); new[7:14] += dq.astype(np.float32); return new
@@ -169,11 +170,15 @@ try:
             cond = None
             if cond_name != "canonical":
                 cond = TRAIN_CONDS[int(cond_name)]
-                apply_reset_condition(env, cond)
+            # also restores the pot and tube, which the upstream reset leaves where the
+            # previous episode's press pushed them
+            apply_reset_condition(env, cond if cond is not None else CANONICAL)
             reward_fn.reset(); csb.reset()
+            pot0 = sc["pot"].data.root_pos_w[0].cpu().numpy()
             imgs, acts, rews, states = [], [], [], []
             stages = {}
             rec = {"episode": ep, "cond": cond_name, "cond_hash": cond.hash() if cond else None,
+                   "pot_start": [round(float(v), 4) for v in pot0],
                    "variant": vname, "variant_cfg": {"raise_m": raise_m, "yaw_cmd": yaw_cmd, "ramp_steps": ramp_steps, "wrist": wrist,
                                                      "extra_chunks": extra_chunks, "to_end": to_end, "settle_chunks": settle_chunks,
                                                      "seat": seat, "seat_push_m": seat_push_m, "seat_raise_m": seat_raise_m,
@@ -229,20 +234,35 @@ try:
                     for t in range(int(round(seat_raise_m / 0.001))):
                         last = ik_step(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
                         yield kind, last
+                elif kind == "centre":
+                    # bring the barrel over the plate centre so the tip lands inside the pot
+                    for t in range(120):
+                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() - obj.data.body_pos_w[0, 1, :2].cpu().numpy()
+                        if np.linalg.norm(err) < 0.008:
+                            break
+                        step = err / max(np.linalg.norm(err), 1e-9) * min(0.002, float(np.linalg.norm(err)))
+                        last = ik_step(last, np.array([step[0], step[1], 0.0])); st["last"] = last
+                        yield kind, last
+                    rec["centre_steps"] = t; rec["centre_err_m"] = round(float(np.linalg.norm(err)), 4)
                 elif kind == "potpress":
-                    # descend until the barrel stops (tip on the plate), keep descending so the
-                    # hand slides down the barrel until the palm drives the rod in; stop at the
-                    # target depth (closed loop on the measured plunger) or at the descent cap
-                    bz_hist = []; contact_ee = None
-                    for t in range(600):
+                    # descend until the barrel stops (tip on the plate) while the hand keeps
+                    # going, then keep descending so the hand slides down the barrel until the
+                    # palm drives the rod in; stop at the target depth (closed loop on the
+                    # measured plunger) or at the descent cap
+                    # contact = the barrel bottom has reached the plate floor (geometric, not a
+                    # stall test: a tip sliding on the floor never stalls cleanly)
+                    pot_floor = float(sc["pot"].data.root_pos_w[0, 2]) + 0.005
+                    ez0 = float(robot.data.body_pos_w[0, ee_idx, 2]); contact_ee = None
+                    for t in range(400):
                         last = ik_step(last, np.array([0.0, 0.0, -pp_rate])); st["last"] = last
                         yield kind, last
-                        bz_hist.append(float(obj.data.body_pos_w[0, 1, 2]))
+                        bz = float(obj.data.body_pos_w[0, 1, 2]) - 0.095
                         ee_z = float(robot.data.body_pos_w[0, ee_idx, 2])
                         pressed = float(obj.data.joint_pos[0, pj])
-                        if contact_ee is None and t > 5 and abs(bz_hist[-1] - bz_hist[-4]) < 2e-4:
-                            contact_ee = ee_z; rec["pp_contact_step"] = t
-                            rec["pp_barrel_bottom_z"] = round(bz_hist[-1] - 0.095, 4)
+                        if contact_ee is None and (bz <= pot_floor + 0.012 or pressed > 0.014):
+                            contact_ee = ee_z; rec["pp_contact_step"] = t; rec["pp_barrel_bottom_z"] = round(bz, 4)
+                        if contact_ee is None and ez0 - ee_z > 0.30:
+                            rec["pp_no_contact"] = True; break
                         if contact_ee is not None and (pressed >= pp_target or contact_ee - ee_z > pp_max_m):
                             rec["pp_descent_after_contact"] = round(contact_ee - ee_z, 4); rec["pp_press_reached"] = round(pressed, 4)
                             break
@@ -286,7 +306,7 @@ try:
             c_next = len(acts)
             phases = [("hold", H)] * settle_chunks
             if potpress:
-                phases += [("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
+                phases += [("centre", None), ("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
             else:
                 phases += [("seat", None)] if seat else [("raise", H)]
                 phases += [("press", H), ("hold", H)]
@@ -295,7 +315,7 @@ try:
             imgs.append(grab()); states.append(csb.build(stages=stages, chunk=len(acts)))
             acts.append(acts[-1]); rews.append(np.float32(0.0))
             pl = [x for x in press_log if x["kind"] in ("press", "hold", "potpress", "raise_after")] or press_log
-            pre = [x for x in press_log if x["kind"] in ("raise", "seat")]
+            pre = [x for x in press_log if x["kind"] in ("raise", "seat", "centre")]
             rec.update({
                 "stages": {k: bool(v) for k, v in stages.items()},
                 "return_v5": round(float(sum(rews)), 3),

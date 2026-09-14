@@ -156,16 +156,55 @@ def build_reset_suite(n_train: int = EXPERIMENT_N_TRAIN, n_eval: int = 50,
 CANONICAL = ResetCondition(index=-1, split="canonical", joint_delta={}, piston_dxy=(0.0, 0.0))
 
 
+#: Dynamic scene props the upstream task does NOT reset between episodes. Measured
+#: 2026-09-13: a pressing episode shoved the pot 16-27 cm, and every later episode's
+#: ``plate`` stage then failed because the plate was no longer where the demonstrations
+#: carry the pipette. The upstream reset event restores only the piston (``object``).
+RESTORED_PROPS = ("pot", "tube")
+
+
+def restore_scene_props(env, names=RESTORED_PROPS):
+    """Put the dynamic props back at their default root state, in place.
+
+    Idempotent, and a no-op for props the scene does not have. Called from
+    ``apply_reset_condition`` so every consumer (evaluator, trainer, renderer, data
+    synthesis) gets the same episode-independent scene.
+    """
+    import torch
+
+    scene = env.scene
+    restored = []
+    for name in names:
+        try:
+            prop = scene[name]
+        except KeyError:
+            continue
+        default = prop.data.default_root_state
+        if default is None:
+            continue
+        state = default.clone()
+        # default_root_state is env-local; root_state_w is world. Add the env origin.
+        origins = getattr(scene, "env_origins", None)
+        if origins is not None:
+            state[:, :3] += origins
+        state[:, 7:] = 0.0
+        prop.write_root_state_to_sim(state)
+        restored.append(name)
+    return restored
+
+
 def apply_reset_condition(env, condition: ResetCondition):
     """Apply ``condition`` to a freshly reset env, in place.
 
     Must be called immediately after ``env.reset()``. Writes joint positions and the
     piston root pose through the simulation views, then steps physics zero times -- the
-    caller's first ``env.step`` picks the new state up.
+    caller's first ``env.step`` picks the new state up. Also restores the dynamic props
+    the upstream reset leaves where the previous episode pushed them (``RESTORED_PROPS``).
     """
     import torch
 
     scene = env.scene
+    restore_scene_props(env)
     robot = scene["robot"]
     if condition.joint_delta:
         names = list(robot.data.joint_names)

@@ -147,3 +147,41 @@ def test_a_different_n_train_changes_the_eval_conditions():
     a = [c.hash() for c in build_reset_suite(n_train=200, n_eval=50)[1]]
     b = [c.hash() for c in build_reset_suite(n_train=400, n_eval=50)[1]]
     assert a != b
+
+
+# ------------------------------------------------------- dynamic prop restoration ----
+def test_restore_scene_props_writes_default_pose_and_zero_velocity():
+    torch = pytest.importorskip("torch")
+    from rlinf.envs.isaaclab.tasks.g1_piston_reset import (
+        CANONICAL, RESTORED_PROPS, apply_reset_condition, restore_scene_props)
+
+    class Prop:
+        def __init__(self, default):
+            self.data = type("D", (), {})()
+            self.data.default_root_state = torch.tensor([default], dtype=torch.float32)
+            self.written = None
+
+        def write_root_state_to_sim(self, state):
+            self.written = state.clone()
+
+    class Robot:
+        def __init__(self):
+            self.data = type("D", (), {})()
+            self.data.joint_names = ["a"]; self.data.joint_pos = torch.zeros(1, 1)
+
+        def write_joint_state_to_sim(self, q, v): pass
+
+    class Scene(dict):
+        env_origins = torch.tensor([[1.0, 2.0, 0.0]])
+
+        def write_data_to_sim(self): self.flushed = True
+
+    pot = Prop([0.15, 0.30, 0.80, 1, 0, 0, 0, 0.3, 0.0, 0.0, 0.1, 0.0, 0.0])   # moving
+    scene = Scene(pot=pot, robot=Robot())
+    env = type("E", (), {})(); env.scene = scene
+    assert restore_scene_props(env) == ["pot"]                      # tube absent: skipped
+    assert torch.allclose(pot.written[0, :3], torch.tensor([1.15, 2.30, 0.80]))
+    assert torch.equal(pot.written[0, 7:], torch.zeros(6))
+    pot.written = None
+    apply_reset_condition(env, CANONICAL)                          # canonical also restores
+    assert pot.written is not None and "pot" in RESTORED_PROPS and "tube" in RESTORED_PROPS

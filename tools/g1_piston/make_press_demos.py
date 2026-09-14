@@ -141,7 +141,11 @@ try:
     L_J = [jn.index(n) for n in (
         "left_shoulder_pitch_joint", "left_shoulder_roll_joint", "left_shoulder_yaw_joint",
         "left_elbow_joint", "left_wrist_roll_joint", "left_wrist_pitch_joint", "left_wrist_yaw_joint")]
-    LIM = robot.data.soft_joint_pos_limits[0].cpu().numpy()          # [ndof, 2]
+    # HARD limits: the soft limits plus a 0.05 rad margin clamped the commanded target
+    # while the measured joint, sagging under gravity, still read as free, and the servo
+    # stalled 1.5-2 cm short with no joint reported at a limit.
+    _hard = getattr(robot.data, "joint_pos_limits", None)
+    LIM = (_hard if _hard is not None else robot.data.soft_joint_pos_limits)[0].cpu().numpy()   # [ndof, 2]
     R_LIM = LIM[arm_j]; L_LIM = LIM[L_J]
     tube = sc["tube"]
 
@@ -149,7 +153,7 @@ try:
         w_, x_, y_, z_ = [float(v) for v in q]
         return np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
 
-    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05, rot_weight=1.0, point=None):
+    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.01, rot_weight=1.0, point=None):
         """One damped-least-squares step for an arm; commanded targets clamped to the soft
         joint limits (minus a margin) so a blocked motion cannot wind the arm up.
         ``dx`` is a 3-vector (translation; rotation held or free) or a 6-vector twist.
@@ -495,7 +499,7 @@ try:
                         pp = back_of_hand() if flip else pusher_pd()
                         err_xy = (rod_top() - pp)[:2]; e = float(np.linalg.norm(err_xy))
                         lat = err_xy / max(e, 1e-9) * min(0.0015, e)
-                        dz = -(0.0006 if dispense else 0.0008) if e < (0.020 if flip else 0.015) else 0.0
+                        dz = -(0.0006 if dispense else 0.0008) if e < 0.025 else 0.0
                         last = (ik_left_keep_up if flip else ik_left)(last, np.array([lat[0], lat[1], dz]), point=pp)
                         st["last"] = last
                         yield kind, last

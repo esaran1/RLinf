@@ -176,9 +176,26 @@ try:
     def ik_left(last, dx, lam=1e-3):
         # orientation HELD: a free wrist rotates the fist during the approach and dumps
         # the tube out of the grip channel (measured: tube-to-wrist 0.16 -> 0.30 m)
-        # softly (weight 0.3): with equal weights the 7-joint arm could not close the last
-        # 1.4 cm of translation under the joint-limit clamp
-        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=True, rot_weight=0.3)
+        # translation only (rotation free): with the rotation held, even softly, the arm
+        # could not close the last 1.3 cm of translation under the joint-limit clamp
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=False)
+
+    def ik_left_twist(last, v, w, lam=1e-3):
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([v, w]), lam)
+
+    def tube_axis():
+        return _axis_z(tube.data.root_quat_w[0].cpu().numpy())
+
+    def tube_line_error(pt):
+        """(perpendicular xy distance from pt to the tube's axis line, signed offset of pt
+        along the axis from the tube centre, xy unit normal pointing from the line to pt)."""
+        c = tube.data.root_pos_w[0].cpu().numpy(); a = tube_axis()
+        a_xy = a[:2] / max(np.linalg.norm(a[:2]), 1e-9)
+        d = pt[:2] - c[:2]
+        along = float(d @ a_xy)
+        perp = d - along * a_xy
+        n = np.linalg.norm(perp)
+        return float(n), along, (perp / n if n > 1e-9 else np.zeros(2)), a_xy
 
     def rod_top():
         return obj.data.body_pos_w[0, 0].cpu().numpy() + 0.09 * _axis_z(obj.data.body_quat_w[0, 0].cpu().numpy())
@@ -381,40 +398,66 @@ try:
                     # left arm, three legs so the tube never sweeps through the right hand:
                     # up to clearance height, over the rod top, then the descend phase
                     d0 = tube_fist_dist()
-                    for leg in ("up", "over"):
-                        for t in range(400):
-                            goal = rod_top() + np.array([0.0, 0.0, inj_clear])
-                            cur = pusher()
-                            err = (np.array([0.0, 0.0, goal[2] - cur[2]]) if leg == "up" else goal - cur)
-                            if np.linalg.norm(err) < 0.012:
-                                break
-                            speed = inj_speed * min(1.0, (t + 1) / 20.0)       # ramp: no jerk on the tube
-                            step = err / max(np.linalg.norm(err), 1e-9) * min(speed, float(np.linalg.norm(err)))
-                            last = ik_left(last, step); st["last"] = last
-                            yield kind, last
-                        rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
+                    # UP: fist bottom to clearance height above the rod top
+                    for t in range(400):
+                        goal_z = rod_top()[2] + inj_clear + 0.03
+                        err = np.array([0.0, 0.0, goal_z - pusher()[2]])
+                        if abs(err[2]) < 0.012:
+                            break
+                        speed = inj_speed * min(1.0, (t + 1) / 20.0)
+                        step = err / max(np.linalg.norm(err), 1e-9) * min(speed, float(np.linalg.norm(err)))
+                        last = ik_left(last, step); st["last"] = last
+                        yield kind, last
+                    rec["approach_up_steps"] = t; rec["approach_up_err_m"] = round(float(np.linalg.norm(err)), 4)
+                    # ROLL: lay the tube horizontal. Held only by friction along its axis, a
+                    # vertical tube slides up through the fist under the 3 N press load; a
+                    # horizontal tube is loaded across its axis and cannot slide, and its side
+                    # is a 10 cm line, so alignment is needed along one axis only.
+                    for t in range(300):
+                        a = tube_axis()
+                        if abs(a[2]) < 0.15:
+                            break
+                        h = a[:2] / max(np.linalg.norm(a[:2]), 1e-9) if np.linalg.norm(a[:2]) > 0.05 else np.array([1.0, 0.0])
+                        target = np.array([h[0], h[1], 0.0])
+                        w = np.cross(a, target); nw = np.linalg.norm(w)
+                        w = w / max(nw, 1e-9) * min(0.006, nw)
+                        last = ik_left_twist(last, np.zeros(3), w); st["last"] = last
+                        yield kind, last
+                    rec["roll_steps"] = t; rec["tube_axis_z_after_roll"] = round(float(tube_axis()[2]), 3)
+                    rec["tube_fist_dist_after_roll"] = round(tube_fist_dist(), 4)
+                    # OVER: put the rod top under the tube's axis line, centred along the tube
+                    for t in range(400):
+                        perp, along, nrm, a_xy = tube_line_error(rod_top())
+                        err = perp * nrm - along * a_xy          # move the FIST by this in xy
+                        if perp < 0.006 and abs(along) < 0.02:
+                            break
+                        e = float(np.linalg.norm(err)); speed = inj_speed * min(1.0, (t + 1) / 20.0)
+                        step = err / max(e, 1e-9) * min(speed, e)
+                        last = ik_left(last, np.array([step[0], step[1], 0.0])); st["last"] = last
+                        yield kind, last
+                    rec["approach_over_steps"] = t; rec["approach_over_perp_m"] = round(perp, 4); rec["approach_over_along_m"] = round(along, 4)
                     rec["tube_fist_dist_start_end"] = [round(d0, 4), round(tube_fist_dist(), 4)]
                 elif kind == "inject":
                     # left arm descends, servoing the tube bottom over the rod top, until the
                     # plunger reaches the target depth (closed loop) or the descent cap
                     z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
                     for t in range(300):
-                        # one servo only: the fist chases the rod top; it descends only while
-                        # aligned within 1 cm (a 1 cm tube on a 1 cm rod). The right arm holds
-                        # still: a second servo on the tip made the two chase each other.
-                        err_xy = (rod_top() - pusher())[:2]; e = float(np.linalg.norm(err_xy))
+                        # the tube lies horizontal: keep the rod top under its axis line and
+                        # descend while aligned within 1.5 cm across the line
+                        perp, along, nrm, a_xy = tube_line_error(rod_top())
+                        err_xy = perp * nrm - along * a_xy; e = float(np.linalg.norm(err_xy))
                         lat = err_xy / max(e, 1e-9) * min(0.0015, e)
-                        dz = -(0.0006 if dispense else 0.0008) if e < 0.015 else 0.0
+                        dz = -(0.0006 if dispense else 0.0008) if perp < 0.015 else 0.0
                         last = ik_left(last, np.array([lat[0], lat[1], dz]))
                         st["last"] = last
                         yield kind, last
                         pressed = float(obj.data.joint_pos[0, pj])
                         if t % 10 == 0:
-                            trace.append([t, round(pressed, 4), round(float(np.linalg.norm(err_xy)), 4), round(tube_fist_dist(), 4)])
+                            trace.append([t, round(pressed, 4), round(perp, 4), round(along, 4), round(tube_fist_dist(), 4)])
                         if pressed >= inj_target or z0 - float(robot.data.body_pos_w[0, L_EE, 2]) > 0.12:
                             break
                     rec["inject_steps"] = t; rec["inject_descent_m"] = round(z0 - float(robot.data.body_pos_w[0, L_EE, 2]), 4)
-                    rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, tube_fist_dist]"] = trace
+                    rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, perp, along, tube_fist_dist]"] = trace
                 elif kind == "upright":
                     # tip on the plate: ROTATE the hand about the tip until the barrel is
                     # vertical (a pure translation slides the tip off the plate)

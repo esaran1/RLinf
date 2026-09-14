@@ -149,7 +149,7 @@ try:
         w_, x_, y_, z_ = [float(v) for v in q]
         return np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
 
-    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05):
+    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05, rot_weight=1.0):
         """One damped-least-squares step for an arm; commanded targets clamped to the soft
         joint limits (minus a margin) so a blocked motion cannot wind the arm up.
         ``dx`` is a 3-vector (translation; rotation held or free) or a 6-vector twist."""
@@ -163,6 +163,8 @@ try:
             t = np.concatenate([dx, np.zeros(3)])
         else:
             J = J[:3]; t = dx
+        if J.shape[0] == 6 and rot_weight != 1.0:
+            W = np.diag([1.0, 1.0, 1.0, rot_weight, rot_weight, rot_weight]); J = W @ J; t = W @ t
         dq = J.T @ np.linalg.solve(J @ J.T + lam * np.eye(J.shape[0]), t)
         new = np.array(last, dtype=np.float32).copy()
         new[sl] = np.clip(new[sl] + dq.astype(np.float32), lim[:, 0] + margin, lim[:, 1] - margin)
@@ -174,7 +176,9 @@ try:
     def ik_left(last, dx, lam=1e-3):
         # orientation HELD: a free wrist rotates the fist during the approach and dumps
         # the tube out of the grip channel (measured: tube-to-wrist 0.16 -> 0.30 m)
-        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=True)
+        # softly (weight 0.3): with equal weights the 7-joint arm could not close the last
+        # 1.4 cm of translation under the joint-limit clamp
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=True, rot_weight=0.3)
 
     def rod_top():
         return obj.data.body_pos_w[0, 0].cpu().numpy() + 0.09 * _axis_z(obj.data.body_quat_w[0, 0].cpu().numpy())
@@ -400,7 +404,7 @@ try:
                         # still: a second servo on the tip made the two chase each other.
                         err_xy = (rod_top() - pusher())[:2]; e = float(np.linalg.norm(err_xy))
                         lat = err_xy / max(e, 1e-9) * min(0.0015, e)
-                        dz = -(0.0006 if dispense else 0.0008) if e < 0.010 else 0.0
+                        dz = -(0.0006 if dispense else 0.0008) if e < 0.015 else 0.0
                         last = ik_left(last, np.array([lat[0], lat[1], dz]))
                         st["last"] = last
                         yield kind, last

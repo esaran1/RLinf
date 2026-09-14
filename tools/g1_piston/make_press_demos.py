@@ -235,15 +235,20 @@ try:
                         last = ik_step(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
                         yield kind, last
                 elif kind == "centre":
-                    # bring the barrel over the plate centre so the tip lands inside the pot
+                    # bring the TIP (barrel bottom, 9.5 cm down the barrel axis; the pipette
+                    # hangs tilted 10-40 deg) over the plate centre so it lands inside the pot
                     for t in range(120):
-                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() - obj.data.body_pos_w[0, 1, :2].cpu().numpy()
+                        q = obj.data.body_quat_w[0, 1].cpu().numpy(); w_, x_, y_, z_ = [float(v) for v in q]
+                        axis = np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
+                        tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * axis
+                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() - tip[:2]
                         if np.linalg.norm(err) < 0.008:
                             break
                         step = err / max(np.linalg.norm(err), 1e-9) * min(0.002, float(np.linalg.norm(err)))
                         last = ik_step(last, np.array([step[0], step[1], 0.0])); st["last"] = last
                         yield kind, last
                     rec["centre_steps"] = t; rec["centre_err_m"] = round(float(np.linalg.norm(err)), 4)
+                    rec["tilt_deg_at_centre"] = round(float(np.degrees(np.arccos(np.clip(axis[2], -1, 1)))), 1)
                 elif kind == "potpress":
                     # descend until the barrel stops (tip on the plate) while the hand keeps
                     # going, then keep descending so the hand slides down the barrel until the

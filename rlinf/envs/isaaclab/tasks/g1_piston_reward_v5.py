@@ -263,6 +263,28 @@ class PistonTaskRewardV5:
         self._max_press_plate = 0.0    # v5: deepest finger-held press over the plate
         self._max_press_held = 0.0     # v5: deepest press while finger-held and lifted
 
+    @staticmethod
+    def _quat_to_axis_z(q):
+        """World direction of the body's local +Z for a (w, x, y, z) quaternion."""
+        w, x, y, z = [float(v) for v in q]
+        return np.array([2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)])
+
+    def _barrel_axis(self):
+        """Unit world vector along the barrel; vertical if the scene has no orientation."""
+        quat = getattr(self.scene["object"].data, "body_quat_w", None)
+        if quat is None:
+            return np.array([0.0, 0.0, 1.0])
+        a = self._quat_to_axis_z(quat[0, 1].detach().float().cpu().numpy())
+        n = np.linalg.norm(a)
+        return a / n if n > 1e-9 else np.array([0.0, 0.0, 1.0])
+
+    @staticmethod
+    def _radial_to_axis(points, origin, axis):
+        """Mean perpendicular distance of points to the line (origin, axis)."""
+        d = np.atleast_2d(points) - origin
+        perp = d - np.outer(d @ axis, axis)
+        return float(np.mean(np.linalg.norm(perp, axis=1)))
+
     def _read(self):
         sc = self.scene
         obj = sc["object"]
@@ -360,7 +382,14 @@ class PistonTaskRewardV5:
         # v5: the hold is FINGER-based (thumb excluded: it sits on the rod top during a
         # press, above the barrel, where the thumb-on-barrel test fails by construction)
         # and requires the pipette LIFTED, which keeps the table press out.
-        finger_hold = (finger_r < GRASP_RADIUS) and (finger_dz < BARREL_HALF_H)
+        # v5: the hold is measured against the barrel AXIS in 3-D, not the xy distance to
+        # the barrel centre (v3's grasp test, kept unchanged above). The pipette hangs from
+        # the hand tilted 10-40 deg and the fingers hold it 7-9 cm above its centre, so the
+        # xy test flickers at 4-5 cm while the fingers are in fact wrapped round the barrel.
+        axis = self._barrel_axis()
+        finger_r_axis = self._radial_to_axis(fing, barrel, axis)
+        finger_along = float(abs(np.dot(finger_c - barrel, axis)))
+        finger_hold = (finger_r_axis < GRASP_RADIUS) and (finger_along < BARREL_HALF_H)
         held_press_ok = bool(finger_hold and lift > LIFT_H)
         pays_press = held_press_ok or bool(finger_hold and self._stages["plate"] and d_pot_xy < PLATE_NEAR)
         if pays_press:
@@ -469,6 +498,9 @@ class PistonTaskRewardV5:
             "dispense_sustain_steps": self._dispense_steps,
             "max_press_plate_m": self._max_press_plate,
             "finger_hold": bool(finger_hold),
+            "finger_radial_axis": finger_r_axis,
+            "finger_along_axis": finger_along,
+            "barrel_tilt_deg": float(np.degrees(np.arccos(np.clip(axis[2], -1.0, 1.0)))),
             "held_press_ok": held_press_ok,
             "aligned_over_tube": bool(aligned_over_tube),
             "success": bool(self._stages["success"]),

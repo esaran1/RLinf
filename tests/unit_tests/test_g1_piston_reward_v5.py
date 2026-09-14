@@ -149,3 +149,32 @@ def test_press_away_from_plate_is_not_dispense():
     for _ in range(V5.PRESS_SUSTAIN_STEPS + 2):
         _thumb_press_pose(sc, 0.0245); _, info = rf.step()
     assert info["stages"]["press"] is True and info["stages"]["dispense"] is False
+
+
+def test_finger_hold_follows_the_barrel_axis_when_the_pipette_tilts():
+    """Fingers wrapped round the barrel 8 cm above its centre, pipette tilted 30 deg: the xy
+    test to the centre says 4 cm (flickering at the 4.5 cm gate); the axis test says 2 cm."""
+    import math
+
+    class TiltedScene(FakeScene):
+        def __getitem__(self, k):
+            e = super().__getitem__(k)
+            if k == "object":
+                # barrel tilted 30 deg about +y: quaternion (w, x, y, z)
+                half = math.radians(15.0)
+                e.data.body_quat_w = torch.tensor([[[1.0, 0, 0, 0], [math.cos(half), 0.0, math.sin(half), 0.0]]])
+            return e
+
+    sc = TiltedScene(); rf = V5.PistonTaskRewardV5(sc, dt=0.02)
+    rf.reset(); rf.step()
+    axis = np.array([math.sin(math.radians(30)), 0.0, math.cos(math.radians(30))])
+    grip = sc.barrel + 0.08 * axis
+    side = np.array([math.cos(math.radians(30)), 0.0, -math.sin(math.radians(30))])  # perpendicular
+    sc.fingers = np.array([grip + 0.02 * side] * 4)
+    sc.thumb = grip - 0.02 * side
+    _, info = rf.step()
+    assert info["finger_radial"] > 0.035                     # v3's xy-to-centre measure
+    assert info["finger_radial_axis"] == pytest.approx(0.02, abs=1e-3)
+    assert info["finger_along_axis"] == pytest.approx(0.08, abs=1e-3)
+    assert info["finger_hold"] is True
+    assert info["barrel_tilt_deg"] == pytest.approx(30.0, abs=0.1)

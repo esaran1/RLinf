@@ -1,6 +1,6 @@
 {
  "id": "g1_piston_run12_result",
- "recorded": "2026-09-14 17:10 (training complete; 1 of 9 certification sweeps in)",
+ "recorded": "2026-09-14 18:25 (3 of 9 certification sweeps in)",
  "configuration": "critic-free GRPO (run 9's configuration: SIGMA 0.10 all dims, R_MAX 0.15, 8 groups x 6, PPO 3 epochs, KL_BETA 0.1, KL_STOP 0.02) from the PRESSING policy bc_press, TRAIN_REWARD=v5, EP_CHUNKS=40 (40-chunk episodes in collection, in-trainer eval and certification), SEED 5, wall budget 3 h",
  "training": {
   "totals": {
@@ -125,7 +125,27 @@
    "mean_return": 15.697,
    "mean_max_press_m": 0.01784
   },
-  "pending": "iter1/iter3 v5 s1; all iterations v5 s2; all iterations v3 s1 (scripts/score_rl12.sh, ~5 h)"
+  "pending": "all iterations v5 s2; all iterations v3 s1 (in progress)",
+  "rl12_iter1_s1_v5": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.64,
+   "plate_rate": 0.64,
+   "press_rate": 0.0,
+   "dispense_rate": 0.04,
+   "full_success_rate": 0.0,
+   "mean_return": 11.484,
+   "mean_max_press_m": 0.01783
+  },
+  "rl12_iter3_s1_v5": {
+   "grasp_rate": 0.96,
+   "lift_rate": 0.76,
+   "plate_rate": 0.76,
+   "press_rate": 0.04,
+   "dispense_rate": 0.12,
+   "full_success_rate": 0.0,
+   "mean_return": 13.315,
+   "mean_max_press_m": 0.01743
+  }
  },
  "reference_bc_press_h40": {
   "s1": {
@@ -143,5 +163,6 @@
    "return": 17.26
   }
  },
- "defect_found_and_fixed": "chain_rl12.sh's score step passed the reward flag as a bare word ($3=1), which bash runs as a command; all nine sweeps 'finished' in one second with no output. Fixed with env $3=1; rescoring queued (score_rl12.sh)."
+ "defect_found_and_fixed": "chain_rl12.sh's score step passed the reward flag as a bare word ($3=1), which bash runs as a command; all nine sweeps 'finished' in one second with no output. Fixed with env $3=1; rescoring queued (score_rl12.sh).",
+ "provisional_verdict": "NO IMPROVEMENT over the pressing policy: dispense 0.04 / 0.12 / 0.12 (iterations 1-3, v5 sweep 1) against bc_press 0.16 / 0.08 on the same suite, with lift 0.64-0.76 against 0.88-0.96. Same certified trajectory as runs 9/9b/9c: the group signal under contact noise moves the residual without improving the deterministic policy."
 }

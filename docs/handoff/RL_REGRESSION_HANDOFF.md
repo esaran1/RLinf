@@ -124,6 +124,19 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## Run 12: GRPO under v5 from the pressing policy (2026-09-14, 17:45; scoring in progress)
+
+Three iterations, 40-chunk episodes, run 9's configuration, SEED 5. Exploration rollouts
+dispensed 14.6 % in iteration 1, then 2.1 % and 0 % as the residual drifted (KL-to-base 0.009
+-> 0.013 -> 0.046). Certified at 40 chunks so far (v5, sweep 1): iteration 2 dispense 0.12,
+full success 0.08, lift 0.68, return 15.70; iteration 1 dispense 0.04, lift 0.64, return 11.48.
+Neither improves on the pressing policy it started from (dispense 0.16/0.08, lift 0.88/0.96),
+consistent with the certified trajectory of every GRPO run in this project: the group signal
+under contact noise moves the residual without improving the deterministic policy. The
+remaining sweeps and the table land in `FINAL_REPORT.md` via `report_rl12.sh`. Found and
+fixed on the way: `chain_rl12.sh` passed the reward flag as a bare word (`$3=1`), which bash
+runs as a command; use `env $3=1`.
+
 ## The press, delivered (2026-09-14, 10:50)
 
 `bc_press` (BC on 40 scripted palm-press episodes + the human transport, 1653 transitions, MSE

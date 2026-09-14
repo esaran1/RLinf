@@ -124,6 +124,19 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## The adopted press primitive (2026-09-14, 01:50): single-arm palm press, uprighted by a twist
+
+After the bimanual variants (tube in the fist, palm-up back of hand, side approaches) all
+stalled at the tube-on-rod tolerance or at the wrist limits, the single-arm palm press won
+once the pipette was uprighted correctly: tip on the plate, hand ROTATED about the tip until
+the barrel is within 3 deg of vertical, tip re-centred, then the hand slides down the barrel
+with the plunger monitored until 21.5 mm. First runs: 5 of 7 injects certified v5 dispense
+(21.5-22.9 mm, 110-148 sustained steps, 30-34 chunks per episode). Right arm only, inside the
+SFT normaliser range. Generators `demo_buffer_v5_palm_{canon,t01,t23}`; the pipeline then
+builds `demo_buffer_v5_press`, trains `bc_press`, certifies (v3 x2, v5 x2, BC baseline v5 x2),
+renders, and if the pressing policy dispenses at all, runs GRPO under v5 (run 12) and
+certifies every iteration (`after_bc_press.sh`).
+
 ## The press primitive (2026-09-13, 23:40): what works, what does not, and why
 
 Five mechanisms were measured (`g1_piston_press_primitive.json`). The thumb press is a coin

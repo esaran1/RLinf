@@ -75,5 +75,75 @@
     "chunks": 34
    }
   ]
+ },
+ "bc_press_result": {
+  "recorded": "2026-09-14 10:25",
+  "training": "tools/g1_piston/train_bc.py on demo_buffer_v5_press (40 certified palm-press episodes + 15 originals truncated at the plate chunk; 1653 transitions; normaliser identical to the SFT file); final MSE 0.000691 (working BC: 0.001005)",
+  "horizon_defect": "the synthetic episodes are 30-44 chunks long (transport ~15 + primitive ~20) and the task has NO time-out termination, but every sweep ran EP_CHUNKS=23, the length of the human demonstrations. At 23 chunks the pressing policy scored dispense 0.00 in both v5 sweeps; at 40 chunks the same checkpoint scores dispense 0.16, press 0.08, one full success.",
+  "sweeps_23_chunks": {
+   "v3": [
+    {
+     "grasp": 1.0,
+     "lift": 0.88,
+     "plate": 0.88,
+     "return": 12.35
+    },
+    {
+     "grasp": 1.0,
+     "lift": 0.84,
+     "plate": 0.84,
+     "return": 12.19
+    }
+   ],
+   "v5": [
+    {
+     "lift": 0.88,
+     "press": 0.0,
+     "dispense": 0.0,
+     "return": 13.44
+    },
+    {
+     "lift": 0.88,
+     "press": 0.0,
+     "dispense": 0.0,
+     "return": 12.81
+    }
+   ]
+  },
+  "sweep_40_chunks_v5_s1": {
+   "grasp": 1.0,
+   "lift": 0.88,
+   "plate": 0.88,
+   "press": 0.08,
+   "dispense": 0.16,
+   "success": 0.04,
+   "return": 16.96,
+   "mean_max_press_m": 0.0164,
+   "dispensing_conditions": [
+    4,
+    7,
+    17,
+    20
+   ],
+   "pressing_conditions": [
+    16,
+    20
+   ]
+  },
+  "baseline_bc_v5_23_chunks": [
+   {
+    "lift": 0.8,
+    "press": 0.04,
+    "dispense": 0.04,
+    "return": 14.29
+   },
+   {
+    "lift": 0.8,
+    "press": 0.0,
+    "dispense": 0.0,
+    "return": 11.57
+   }
+  ],
+  "next": "second 40-chunk sweep and a paired 40-chunk baseline sweep (running); 40-chunk render; run 12 = GRPO under v5 from bc_press with 40-chunk episodes (chain_rl12.sh)"
  }
 }

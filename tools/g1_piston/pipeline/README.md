@@ -18,3 +18,15 @@ session scratchpad has been wiped three times.
 
 Start scripts with `setsid nohup ./scripts/<name>.sh >/dev/null 2>&1 </dev/null &` from a
 shell whose command line does not contain tool names.
+
+## Press pipeline (2026-09-14)
+
+* `queue_t23.sh` — starts the conditions-2,3 generator (`make_press_demos.py`, palm-press
+  variant) when the canonical generator has finished, so two simulators share the GPU.
+* `run_press_pipeline.sh` — waits for `demo_buffer_v5_palm_{canon,t01,t23}`, assembles
+  `demo_buffer_v5_press` (`build_press_bc_buffer.py`), then runs `chain_bc_press.sh`.
+* `chain_bc_press.sh` — BC retrain on the pressing buffer, then fresh-process sweeps: v3 x2
+  (transport scorer of record), v5 x2 (press scorer), plus the BC-baseline v5 sweeps.
+* `after_bc_press.sh` — appends `report_press.py` to the final report, renders the pressing
+  policy, and, if it dispenses at all, runs GRPO under v5 from it (run 12) and certifies every
+  iteration.

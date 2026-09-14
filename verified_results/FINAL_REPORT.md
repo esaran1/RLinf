@@ -128,3 +128,24 @@ Reference: run 9 iteration 1 paired mean lift 0.87 / return 12.9; BC 0.71 / 10.7
 * A single n=25 sweep is one sample: the scorer flips lift on ~6/25 conditions between
   fresh-process repeats. Never select a checkpoint by in-trainer evaluation after rollouts.
 * Post-grasp outcomes are not reproducible per condition across processes.
+
+## Pressing policy (BC on human transport + scripted palm press), certified
+
+Transport under v3 (scorer of record) and the press under v5 (geometry-grounded press scorer); fresh-process sweeps; BC baseline paired on the same conditions.
+
+| policy | reward | sweep | grasp | lift | plate | press | dispense | return | mean max press (mm) |
+|---|---|---|---|---|---|---|---|---|---|
+| BC (working) | v3 | bc_rep2_v3_n25.json | 1.00 | 0.72 | 0.72 | 0.00 | 0.00 | 10.66 | 14.1 |
+| BC (working) | v3 | bc_rep3_v3_n25.json | 0.88 | 0.60 | 0.56 | 0.04 | 0.00 | 9.35 | 16.0 |
+| BC (working) | v3 | bc_rep4_v3_n25.json | 0.96 | 0.48 | 0.40 | 0.00 | 0.00 | 7.80 | 14.9 |
+| BC (working) | v3 | bc_rep5_v3_n25.json | 1.00 | 0.88 | 0.88 | 0.04 | 0.00 | 14.00 | 13.3 |
+| BC (working) | v3 | bc_rep6_v3_n25.json | 1.00 | 0.60 | 0.60 | 0.00 | 0.00 | 9.89 | 14.4 |
+| BC (working) | v3 | bc_rep7_v3_n25.json | 0.96 | 0.60 | 0.56 | 0.00 | 0.00 | 9.17 | 14.3 |
+| bc_press | v3 | bc_press_s1_v3_n25.json | 1.00 | 0.88 | 0.88 | 0.00 | 0.00 | 12.35 | 13.1 |
+| bc_press | v3 | bc_press_s2_v3_n25.json | 1.00 | 0.84 | 0.84 | 0.00 | 0.00 | 12.19 | 16.3 |
+| BC (working) | v5 | bc_working_v5_s1_n25.json | 1.00 | 0.80 | 0.80 | 0.04 | 0.04 | 14.29 | 13.8 |
+| BC (working) | v5 | bc_working_v5_s2_n25.json | 0.96 | 0.80 | 0.76 | 0.00 | 0.00 | 11.57 | 12.4 |
+| bc_press | v5 | bc_press_s1_v5_n25.json | 1.00 | 0.88 | 0.88 | 0.00 | 0.00 | 13.44 | 13.5 |
+| bc_press | v5 | bc_press_s2_v5_n25.json | 1.00 | 0.88 | 0.88 | 0.00 | 0.00 | 12.81 | 12.6 |
+
+**Paired dispense under v5 (50 condition-evaluations per policy):** bc_press 0.000 vs BC 0.020; per-condition wins 0, losses 1, ties 49.

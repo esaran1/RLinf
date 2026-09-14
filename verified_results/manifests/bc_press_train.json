@@ -1,0 +1,381 @@
+{
+  "_status": "OK",
+  "config": {
+    "demo_dir": "/home/jren313/research/starvla_rl/demo_buffer_v5_press",
+    "epochs": 300,
+    "lr": 0.0001,
+    "batch": 16,
+    "method": "behaviour cloning, frozen VLM, OFT head only",
+    "norm_stats": "/home/jren313/research/starvla_rl/demo_buffer_v5_press/dataset_statistics.json"
+  },
+  "n_active_dims": 20,
+  "episodes_used": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54
+  ],
+  "n_transitions": 1653,
+  "feature_cache_s": 48.4,
+  "train_log": [
+    {
+      "epoch": 0,
+      "mse": 0.181065,
+      "elapsed_s": 1.5
+    },
+    {
+      "epoch": 5,
+      "mse": 0.104966,
+      "elapsed_s": 8.2
+    },
+    {
+      "epoch": 10,
+      "mse": 0.091142,
+      "elapsed_s": 15.1
+    },
+    {
+      "epoch": 15,
+      "mse": 0.084239,
+      "elapsed_s": 21.5
+    },
+    {
+      "epoch": 20,
+      "mse": 0.073353,
+      "elapsed_s": 27.9
+    },
+    {
+      "epoch": 25,
+      "mse": 0.068406,
+      "elapsed_s": 34.6
+    },
+    {
+      "epoch": 30,
+      "mse": 0.060017,
+      "elapsed_s": 40.9
+    },
+    {
+      "epoch": 35,
+      "mse": 0.057345,
+      "elapsed_s": 47.3
+    },
+    {
+      "epoch": 40,
+      "mse": 0.053062,
+      "elapsed_s": 53.6
+    },
+    {
+      "epoch": 45,
+      "mse": 0.052832,
+      "elapsed_s": 60.2
+    },
+    {
+      "epoch": 50,
+      "mse": 0.049753,
+      "elapsed_s": 67.1
+    },
+    {
+      "epoch": 55,
+      "mse": 0.044729,
+      "elapsed_s": 73.5
+    },
+    {
+      "epoch": 60,
+      "mse": 0.041594,
+      "elapsed_s": 79.8
+    },
+    {
+      "epoch": 65,
+      "mse": 0.040974,
+      "elapsed_s": 86.1
+    },
+    {
+      "epoch": 70,
+      "mse": 0.040314,
+      "elapsed_s": 92.4
+    },
+    {
+      "epoch": 75,
+      "mse": 0.045781,
+      "elapsed_s": 99.2
+    },
+    {
+      "epoch": 80,
+      "mse": 0.031236,
+      "elapsed_s": 105.8
+    },
+    {
+      "epoch": 85,
+      "mse": 0.032139,
+      "elapsed_s": 112.1
+    },
+    {
+      "epoch": 90,
+      "mse": 0.040524,
+      "elapsed_s": 118.5
+    },
+    {
+      "epoch": 95,
+      "mse": 0.030904,
+      "elapsed_s": 124.9
+    },
+    {
+      "epoch": 100,
+      "mse": 0.033447,
+      "elapsed_s": 131.6
+    },
+    {
+      "epoch": 105,
+      "mse": 0.02384,
+      "elapsed_s": 138.3
+    },
+    {
+      "epoch": 110,
+      "mse": 0.027471,
+      "elapsed_s": 144.9
+    },
+    {
+      "epoch": 115,
+      "mse": 0.026626,
+      "elapsed_s": 151.5
+    },
+    {
+      "epoch": 120,
+      "mse": 0.01673,
+      "elapsed_s": 157.9
+    },
+    {
+      "epoch": 125,
+      "mse": 0.018585,
+      "elapsed_s": 164.8
+    },
+    {
+      "epoch": 130,
+      "mse": 0.030122,
+      "elapsed_s": 171.7
+    },
+    {
+      "epoch": 135,
+      "mse": 0.030168,
+      "elapsed_s": 178.7
+    },
+    {
+      "epoch": 140,
+      "mse": 0.019406,
+      "elapsed_s": 185.6
+    },
+    {
+      "epoch": 145,
+      "mse": 0.010694,
+      "elapsed_s": 192.5
+    },
+    {
+      "epoch": 150,
+      "mse": 0.007387,
+      "elapsed_s": 199.7
+    },
+    {
+      "epoch": 155,
+      "mse": 0.0336,
+      "elapsed_s": 206.6
+    },
+    {
+      "epoch": 160,
+      "mse": 0.013327,
+      "elapsed_s": 213.6
+    },
+    {
+      "epoch": 165,
+      "mse": 0.012089,
+      "elapsed_s": 220.5
+    },
+    {
+      "epoch": 170,
+      "mse": 0.020537,
+      "elapsed_s": 227.4
+    },
+    {
+      "epoch": 175,
+      "mse": 0.010859,
+      "elapsed_s": 234.7
+    },
+    {
+      "epoch": 180,
+      "mse": 0.015558,
+      "elapsed_s": 241.6
+    },
+    {
+      "epoch": 185,
+      "mse": 0.022277,
+      "elapsed_s": 248.5
+    },
+    {
+      "epoch": 190,
+      "mse": 0.014135,
+      "elapsed_s": 255.5
+    },
+    {
+      "epoch": 195,
+      "mse": 0.013424,
+      "elapsed_s": 262.4
+    },
+    {
+      "epoch": 200,
+      "mse": 0.005537,
+      "elapsed_s": 269.7
+    },
+    {
+      "epoch": 205,
+      "mse": 0.008435,
+      "elapsed_s": 276.6
+    },
+    {
+      "epoch": 210,
+      "mse": 0.01862,
+      "elapsed_s": 283.4
+    },
+    {
+      "epoch": 215,
+      "mse": 0.00259,
+      "elapsed_s": 290.3
+    },
+    {
+      "epoch": 220,
+      "mse": 0.001814,
+      "elapsed_s": 297.2
+    },
+    {
+      "epoch": 225,
+      "mse": 0.005022,
+      "elapsed_s": 304.4
+    },
+    {
+      "epoch": 230,
+      "mse": 0.001324,
+      "elapsed_s": 311.4
+    },
+    {
+      "epoch": 235,
+      "mse": 0.001475,
+      "elapsed_s": 318.3
+    },
+    {
+      "epoch": 240,
+      "mse": 0.011391,
+      "elapsed_s": 325.3
+    },
+    {
+      "epoch": 245,
+      "mse": 0.00351,
+      "elapsed_s": 332.2
+    },
+    {
+      "epoch": 250,
+      "mse": 0.001172,
+      "elapsed_s": 339.5
+    },
+    {
+      "epoch": 255,
+      "mse": 0.001286,
+      "elapsed_s": 346.4
+    },
+    {
+      "epoch": 260,
+      "mse": 0.001428,
+      "elapsed_s": 353.4
+    },
+    {
+      "epoch": 265,
+      "mse": 0.00083,
+      "elapsed_s": 360.3
+    },
+    {
+      "epoch": 270,
+      "mse": 0.000825,
+      "elapsed_s": 367.2
+    },
+    {
+      "epoch": 275,
+      "mse": 0.001096,
+      "elapsed_s": 374.5
+    },
+    {
+      "epoch": 280,
+      "mse": 0.021152,
+      "elapsed_s": 381.4
+    },
+    {
+      "epoch": 285,
+      "mse": 0.013295,
+      "elapsed_s": 388.3
+    },
+    {
+      "epoch": 290,
+      "mse": 0.007177,
+      "elapsed_s": 395.2
+    },
+    {
+      "epoch": 295,
+      "mse": 0.000865,
+      "elapsed_s": 402.1
+    },
+    {
+      "epoch": 299,
+      "mse": 0.000691,
+      "elapsed_s": 407.6
+    }
+  ],
+  "last_checkpoint": "/home/jren313/research/starvla_rl/runs_g1_piston/bc_press/bc_ckpt_latest.pt",
+  "final_mse": 0.000691,
+  "train_s": 407.9
+}

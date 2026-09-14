@@ -286,7 +286,8 @@ try:
             inject = bool(var.get("inject", False))              # bimanual: tube in the left fist presses the rod
             inj_present = np.array(var.get("inj_present", [-0.15, 0.32, 1.05]), dtype=np.float64)  # barrel centre target
             inj_target = float(var.get("inj_target", 0.0215))    # plunger depth to reach
-            inj_clear = float(var.get("inj_clear", 0.03))        # pusher height above the rod top before descending
+            inj_clear = float(var.get("inj_clear", 0.06))        # pusher height above the rod top before descending
+            inj_attempts = int(var.get("inj_attempts", 3))       # re-approach from another side if the press fails
             lean_deg = float(var.get("lean_deg", 30.0))          # lean of the supported pipette toward the left shoulder
             flip = bool(var.get("flip", True))                   # palm-up back-of-hand press (else palm-down fist/tube)
             inj_squeeze = float(var.get("inj_squeeze", 1.3))     # right-finger command during the inject (demo grip 1.3;
@@ -477,11 +478,19 @@ try:
                     # UP again (the flip moves the pusher), then OVER: back of the hand above the rod top
                     push_pt = back_of_hand if flip else pusher_pd
                     move = ik_left_keep_up if flip else ik_left
-                    for leg in ("up2", "over"):
+                    side = st.get("side", np.array([-0.04, 0.0]))
+                    for leg in ("up2", "side", "over"):
                         for t in range(400):
                             goal = rod_top() + np.array([0.0, 0.0, inj_clear])
                             cur = push_pt()
-                            err = (np.array([0.0, 0.0, goal[2] - cur[2]]) if leg == "up2" else np.array([goal[0] - cur[0], goal[1] - cur[1], 0.0]))
+                            if leg == "up2":
+                                err = np.array([0.0, 0.0, goal[2] - cur[2]])
+                            elif leg == "side":
+                                # waypoint beside the rod top, so the tube does not come in
+                                # through the right hand (the over leg stalled at 2 cm otherwise)
+                                err = np.array([goal[0] + side[0] - cur[0], goal[1] + side[1] - cur[1], 0.0])
+                            else:
+                                err = np.array([goal[0] - cur[0], goal[1] - cur[1], 0.0])
                             if np.linalg.norm(err) < 0.008:
                                 break
                             e = float(np.linalg.norm(err)); speed = inj_speed * min(1.0, (t + 1) / 20.0)
@@ -491,7 +500,21 @@ try:
                         rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
                         rec[f"left_arm_after_{leg}"] = left_arm_state()
                     rec["palm_up_before_inject"] = round(float(palm_dir()[2]), 3)
-                    rec["tube_fist_dist_start_end"] = [round(d0, 4), round(tube_fist_dist(), 4)]
+                elif kind == "attempt":
+                    if st.get("pressed_ok"):
+                        return
+                    sides = [np.array([-0.04, 0.0]), np.array([0.0, 0.04]), np.array([0.0, -0.04]), np.array([0.04, 0.0])]
+                    st["side"] = sides[n % len(sides)]
+                    if n > 0:
+                        for t in range(50):                          # back off 5 cm before re-approaching
+                            last = ik_left(last, np.array([0.0, 0.0, 0.001]), point=pusher_pd()); st["last"] = last
+                            yield kind, last
+                    for sub in ("approach", "inject"):
+                        for item in phase_steps(sub):
+                            yield item
+                        last = st["last"]
+                    rec.setdefault("attempts", []).append({"n": n, "side": st["side"].tolist(), "press": rec.get("inject_press_reached"),
+                                                           "over_err": rec.get("approach_over_err_m")})
                 elif kind == "inject":
                     # left arm descends, servoing the tube bottom over the rod top, until the
                     # plunger reaches the target depth (closed loop) or the descent cap
@@ -512,6 +535,7 @@ try:
                             break
                     rec["inject_steps"] = t; rec["inject_descent_m"] = round(z0 - float(robot.data.body_pos_w[0, L_EE, 2]), 4)
                     rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, palm_up, tube_fist_dist]"] = trace
+                    st["pressed_ok"] = bool(pressed >= inj_target)
                 elif kind == "upright":
                     # tip on the plate: ROTATE the hand about the tip until the barrel leans
                     # ``lean_deg`` toward the left shoulder (-x). Upright, the rod top sits at
@@ -579,10 +603,13 @@ try:
             phases = [("hold", H)] * settle_chunks
             if dispense:
                 # tip rested on the plate (support from below), pipette uprighted, left fist
-                # presses the rod from above: the force path never loads the right grip
+                # presses the rod from above: the force path never loads the right grip.
+                # Up to inj_attempts approach+inject rounds, each from another side.
                 pp_max_m = 0.005; pp_thumb = False
-                phases += [("centre", None), ("potpress", None), ("upright", None), ("centre", None), ("approach", None),
-                           ("inject", None), ("hold", H), ("release", None), ("hold", H)]
+                phases += [("centre", None), ("potpress", None), ("upright", None), ("centre", None)]
+                for _k in range(inj_attempts):
+                    phases += [("attempt", _k)]
+                phases += [("hold", H), ("release", None), ("hold", H)]
             elif inject:
                 phases += [("present", None), ("approach", None), ("inject", None), ("hold", H), ("hold", H)]
             elif potpress:

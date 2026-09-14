@@ -124,6 +124,29 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## The press primitive (2026-09-13, 23:40): what works, what does not, and why
+
+Five mechanisms were measured (`g1_piston_press_primitive.json`). The thumb press is a coin
+flip because the rod top varies 5 cm along the hand axis between replays; a single-hand palm
+press with the tip on the plate creeps to 10-19 mm and plateaus; the in-air bimanual inject
+(tube in the left fist pushes the rod top) presses to 21.5 mm but the 3.2 N reaction slides
+the barrel through the right fingers on some grasps. The adopted primitive is the SUPPORTED
+bimanual dispense: tip rested on the plate, pipette uprighted by rotating the hand about the
+tip, tip re-centred, left fist brought up/over/down onto the rod top, closed loop on the
+plunger. The force path is fist -> rod -> spring -> barrel -> plate, so the right grip carries
+no load. It presses 20-29 mm whenever the fist meets the rod, and certifies v5 dispense on
+about half of the inject attempts.
+
+Two more defects surfaced on the way and are fixed: restoring the tube at reset pops it out
+of the closed fist (`RESTORED_PROPS` is now the kinematic plate only), and the SFT normaliser
+gives the left-arm dims a 0.1-0.2 rad range because the demonstrations never move that arm,
+so the pressing policy trains against a widened, versioned statistics file that its checkpoint
+records (`build_press_bc_buffer.py`, `NORM_STATS` in every tool).
+
+Pipeline (unattended, `runs_g1_piston/scripts/run_press_pipeline.sh`): generators
+`demo_buffer_v5_dispense_{canon,t01b,t23}` -> `demo_buffer_v5_press` -> `chain_bc_press.sh`
+(BC retrain, 2 v3 sweeps, 2 v5 sweeps, 2 BC-baseline v5 sweeps) -> `report_press.py`.
+
 ## The press, measured (2026-09-13, 19:30): two silent defects, both fixed in code
 
 Before scripting a press primitive I measured the press itself in the simulator

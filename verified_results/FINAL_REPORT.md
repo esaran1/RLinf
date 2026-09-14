@@ -177,3 +177,11 @@ episodes) follows.
 
 Manifests: `verified_results/manifests/bc_press_s{1,2}_v5_h40_n25.json`; checkpoint
 `checkpoints/g1_piston_bc_press/bc_ckpt_latest.pt`; videos `verified_results/videos_bc_press_h40/`.
+
+**Paired 40-chunk baseline (same 25 conditions, fresh process):** the working BC policy scores
+grasp 1.00, lift 0.88, plate 0.88, press 0.04, dispense 0.00,
+full success 0.00, return 11.72, mean max press 12.4 mm. Against the pressing
+policy's first sweep on the same conditions: dispense 0.16 vs 0.00 (4 conditions won, 0 lost);
+pooled over both pressing-policy sweeps, dispense 0.12 and full success 0.06 on 50
+condition-evaluations versus 0 of 25 for the baseline. Transport is not degraded (lift 0.92 vs 0.88).
+Manifest: `verified_results/manifests/bc_working_s1_v5_h40_n25.json`.

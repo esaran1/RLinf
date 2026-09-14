@@ -226,6 +226,18 @@ try:
         v = palm_dir(); w = np.cross(v, np.array([0.0, 0.0, 1.0])); nw = np.linalg.norm(w)
         return w / max(nw, 1e-9) * min(gain, nw)
 
+    def pusher_pd():
+        """Palm-down pusher: the tube bottom while the tube is held, else the lowest fist link."""
+        if tube_fist_dist() < 0.20:
+            return tube_bottom()
+        pts = [robot.data.body_pos_w[0, i].cpu().numpy() for i in L_HAND_IDX]
+        return min(pts, key=lambda p_: p_[2])
+
+    def left_arm_state():
+        q = robot.data.joint_pos[0, L_J].cpu().numpy()
+        return {"q": [round(float(v), 3) for v in q],
+                "at_limit": [bool(q[i] <= L_LIM[i, 0] + 0.06 or q[i] >= L_LIM[i, 1] - 0.06) for i in range(7)]}
+
     def ik_left_keep_up(last, dx, lam=1e-3):
         return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([np.asarray(dx, dtype=np.float64), palm_up_twist()]), lam, rot_weight=0.5)
 
@@ -265,6 +277,7 @@ try:
             inj_target = float(var.get("inj_target", 0.0215))    # plunger depth to reach
             inj_clear = float(var.get("inj_clear", 0.03))        # pusher height above the rod top before descending
             lean_deg = float(var.get("lean_deg", 30.0))          # lean of the supported pipette toward the left shoulder
+            flip = bool(var.get("flip", True))                   # palm-up back-of-hand press (else palm-down fist/tube)
             inj_squeeze = float(var.get("inj_squeeze", 1.3))     # right-finger command during the inject (demo grip 1.3;
                                                                  # 1.7 measured to eject the barrel from the palm)
             dispense = bool(var.get("dispense", False))          # tip on the plate + left fist presses the rod: no friction
@@ -290,7 +303,8 @@ try:
                                                      "potpress": potpress, "pp_target": pp_target, "pp_max_m": pp_max_m,
                                                      "pp_rate": pp_rate, "pp_raise_m": pp_raise_m, "pp_upright_gain": pp_upright_gain, "pp_thumb": pp_thumb,
                                                      "inject": inject, "inj_present": inj_present.tolist(), "inj_target": inj_target, "inj_clear": inj_clear,
-                                                     "inj_squeeze": inj_squeeze, "dispense": dispense, "inj_speed": inj_speed}}
+                                                     "inj_squeeze": inj_squeeze, "dispense": dispense, "inj_speed": inj_speed,
+                                                     "lean_deg": lean_deg, "flip": flip}}
             # ---- 1. human transport, truncated at the plate stage ----------------------
             plate_chunk = None
             for c in range(n_demo_chunks):
@@ -439,7 +453,7 @@ try:
                     # orientation). Palm up, it is cradled in the channel on top of the fist and
                     # out of the way, and the BACK of the hand -- flat, rigid, 5-6 cm wide --
                     # becomes the pusher. Rotation about the fist's own centre.
-                    for t in range(400):
+                    for t in range(400 if flip else 0):
                         v = palm_dir()
                         if v[2] > 0.90:
                             break
@@ -450,18 +464,21 @@ try:
                     rec["flip_steps"] = t; rec["palm_up_after_flip"] = round(float(palm_dir()[2]), 3)
                     rec["tube_fist_dist_after_flip"] = round(tube_fist_dist(), 4)
                     # UP again (the flip moves the pusher), then OVER: back of the hand above the rod top
+                    push_pt = back_of_hand if flip else pusher_pd
+                    move = ik_left_keep_up if flip else ik_left
                     for leg in ("up2", "over"):
                         for t in range(400):
                             goal = rod_top() + np.array([0.0, 0.0, inj_clear])
-                            cur = back_of_hand()
+                            cur = push_pt()
                             err = (np.array([0.0, 0.0, goal[2] - cur[2]]) if leg == "up2" else np.array([goal[0] - cur[0], goal[1] - cur[1], 0.0]))
                             if np.linalg.norm(err) < 0.008:
                                 break
                             e = float(np.linalg.norm(err)); speed = inj_speed * min(1.0, (t + 1) / 20.0)
                             step = err / max(e, 1e-9) * min(speed, e)
-                            last = ik_left_keep_up(last, step); st["last"] = last
+                            last = move(last, step); st["last"] = last
                             yield kind, last
                         rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
+                        rec[f"left_arm_after_{leg}"] = left_arm_state()
                     rec["palm_up_before_inject"] = round(float(palm_dir()[2]), 3)
                     rec["tube_fist_dist_start_end"] = [round(d0, 4), round(tube_fist_dist(), 4)]
                 elif kind == "inject":
@@ -470,10 +487,11 @@ try:
                     z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
                     for t in range(300):
                         # back of the hand over the rod top; descend while aligned within 2 cm
-                        err_xy = (rod_top() - back_of_hand())[:2]; e = float(np.linalg.norm(err_xy))
+                        pp = back_of_hand() if flip else pusher_pd()
+                        err_xy = (rod_top() - pp)[:2]; e = float(np.linalg.norm(err_xy))
                         lat = err_xy / max(e, 1e-9) * min(0.0015, e)
-                        dz = -(0.0006 if dispense else 0.0008) if e < 0.020 else 0.0
-                        last = ik_left_keep_up(last, np.array([lat[0], lat[1], dz]))
+                        dz = -(0.0006 if dispense else 0.0008) if e < (0.020 if flip else 0.015) else 0.0
+                        last = (ik_left_keep_up if flip else ik_left)(last, np.array([lat[0], lat[1], dz]))
                         st["last"] = last
                         yield kind, last
                         pressed = float(obj.data.joint_pos[0, pj])

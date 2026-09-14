@@ -185,15 +185,3 @@ policy's first sweep on the same conditions: dispense 0.16 vs 0.00 (4 conditions
 pooled over both pressing-policy sweeps, dispense 0.12 and full success 0.06 on 50
 condition-evaluations versus 0 of 25 for the baseline. Transport is not degraded (lift 0.92 vs 0.88).
 Manifest: `verified_results/manifests/bc_working_s1_v5_h40_n25.json`.
-
-## Run 12: critic-free GRPO under v5 from the pressing policy, 40-chunk horizon (auto)
-
-Every iteration scored in fresh processes on the frozen 25-condition suite at EP_CHUNKS=40: twice under v5 (press scorer), once under v3 (transport scorer of record).
-
-| policy | reward | sweep | grasp | lift | plate | press | dispense | full success | return | mean max press (mm) |
-|---|---|---|---|---|---|---|---|---|---|---|
-| BC (working) | v5 | s1 | 1.00 | 0.88 | 0.88 | 0.04 | 0.00 | 0.00 | 11.72 | 12.4 |
-| bc_press | v5 | s1 | 1.00 | 0.88 | 0.88 | 0.08 | 0.16 | 0.04 | 16.96 | 16.4 |
-| bc_press | v5 | s2 | 1.00 | 0.96 | 0.96 | 0.08 | 0.08 | 0.08 | 17.26 | 17.9 |
-
-Training (exploration rollouts, 48 per iteration, 40-chunk episodes): iteration 1: dispense 0.146, lift 0.75, return 12.99, KL-to-base 0.0089; iteration 2: dispense 0.021, lift 0.46, return 7.75, KL-to-base 0.0131; iteration 3: dispense 0.000, lift 0.25, return 4.84, KL-to-base 0.0465.

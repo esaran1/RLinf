@@ -172,7 +172,9 @@ try:
         return ik_arm(last, ee_idx, arm_j, slice(7, 14), R_LIM, dx, lam)
 
     def ik_left(last, dx, lam=1e-3):
-        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=False)
+        # orientation HELD: a free wrist rotates the fist during the approach and dumps
+        # the tube out of the grip channel (measured: tube-to-wrist 0.16 -> 0.30 m)
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=True)
 
     def rod_top():
         return obj.data.body_pos_w[0, 0].cpu().numpy() + 0.09 * _axis_z(obj.data.body_quat_w[0, 0].cpu().numpy())
@@ -397,7 +399,7 @@ try:
                         # aligned within 1 cm (a 1 cm tube on a 1 cm rod). The right arm holds
                         # still: a second servo on the tip made the two chase each other.
                         err_xy = (rod_top() - pusher())[:2]; e = float(np.linalg.norm(err_xy))
-                        lat = err_xy / max(e, 1e-9) * min(0.003, e)
+                        lat = err_xy / max(e, 1e-9) * min(0.0015, e)
                         dz = -(0.0006 if dispense else 0.0008) if e < 0.010 else 0.0
                         last = ik_left(last, np.array([lat[0], lat[1], dz]))
                         st["last"] = last

@@ -1,0 +1,45 @@
+{
+ "id": "g1_piston_press_primitive",
+ "recorded": "2026-09-13 23:25 (generators running; yields to be appended)",
+ "status": "DESIGNED AND MEASURED. Five press mechanisms were tried in simulation; the supported bimanual dispense is the one that works.",
+ "mechanisms_tried": [
+  {
+   "name": "thumb yaw sweep in the air",
+   "result": "24.5 mm once (probe), then 0/40 across curl, seating and wrist variants: the thumb lands at a fixed hand-frame point while the rod top varies 5 cm along the hand axis between replays"
+  },
+  {
+   "name": "palm press with the tip on the plate (single hand)",
+   "result": "the hand slides 10 cm down the barrel; the press creeps to 10-19 mm and plateaus unless the pipette happens to hang near vertical; uprighting by translation slides the tip off the plate; ~25 % of attempts"
+  },
+  {
+   "name": "thumb over the rod during the plate press",
+   "result": "worse (0/8): the thumb deflects instead of pushing"
+  },
+  {
+   "name": "in-air bimanual inject (tube in the left fist presses the rod top)",
+   "result": "21.5 mm, 79 sustained steps on the first probe; but the 3.2 N reaction slides the barrel through the right fingers on other grasps, and squeezing the fingers to 1.7 rad ejects the barrel"
+  },
+  {
+   "name": "SUPPORTED bimanual dispense: tip rested on the plate, pipette uprighted by rotating the hand about the tip, tip re-centred, left fist brought up/over/down onto the rod top, closed loop on the plunger",
+   "result": "press reaches 20-29 mm on every attempt where the fist meets the rod; certified dispense (v5: 20 mm sustained 15 steps, finger-held, over the plate) on roughly half of the inject attempts; transport replays reach the plate on ~35 % of episode-conditions"
+  }
+ ],
+ "why_supported": "the force path is fist -> rod -> spring -> barrel -> plate; the right grip carries no press load, so grip friction (the failure of the in-air inject) is irrelevant. The plate is a 12 x 8 x 4 cm kinematic block: a rigid, immovable support.",
+ "reset_side_effect_found": "the upstream reset restores only the piston; restoring the tube popped it out of the closed left fist (tube-to-wrist 0.20-0.30 m instead of 0.16 m). RESTORED_PROPS is therefore ('pot',) only.",
+ "action_range_defect_found": "the SFT normaliser gives the left-arm dims a 0.1-0.2 rad range (the demonstrations never move that arm); the primitive moves them by up to 2.2 rad (normalised -24..+19 against the +/-2.2 squash). The pressing policy trains against a widened, versioned statistics file that its checkpoint records (build_press_bc_buffer.py, NORM_STATS).",
+ "primitive": "tools/g1_piston/make_press_demos.py VARIANTS='[{\"name\":\"dispense\",\"dispense\":true}]': centre tip over the plate -> descend to contact (plate top + 5 mm push) -> upright (twist about the tip, < 3 deg) -> re-centre -> left fist up to rod top + 5 cm, over, down (limit-clamped damped-least-squares IK, ramped, 1.5 mm/step) -> inject (0.6 mm/step, pusher servoed over the rod top, right hand keeps the tip over the plate centre) until plunger >= 21.5 mm -> hold 0.6 s -> release 5 cm -> hold. Episodes kept only if v5 dispense certifies.",
+ "data": {
+  "generators": [
+   "demo_buffer_v5_dispense_canon",
+   "demo_buffer_v5_dispense_t0123"
+  ],
+  "buffer": "demo_buffer_v5_press (build_press_bc_buffer.py: certified synthetic + originals truncated at the plate chunk)"
+ },
+ "probes": [
+  "probe_press_geometry.py",
+  "probe_press_mechanics.py",
+  "probe_press_handframe.py",
+  "probe_press_curl.py",
+  "probe_bimanual_inject.py"
+ ]
+}

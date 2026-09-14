@@ -49,6 +49,8 @@ SYNTH_DIRS = [d for d in os.environ["SYNTH_DIRS"].split(",") if d.strip()]
 ORIG_DIR = os.environ.get("ORIG_DIR", "/home/jren313/research/starvla_rl/demo_buffer_v3")
 ORIG_EPISODES = [int(x) for x in os.environ.get("ORIG_EPISODES", "0,4,5,39,40,43,46,47,48,49,50,51,52,53,54,59").split(",") if x.strip()]
 MARGIN = float(os.environ.get("MARGIN_RAD", "0.05"))
+#: Exceedance beyond q01/q99 (rad) below which the range is left untouched.
+EXCEED_TOL = float(os.environ.get("EXCEED_TOL", "0.10"))
 BASE_STATS = "/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1/dataset_statistics.json"
 WIDEN_DIMS = list(range(0, 7))
 #: cumulative v3 return at which the plate stage has certainly fired (reach 1 + grasp 2 +
@@ -121,8 +123,11 @@ for d in WIDEN_DIMS:
     # widen ONLY where the buffer actually exceeds the SFT range; a primitive that does not
     # move the left arm (the adopted palm press) keeps the normaliser bit-identical, so the
     # pressing policy and the working BC policy map their outputs through the same file
-    lo = min(dmin - MARGIN, q01[d]) if dmin < q01[d] else q01[d]
-    hi = max(dmax + MARGIN, q99[d]) if dmax > q99[d] else q99[d]
+    # q01/q99 are percentiles, so the demonstrations' own extremes sit a little outside
+    # them; only a MATERIAL exceedance (> EXCEED_TOL) means a motion the SFT range cannot
+    # express and triggers widening
+    lo = min(dmin - MARGIN, q01[d]) if dmin < q01[d] - EXCEED_TOL else q01[d]
+    hi = max(dmax + MARGIN, q99[d]) if dmax > q99[d] + EXCEED_TOL else q99[d]
     if lo != q01[d] or hi != q99[d]:
         widened[d] = {"q01_old": q01[d], "q99_old": q99[d], "q01": lo, "q99": hi}
     q01[d], q99[d] = lo, hi

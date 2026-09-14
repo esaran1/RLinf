@@ -219,7 +219,7 @@ try:
             inject = bool(var.get("inject", False))              # bimanual: tube in the left fist presses the rod
             inj_present = np.array(var.get("inj_present", [-0.15, 0.32, 1.05]), dtype=np.float64)  # barrel centre target
             inj_target = float(var.get("inj_target", 0.0215))    # plunger depth to reach
-            inj_clear = float(var.get("inj_clear", 0.05))        # tube bottom height above the rod top before descending
+            inj_clear = float(var.get("inj_clear", 0.03))        # pusher height above the rod top before descending
             inj_squeeze = float(var.get("inj_squeeze", 1.3))     # right-finger command during the inject (demo grip 1.3;
                                                                  # 1.7 measured to eject the barrel from the palm)
             dispense = bool(var.get("dispense", False))          # tip on the plate + left fist presses the rod: no friction
@@ -393,16 +393,13 @@ try:
                     # plunger reaches the target depth (closed loop) or the descent cap
                     z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
                     for t in range(300):
-                        err_xy = (rod_top() - pusher())[:2]
-                        lat = err_xy / max(np.linalg.norm(err_xy), 1e-9) * min(0.002, float(np.linalg.norm(err_xy)))
-                        last = ik_left(last, np.array([lat[0], lat[1], -0.0006 if dispense else -0.0008]))
-                        if dispense:
-                            # right hand: keep the tip over the plate centre while the rod is pushed
-                            ax = _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())
-                            tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * ax
-                            e2 = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() - tip[:2]
-                            l2 = e2 / max(np.linalg.norm(e2), 1e-9) * min(0.0015, float(np.linalg.norm(e2)))
-                            last = ik_step(last, np.array([l2[0], l2[1], 0.0]))
+                        # one servo only: the fist chases the rod top; it descends only while
+                        # aligned within 1 cm (a 1 cm tube on a 1 cm rod). The right arm holds
+                        # still: a second servo on the tip made the two chase each other.
+                        err_xy = (rod_top() - pusher())[:2]; e = float(np.linalg.norm(err_xy))
+                        lat = err_xy / max(e, 1e-9) * min(0.003, e)
+                        dz = -(0.0006 if dispense else 0.0008) if e < 0.010 else 0.0
+                        last = ik_left(last, np.array([lat[0], lat[1], dz]))
                         st["last"] = last
                         yield kind, last
                         pressed = float(obj.data.joint_pos[0, pj])

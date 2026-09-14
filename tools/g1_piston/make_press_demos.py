@@ -164,6 +164,7 @@ try:
             pp_max_m = float(var.get("pp_max_m", 0.12))          # max hand descent after contact
             pp_rate = float(var.get("pp_rate", 0.0008))          # descent per control step (m)
             pp_raise_m = float(var.get("pp_raise_m", 0.05))      # raise after the press
+            pp_upright_gain = float(var.get("pp_upright_gain", 0.004))  # lateral m/step per unit axis_xy
             vname = var.get("name", "base")
             t0 = time.time()
             env.reset(seed=0)
@@ -183,7 +184,7 @@ try:
                                                      "extra_chunks": extra_chunks, "to_end": to_end, "settle_chunks": settle_chunks,
                                                      "seat": seat, "seat_push_m": seat_push_m, "seat_raise_m": seat_raise_m,
                                                      "potpress": potpress, "pp_target": pp_target, "pp_max_m": pp_max_m,
-                                                     "pp_rate": pp_rate, "pp_raise_m": pp_raise_m}}
+                                                     "pp_rate": pp_rate, "pp_raise_m": pp_raise_m, "pp_upright_gain": pp_upright_gain}}
             # ---- 1. human transport, truncated at the plate stage ----------------------
             plate_chunk = None
             for c in range(n_demo_chunks):
@@ -256,15 +257,34 @@ try:
                     # measured plunger) or at the descent cap
                     # contact = the barrel bottom has reached the plate floor (geometric, not a
                     # stall test: a tip sliding on the floor never stalls cleanly)
-                    pot_floor = float(sc["pot"].data.root_pos_w[0, 2]) + 0.005
+                    # the "pot" is a 12 x 8 x 4 cm kinematic hole plate: the tip rests on its
+                    # TOP face (pot z + 0.04); its 6 mm holes cannot admit the 19 mm barrel
+                    plate_top = float(sc["pot"].data.root_pos_w[0, 2]) + 0.04
                     ez0 = float(robot.data.body_pos_w[0, ee_idx, 2]); contact_ee = None
+                    trace = []
                     for t in range(400):
-                        last = ik_step(last, np.array([0.0, 0.0, -pp_rate])); st["last"] = last
+                        # once the tip rests on the plate, move the hand horizontally so the
+                        # grip point comes above the tip: the pipette rotates upright and the
+                        # rod top ends up under the palm. Free descent before contact.
+                        lat = np.zeros(2)
+                        if contact_ee is not None:
+                            q = obj.data.body_quat_w[0, 1].cpu().numpy(); w_, x_, y_, z_ = [float(v) for v in q]
+                            ax = np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_)])
+                            lat = -pp_upright_gain * ax
+                            n = np.linalg.norm(lat)
+                            if n > 0.002:
+                                lat = lat / n * 0.002
+                        last = ik_step(last, np.array([lat[0], lat[1], -pp_rate])); st["last"] = last
                         yield kind, last
                         bz = float(obj.data.body_pos_w[0, 1, 2]) - 0.095
                         ee_z = float(robot.data.body_pos_w[0, ee_idx, 2])
                         pressed = float(obj.data.joint_pos[0, pj])
-                        if contact_ee is None and (bz <= pot_floor + 0.012 or pressed > 0.014):
+                        if t % 10 == 0:
+                            q = obj.data.body_quat_w[0, 1].cpu().numpy(); w_, x_, y_, z_ = [float(v) for v in q]
+                            tilt = float(np.degrees(np.arccos(np.clip(1 - 2 * (x_ * x_ + y_ * y_), -1, 1))))
+                            trace.append([t, round(ee_z, 4), round(bz, 4), round(pressed, 4), round(float(robot.data.body_pos_w[0, ee_idx, 2] - obj.data.body_pos_w[0, 1, 2]), 4), round(tilt, 1)])
+                        rec["pp_trace [t, ee_z, barrel_bottom_z, press, ee_minus_barrel_z, tilt_deg]"] = trace
+                        if contact_ee is None and (bz <= plate_top + 0.012 or pressed > 0.014):
                             contact_ee = ee_z; rec["pp_contact_step"] = t; rec["pp_barrel_bottom_z"] = round(bz, 4)
                         if contact_ee is None and ez0 - ee_z > 0.30:
                             rec["pp_no_contact"] = True; break

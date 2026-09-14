@@ -277,6 +277,7 @@ try:
             seat_push_m = float(var.get("seat_push_m", 0.02))    # extra descent after contact
             seat_raise_m = float(var.get("seat_raise_m", 0.09))  # raise after seating (replaces raise_m)
             potpress = bool(var.get("potpress", False))          # palm press with the tip on the plate
+            pp_upright = bool(var.get("pp_upright", False))      # twist-upright about the tip before the palm push
             pp_target = float(var.get("pp_target", 0.0215))      # stop pushing at this plunger depth
             pp_max_m = float(var.get("pp_max_m", 0.10))          # max hand descent after contact
             pp_rate = float(var.get("pp_rate", 0.0008))          # descent per control step (m)
@@ -386,6 +387,7 @@ try:
                     rec["centre_steps"] = t; rec["centre_err_m"] = round(float(np.linalg.norm(err)), 4)
                     rec["tilt_deg_at_centre"] = round(float(np.degrees(np.arccos(np.clip(axis[2], -1, 1)))), 1)
                 elif kind == "potpress":
+                    cap_m = float(n) if n is not None else pp_max_m
                     # descend until the barrel stops (tip on the plate) while the hand keeps
                     # going, then keep descending so the hand slides down the barrel until the
                     # palm drives the rod in; stop at the target depth (closed loop on the
@@ -428,7 +430,7 @@ try:
                             contact_ee = ee_z; rec["pp_contact_step"] = t; rec["pp_barrel_bottom_z"] = round(bz, 4)
                         if contact_ee is None and ez0 - ee_z > 0.30:
                             rec["pp_no_contact"] = True; break
-                        if contact_ee is not None and (pressed >= pp_target or contact_ee - ee_z > pp_max_m):
+                        if contact_ee is not None and (pressed >= pp_target or contact_ee - ee_z > cap_m):
                             rec["pp_descent_after_contact"] = round(contact_ee - ee_z, 4); rec["pp_press_reached"] = round(pressed, 4)
                             break
                 elif kind == "present":
@@ -612,6 +614,10 @@ try:
                 phases += [("hold", H), ("release", None), ("hold", H)]
             elif inject:
                 phases += [("present", None), ("approach", None), ("inject", None), ("hold", H), ("hold", H)]
+            elif potpress and pp_upright:
+                # contact (5 mm), upright by rotating about the tip, re-centre, then the push
+                phases += [("centre", None), ("potpress", 0.005), ("upright", None), ("centre", None),
+                           ("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
             elif potpress:
                 phases += [("centre", None), ("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
             else:

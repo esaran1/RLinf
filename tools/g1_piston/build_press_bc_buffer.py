@@ -117,9 +117,14 @@ key = "new_embodiment"
 q01 = list(stats[key]["action"]["q01"]); q99 = list(stats[key]["action"]["q99"])
 widened = {}
 for d in WIDEN_DIMS:
-    lo, hi = float(A[:, d].min()) - MARGIN, float(A[:, d].max()) + MARGIN
-    lo, hi = min(lo, q01[d]), max(hi, q99[d])
-    widened[d] = {"q01_old": q01[d], "q99_old": q99[d], "q01": lo, "q99": hi}
+    dmin, dmax = float(A[:, d].min()), float(A[:, d].max())
+    # widen ONLY where the buffer actually exceeds the SFT range; a primitive that does not
+    # move the left arm (the adopted palm press) keeps the normaliser bit-identical, so the
+    # pressing policy and the working BC policy map their outputs through the same file
+    lo = min(dmin - MARGIN, q01[d]) if dmin < q01[d] else q01[d]
+    hi = max(dmax + MARGIN, q99[d]) if dmax > q99[d] else q99[d]
+    if lo != q01[d] or hi != q99[d]:
+        widened[d] = {"q01_old": q01[d], "q99_old": q99[d], "q01": lo, "q99": hi}
     q01[d], q99[d] = lo, hi
 stats[key]["action"]["q01"] = q01; stats[key]["action"]["q99"] = q99
 for f_ in ("min", "max"):
@@ -129,7 +134,8 @@ for f_ in ("min", "max"):
             v[d] = min(v[d], q01[d]) if f_ == "min" else max(v[d], q99[d])
         stats[key]["action"][f_] = v
 stats["_provenance"] = {"base": BASE_STATS, "widened_dims": widened, "margin_rad": MARGIN, "buffer": OUT,
-                        "note": "dims 0-6 (left arm) widened to the pressing buffer's range; all other dims identical to the SFT statistics"}
+                        "note": ("dims 0-6 (left arm) widened where the pressing buffer exceeds the SFT range; all other dims identical"
+                                 if widened else "IDENTICAL to the SFT statistics: the buffer stays inside its range on every dim")}
 json.dump(stats, open(os.path.join(OUT, "dataset_statistics.json"), "w"), indent=1)
 manifest.update({"n_synthetic": n_synth, "n_original": n - n_synth, "n_episodes": n, "n_action_rows": int(len(A)),
                  "widened": widened, "stats_file": os.path.join(OUT, "dataset_statistics.json")})

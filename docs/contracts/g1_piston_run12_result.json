@@ -1,0 +1,147 @@
+{
+ "id": "g1_piston_run12_result",
+ "recorded": "2026-09-14 17:10 (training complete; 1 of 9 certification sweeps in)",
+ "configuration": "critic-free GRPO (run 9's configuration: SIGMA 0.10 all dims, R_MAX 0.15, 8 groups x 6, PPO 3 epochs, KL_BETA 0.1, KL_STOP 0.02) from the PRESSING policy bc_press, TRAIN_REWARD=v5, EP_CHUNKS=40 (40-chunk episodes in collection, in-trainer eval and certification), SEED 5, wall budget 3 h",
+ "training": {
+  "totals": {
+   "iterations": 3,
+   "grad_updates": 201,
+   "wall_clock_s": 15551.7,
+   "peak_vram_mib": 4351
+  },
+  "iterations": [
+   {
+    "iteration": 1,
+    "collect": {
+     "mean_return": 12.991,
+     "grasp_rate": 0.917,
+     "lift_rate": 0.75,
+     "plate_rate": 0.75,
+     "press_rate": 0.062,
+     "dispense_rate": 0.146,
+     "collect_s": 4385.8
+    },
+    "ppo": {
+     "epochs_run": 2,
+     "approx_kl": [
+      0.00636,
+      0.02601
+     ],
+     "kl_base": 0.00889,
+     "early_stop": true
+    }
+   },
+   {
+    "iteration": 2,
+    "collect": {
+     "mean_return": 7.746,
+     "grasp_rate": 0.771,
+     "lift_rate": 0.458,
+     "plate_rate": 0.417,
+     "press_rate": 0.0,
+     "dispense_rate": 0.021,
+     "collect_s": 3992.7
+    },
+    "ppo": {
+     "epochs_run": 3,
+     "approx_kl": [
+      0.00027,
+      0.00275,
+      0.01132
+     ],
+     "kl_base": 0.01311,
+     "early_stop": false
+    }
+   },
+   {
+    "iteration": 3,
+    "collect": {
+     "mean_return": 4.841,
+     "grasp_rate": 0.604,
+     "lift_rate": 0.25,
+     "plate_rate": 0.25,
+     "press_rate": 0.021,
+     "dispense_rate": 0.0,
+     "collect_s": 4182.5
+    },
+    "ppo": {
+     "epochs_run": 2,
+     "approx_kl": [
+      0.00915,
+      0.06646
+     ],
+     "kl_base": 0.04647,
+     "early_stop": true
+    }
+   }
+  ],
+  "in_trainer_evals": [
+   {
+    "iteration": 0,
+    "mean_return": 11.85,
+    "lift_rate": 0.75,
+    "press_rate": 0.0,
+    "dispense_rate": 0.125,
+    "success_rate": 0.0
+   },
+   {
+    "iteration": 1,
+    "mean_return": 1.093,
+    "lift_rate": 0.125,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0
+   },
+   {
+    "iteration": 2,
+    "mean_return": 15.024,
+    "lift_rate": 0.75,
+    "press_rate": 0.0,
+    "dispense_rate": 0.125,
+    "success_rate": 0.0
+   },
+   {
+    "iteration": 3,
+    "mean_return": 8.829,
+    "lift_rate": 0.5,
+    "press_rate": 0.0,
+    "dispense_rate": 0.0,
+    "success_rate": 0.0
+   }
+  ]
+ },
+ "reading": [
+  "Exploration rollouts dispensed 14.6 % in iteration 1 (7 of 48), then 2.1 % and 0 % as the residual drifted (KL-to-base 0.009 -> 0.013 -> 0.046): the same certified trajectory as runs 9/9b/9c -- the first update is the useful one and later updates random-walk under contact noise.",
+  "The iteration-1 in-trainer eval collapsed (lift 0.125) and recovered at iteration 2 (return 15.0, dispense 0.125): in-trainer post-rollout evals are not trusted (g1_piston_in_trainer_eval_underscores); certification is fresh-process at 40 chunks."
+ ],
+ "certification_h40": {
+  "rl12_iter2_s1_v5": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.68,
+   "plate_rate": 0.6,
+   "press_rate": 0.12,
+   "dispense_rate": 0.12,
+   "full_success_rate": 0.08,
+   "mean_return": 15.697,
+   "mean_max_press_m": 0.01784
+  },
+  "pending": "iter1/iter3 v5 s1; all iterations v5 s2; all iterations v3 s1 (scripts/score_rl12.sh, ~5 h)"
+ },
+ "reference_bc_press_h40": {
+  "s1": {
+   "lift": 0.88,
+   "press": 0.08,
+   "dispense": 0.16,
+   "success": 0.04,
+   "return": 16.96
+  },
+  "s2": {
+   "lift": 0.96,
+   "press": 0.08,
+   "dispense": 0.08,
+   "success": 0.08,
+   "return": 17.26
+  }
+ },
+ "defect_found_and_fixed": "chain_rl12.sh's score step passed the reward flag as a bare word ($3=1), which bash runs as a command; all nine sweeps 'finished' in one second with no output. Fixed with env $3=1; rescoring queued (score_rl12.sh)."
+}

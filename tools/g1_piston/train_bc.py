@@ -102,6 +102,12 @@ try:
 
     BASE = "/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1"
     CFGY, STATS = f"{BASE}/config.yaml", f"{BASE}/dataset_statistics.json"
+    # NORM_STATS: a versioned statistics file whose q01/q99 the head's normalised output
+    # is mapped through. The SFT file spans only the demonstrations; a stage that moves
+    # joints the demonstrations never moved (the left arm in the press) needs a wider
+    # range. Recorded in the checkpoint so every evaluator maps the same way.
+    STATS = os.environ.get("NORM_STATS", "") or STATS
+    res["config"]["norm_stats"] = STATS
     SFT = f"{BASE}/final_model/pytorch_model.pt"
     TASK = ("pick up the piston with the right hand, inject it into the tube held by "
             "the left hand, then move it over the hole plate.")
@@ -268,7 +274,7 @@ try:
         if (epoch + 1) % SAVE_EVERY == 0 or epoch == EPOCHS - 1:
             # Saved in the SAME format the RL trainer writes, so every existing
             # evaluation and rendering tool loads it without modification.
-            ck = {"action_model": model.action_model.state_dict(),
+            ck = {"action_model": model.action_model.state_dict(), "norm_stats": STATS,
                   "actor_logstd": torch.full((30,), float(np.log(0.05))),
                   "env_steps": 0, "grad_updates": (epoch + 1) * max(nb, 1),
                   "bc_epoch": epoch + 1}

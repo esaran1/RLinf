@@ -60,6 +60,9 @@ try:
     CKPT = "/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1/final_model/pytorch_model.pt"
     CFGY = "/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1/config.yaml"
     STATS = "/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1/dataset_statistics.json"
+    _bc_early = torch.load(BASE_CKPT, map_location="cpu", weights_only=False)
+    STATS = os.environ.get("NORM_STATS", "") or _bc_early.get("norm_stats", "") or STATS
+    res["config"]["norm_stats"] = STATS
     TASK = "pick up the piston with the right hand, inject it into the tube held by the left hand, then move it over the hole plate."
     RL = "/home/jren313/research/starvla_rl/RLinf/rlinf/envs/isaaclab/tasks/"
     import importlib.util as ilu
@@ -110,7 +113,7 @@ try:
     ACTION_LOW, ACTION_HIGH = -2.2, 2.2
     ACT_MASK = RLSP.build_active_mask().to(DEV); FROZEN_V = RLSP.load_frozen_values(STATS).to(DEV).float()
     # FROZEN base head = the BC policy; only the residual trains.
-    bc = torch.load(BASE_CKPT, map_location="cpu", weights_only=False)
+    bc = _bc_early
     model.action_model.load_state_dict(bc["action_model"])
     for p in model.parameters(): p.requires_grad_(False)
     model.eval()
@@ -197,7 +200,7 @@ try:
                 "condition": cond.index}
 
     def save_ckpt(name, it, n_updates):
-        ck = {"action_model": model.action_model.state_dict(), "residual": residual.state_dict(),
+        ck = {"action_model": model.action_model.state_dict(), "residual": residual.state_dict(), "norm_stats": STATS,
               "residual_cfg": {"feat_dim": HID, "hidden": [512, 512], "r_max": R_MAX},
               "actor_logstd": torch.log(SIG.detach().cpu()), "env_steps": it * N_GROUPS * GROUP * EP_CHUNKS * H * 2,
               "grad_updates": n_updates, "iteration": it, "algo": "grpo_residual"}

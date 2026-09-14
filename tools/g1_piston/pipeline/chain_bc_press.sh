@@ -12,7 +12,7 @@ LOG=$D/chain_$TAG.log
 mkdir -p $D/$TAG
 echo "$(date +%H:%M:%S) chain $TAG start buf=$BUF" >> $LOG
 wait_gpu
-OUTF=$D/$TAG/train_run.json RUN_DIR=$D/$TAG DEMO_DIR=$BUF EPOCHS=${EPOCHS:-300} $PY tools/g1_piston/train_bc.py > $D/$TAG/train.log 2>&1
+OUTF=$D/$TAG/train_run.json RUN_DIR=$D/$TAG DEMO_DIR=$BUF NORM_STATS=${NORM_STATS:-$BUF/dataset_statistics.json} EPOCHS=${EPOCHS:-300} $PY tools/g1_piston/train_bc.py > $D/$TAG/train.log 2>&1
 echo "$(date +%H:%M:%S) trained exit=$?" >> $LOG
 CK=$D/$TAG/bc_ckpt_latest.pt
 for s in 1 2; do

@@ -90,6 +90,11 @@ try:
 
     BASE = "/home/jren313/research/starvla_rl/checkpoints/g1-longhorizon-oft-v1"
     CFGY, STATS = f"{BASE}/config.yaml", f"{BASE}/dataset_statistics.json"
+    # The checkpoint may carry its own normaliser statistics (see train_bc.py NORM_STATS).
+    _ck_early = (torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
+                 if CKPT_PATH and CKPT_PATH != "sft" else None)
+    STATS = os.environ.get("NORM_STATS", "") or (_ck_early or {}).get("norm_stats", "") or STATS
+    res["norm_stats"] = STATS
     SFT = f"{BASE}/final_model/pytorch_model.pt"
     TASK = ("pick up the piston with the right hand, inject it into the tube held by "
             "the left hand, then move it over the hole plate.")
@@ -170,7 +175,7 @@ try:
     # SFT policy", which gives the same two-mode comparison for the baseline.
     residual = None   # set when the checkpoint carries a ResFiT residual
     if CKPT_PATH and CKPT_PATH != "sft":
-        ck = torch.load(CKPT_PATH, map_location="cuda", weights_only=False)
+        ck = _ck_early
         model.action_model.load_state_dict(ck["action_model"])
         actor_logstd = ck["actor_logstd"].to(DEV)
         if "residual" in ck:

@@ -151,12 +151,15 @@ try:
 
     def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05):
         """One damped-least-squares step for an arm; commanded targets clamped to the soft
-        joint limits (minus a margin) so a blocked motion cannot wind the arm up."""
+        joint limits (minus a margin) so a blocked motion cannot wind the arm up.
+        ``dx`` is a 3-vector (translation; rotation held or free) or a 6-vector twist."""
         dx = np.asarray(dx, dtype=np.float64)
         J = robot.root_physx_view.get_jacobians()[0]
         bi = ee_idx - 1 if J.shape[0] == len(bn) - 1 else ee_idx
         J = J[bi].cpu().numpy()[:, joint_ids]
-        if hold_rot:
+        if dx.shape[0] == 6:
+            t = dx
+        elif hold_rot:
             t = np.concatenate([dx, np.zeros(3)])
         else:
             J = J[:3]; t = dx
@@ -185,9 +188,9 @@ try:
     def pusher():
         """Lowest point of the left fist (tube bottom if the tube is still in the fist,
         else the lowest hand link): whatever will touch the rod top first."""
-        pts = [robot.data.body_pos_w[0, i].cpu().numpy() for i in L_HAND_IDX]
         if tube_fist_dist() < 0.20:
-            pts.append(tube_bottom())
+            return tube_bottom()          # the tube sticks 5 cm out of the palm: it touches first
+        pts = [robot.data.body_pos_w[0, i].cpu().numpy() for i in L_HAND_IDX]
         return min(pts, key=lambda p_: p_[2])
 
     def merge(stages, info):
@@ -389,10 +392,18 @@ try:
                     # left arm descends, servoing the tube bottom over the rod top, until the
                     # plunger reaches the target depth (closed loop) or the descent cap
                     z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
-                    for t in range(250):
+                    for t in range(300):
                         err_xy = (rod_top() - pusher())[:2]
                         lat = err_xy / max(np.linalg.norm(err_xy), 1e-9) * min(0.002, float(np.linalg.norm(err_xy)))
-                        last = ik_left(last, np.array([lat[0], lat[1], -0.0008])); st["last"] = last
+                        last = ik_left(last, np.array([lat[0], lat[1], -0.0006 if dispense else -0.0008]))
+                        if dispense:
+                            # right hand: keep the tip over the plate centre while the rod is pushed
+                            ax = _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())
+                            tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * ax
+                            e2 = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() - tip[:2]
+                            l2 = e2 / max(np.linalg.norm(e2), 1e-9) * min(0.0015, float(np.linalg.norm(e2)))
+                            last = ik_step(last, np.array([l2[0], l2[1], 0.0]))
+                        st["last"] = last
                         yield kind, last
                         pressed = float(obj.data.joint_pos[0, pj])
                         if t % 10 == 0:
@@ -402,16 +413,20 @@ try:
                     rec["inject_steps"] = t; rec["inject_descent_m"] = round(z0 - float(robot.data.body_pos_w[0, L_EE, 2]), 4)
                     rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, tube_fist_dist]"] = trace
                 elif kind == "upright":
-                    # tip on the plate: move the hand horizontally until the barrel is vertical
+                    # tip on the plate: ROTATE the hand about the tip until the barrel is
+                    # vertical (a pure translation slides the tip off the plate)
                     for t in range(250):
                         ax = _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())
                         tilt = float(np.degrees(np.arccos(np.clip(ax[2], -1, 1))))
                         if tilt < 3.0:
                             break
-                        lat = -1.5 * pp_upright_gain * ax[:2]; n = np.linalg.norm(lat)
-                        if n > 0.002:
-                            lat = lat / n * 0.002
-                        last = ik_step(last, np.array([lat[0], lat[1], 0.0])); st["last"] = last
+                        w = np.cross(ax, np.array([0.0, 0.0, 1.0]))          # rotation bringing ax to vertical
+                        nw = np.linalg.norm(w)
+                        w = w / max(nw, 1e-9) * min(0.004, nw)                # rad per step
+                        tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * ax
+                        ee = robot.data.body_pos_w[0, ee_idx].cpu().numpy()
+                        v = np.cross(w, ee - tip)                              # keep the tip fixed
+                        last = ik_step(last, np.concatenate([v, w])); st["last"] = last
                         yield kind, last
                     rec["upright_steps"] = t; rec["upright_tilt_deg"] = round(tilt, 1)
                 elif kind == "release":
@@ -461,7 +476,7 @@ try:
                 # tip rested on the plate (support from below), pipette uprighted, left fist
                 # presses the rod from above: the force path never loads the right grip
                 pp_max_m = 0.005; pp_thumb = False
-                phases += [("centre", None), ("potpress", None), ("upright", None), ("approach", None),
+                phases += [("centre", None), ("potpress", None), ("upright", None), ("centre", None), ("approach", None),
                            ("inject", None), ("hold", H), ("release", None), ("hold", H)]
             elif inject:
                 phases += [("present", None), ("approach", None), ("inject", None), ("hold", H), ("hold", H)]

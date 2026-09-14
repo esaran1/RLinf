@@ -18,17 +18,21 @@ lift **0.747 vs 0.680** (+0.067, paired-bootstrap 95 % CI −0.087 to +0.207); r
 project's first lifted press (targeted hand exploration, v4 training reward); its sweeps ranged
 lift 0.56 to 0.96, BC's 0.48 to 0.88 on the same conditions.
 
-**Bottom line.** Both RL candidates are ahead of BC on pooled lift and return, by similar
-margins (+0.04 to +0.07 lift, +0.6 to +1.1 return), and neither margin clears the evaluation
-noise of this benchmark at 150–225 paired evaluations. The plunger press was blocked by two measured defects (a physically unreachable threshold and
-an uncommandable thumb); with those fixed and a scripted palm press added to the data, the
-pressing policy dispenses on 12 % of conditions and completes the whole task on 6 % at a
-40-chunk horizon (section at the end). The honest deliverable is: a BC policy that transports reliably, an RL pipeline that
-is correct by construction and by measurement and does not degrade it, two RL checkpoints that
-are at least as good as BC, and a precise account of what blocks the last stage.
+**Bottom line.** Transport (reach, grasp, lift, carry to the plate) is solved by behaviour
+cloning and is not improved beyond evaluation noise by any RL run (both critic-free GRPO
+candidates are ahead by +0.04 to +0.07 lift; neither margin clears the noise at 150 to 225
+paired evaluations). The plunger press, the task's functional act, was blocked by two measured
+defects: the v3 press threshold (28 mm) lies 3 mm past what the object's geometry permits
+(25 mm), and the thumb was uncommandable through the frozen action normaliser. With a
+geometry-grounded press scorer (v5), a scripted palm press synthesised into the demonstration
+data, and a 40-chunk evaluation horizon (the human demonstrations are 23 chunks; the press adds
+~20), the pressing policy `bc_press` dispenses on 12 % of conditions and completes the whole
+task (dispense, place, release) on 6 % across 50 condition-evaluations, against 0 of 25 for the
+baseline, with transport intact (lift 0.92). Critic-free GRPO from that policy (run 12) is
+scored at the end of this report.
 
-* checkpoints: `checkpoints/g1_piston_grpo_working/run9_best.pt`, `run11_iter2.pt`
-* videos: `verified_results/videos_rl_grpo/run9_best/`, `run11_iter2/` (12 clips each; run 11
+* checkpoints: `checkpoints/g1_piston_bc_press/bc_ckpt_latest.pt` (pressing policy), `checkpoints/g1_piston_grpo_working/run9_best.pt`, `run11_iter2.pt`
+* videos: `verified_results/videos_bc_press_h40/` (pressing policy, 40 chunks), `verified_results/videos_rl_grpo/run9_best/`, `run11_iter2/` (12 clips each; run 11
   iteration 2 renders at 12/12 grasp, 11/12 lift), and BC's `verified_results/videos_bc_working/`
 * recipe: `docs/g1_piston_rl_pipeline.md`
 

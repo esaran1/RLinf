@@ -180,6 +180,16 @@ try:
     def tube_fist_dist():
         return float(np.linalg.norm(tube.data.root_pos_w[0].cpu().numpy() - robot.data.body_pos_w[0, L_EE].cpu().numpy()))
 
+    L_HAND_IDX = [i for i, b in enumerate(bn) if b.startswith("L_") or b == "left_hand_base_link"]
+
+    def pusher():
+        """Lowest point of the left fist (tube bottom if the tube is still in the fist,
+        else the lowest hand link): whatever will touch the rod top first."""
+        pts = [robot.data.body_pos_w[0, i].cpu().numpy() for i in L_HAND_IDX]
+        if tube_fist_dist() < 0.20:
+            pts.append(tube_bottom())
+        return min(pts, key=lambda p_: p_[2])
+
     def merge(stages, info):
         for k, v in info["stages"].items():
             stages[k] = stages.get(k, False) or v
@@ -207,6 +217,10 @@ try:
             inj_present = np.array(var.get("inj_present", [-0.15, 0.32, 1.05]), dtype=np.float64)  # barrel centre target
             inj_target = float(var.get("inj_target", 0.0215))    # plunger depth to reach
             inj_clear = float(var.get("inj_clear", 0.05))        # tube bottom height above the rod top before descending
+            inj_squeeze = float(var.get("inj_squeeze", 1.3))     # right-finger command during the inject (demo grip 1.3;
+                                                                 # 1.7 measured to eject the barrel from the palm)
+            dispense = bool(var.get("dispense", False))          # tip on the plate + left fist presses the rod: no friction
+            inj_speed = float(var.get("inj_speed", 0.0015))      # left-arm approach speed, m per control step
             vname = var.get("name", "base")
             t0 = time.time()
             env.reset(seed=0)
@@ -227,7 +241,8 @@ try:
                                                      "seat": seat, "seat_push_m": seat_push_m, "seat_raise_m": seat_raise_m,
                                                      "potpress": potpress, "pp_target": pp_target, "pp_max_m": pp_max_m,
                                                      "pp_rate": pp_rate, "pp_raise_m": pp_raise_m, "pp_upright_gain": pp_upright_gain, "pp_thumb": pp_thumb,
-                                                     "inject": inject, "inj_present": inj_present.tolist(), "inj_target": inj_target, "inj_clear": inj_clear}}
+                                                     "inject": inject, "inj_present": inj_present.tolist(), "inj_target": inj_target, "inj_clear": inj_clear,
+                                                     "inj_squeeze": inj_squeeze, "dispense": dispense, "inj_speed": inj_speed}}
             # ---- 1. human transport, truncated at the plate stage ----------------------
             plate_chunk = None
             for c in range(n_demo_chunks):
@@ -340,7 +355,11 @@ try:
                             rec["pp_descent_after_contact"] = round(contact_ee - ee_z, 4); rec["pp_press_reached"] = round(pressed, 4)
                             break
                 elif kind == "present":
-                    # right arm: bring the barrel centre to the presentation point (closed loop)
+                    # right arm: bring the barrel centre to the presentation point (closed loop);
+                    # tighten the grip first so the press reaction cannot slide the barrel
+                    for t in range(15):
+                        last = last.copy(); last[20:24] = np.minimum(last[20:24] + (inj_squeeze - 1.3) / 15.0, inj_squeeze); st["last"] = last
+                        yield kind, last
                     for t in range(300):
                         err = inj_present - obj.data.body_pos_w[0, 1].cpu().numpy()
                         if np.linalg.norm(err) < 0.01:
@@ -354,13 +373,14 @@ try:
                     # up to clearance height, over the rod top, then the descend phase
                     d0 = tube_fist_dist()
                     for leg in ("up", "over"):
-                        for t in range(300):
+                        for t in range(400):
                             goal = rod_top() + np.array([0.0, 0.0, inj_clear])
-                            cur = tube_bottom()
+                            cur = pusher()
                             err = (np.array([0.0, 0.0, goal[2] - cur[2]]) if leg == "up" else goal - cur)
                             if np.linalg.norm(err) < 0.012:
                                 break
-                            step = err / max(np.linalg.norm(err), 1e-9) * min(0.003, float(np.linalg.norm(err)))
+                            speed = inj_speed * min(1.0, (t + 1) / 20.0)       # ramp: no jerk on the tube
+                            step = err / max(np.linalg.norm(err), 1e-9) * min(speed, float(np.linalg.norm(err)))
                             last = ik_left(last, step); st["last"] = last
                             yield kind, last
                         rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
@@ -370,7 +390,7 @@ try:
                     # plunger reaches the target depth (closed loop) or the descent cap
                     z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
                     for t in range(250):
-                        err_xy = (rod_top() - tube_bottom())[:2]
+                        err_xy = (rod_top() - pusher())[:2]
                         lat = err_xy / max(np.linalg.norm(err_xy), 1e-9) * min(0.002, float(np.linalg.norm(err_xy)))
                         last = ik_left(last, np.array([lat[0], lat[1], -0.0008])); st["last"] = last
                         yield kind, last
@@ -381,6 +401,23 @@ try:
                             break
                     rec["inject_steps"] = t; rec["inject_descent_m"] = round(z0 - float(robot.data.body_pos_w[0, L_EE, 2]), 4)
                     rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, tube_fist_dist]"] = trace
+                elif kind == "upright":
+                    # tip on the plate: move the hand horizontally until the barrel is vertical
+                    for t in range(80):
+                        ax = _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())
+                        tilt = float(np.degrees(np.arccos(np.clip(ax[2], -1, 1))))
+                        if tilt < 3.0:
+                            break
+                        lat = -pp_upright_gain * ax[:2]; n = np.linalg.norm(lat)
+                        if n > 0.002:
+                            lat = lat / n * 0.002
+                        last = ik_step(last, np.array([lat[0], lat[1], 0.0])); st["last"] = last
+                        yield kind, last
+                    rec["upright_steps"] = t; rec["upright_tilt_deg"] = round(tilt, 1)
+                elif kind == "release":
+                    for t in range(int(round(0.05 / 0.001))):
+                        last = ik_left(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
+                        yield kind, last
                 elif kind == "raise_after":
                     for t in range(int(round(pp_raise_m / 0.001))):
                         last = ik_step(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
@@ -420,7 +457,13 @@ try:
 
             c_next = len(acts)
             phases = [("hold", H)] * settle_chunks
-            if inject:
+            if dispense:
+                # tip rested on the plate (support from below), pipette uprighted, left fist
+                # presses the rod from above: the force path never loads the right grip
+                pp_max_m = 0.005; pp_thumb = False
+                phases += [("centre", None), ("potpress", None), ("upright", None), ("approach", None),
+                           ("inject", None), ("hold", H), ("release", None), ("hold", H)]
+            elif inject:
                 phases += [("present", None), ("approach", None), ("inject", None), ("hold", H), ("hold", H)]
             elif potpress:
                 phases += [("centre", None), ("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
@@ -431,8 +474,8 @@ try:
             # trailing observation so (s, a, r, s') pairs exist for every chunk
             imgs.append(grab()); states.append(csb.build(stages=stages, chunk=len(acts)))
             acts.append(acts[-1]); rews.append(np.float32(0.0))
-            pl = [x for x in press_log if x["kind"] in ("press", "hold", "potpress", "raise_after", "inject")] or press_log
-            pre = [x for x in press_log if x["kind"] in ("raise", "seat", "centre", "present", "approach")]
+            pl = [x for x in press_log if x["kind"] in ("press", "hold", "potpress", "raise_after", "inject", "release")] or press_log
+            pre = [x for x in press_log if x["kind"] in ("raise", "seat", "centre", "present", "approach", "upright")]
             rec.update({
                 "stages": {k: bool(v) for k, v in stages.items()},
                 "return_v5": round(float(sum(rews)), 3),
@@ -451,7 +494,7 @@ try:
                 "wall_s": round(time.time() - t0, 1),
             })
             ok = bool(stages.get("press")) if inject else bool(stages.get("dispense"))
-            if inject:
+            if inject or dispense:
                 rec["tube_fist_dist_end"] = round(tube_fist_dist(), 4)
             rec["outcome"] = "press_certified" if ok else "press_failed"
             if ok or KEEP_FAILED:

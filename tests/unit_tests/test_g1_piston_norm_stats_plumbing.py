@@ -42,4 +42,4 @@ def test_buffer_builder_widens_only_the_left_arm_dims():
     assert "WIDEN_DIMS = list(range(0, 7))" in s
     assert "PLATE_CUM_RETURN = 14.0" in s
     # widening can only grow the range, never shrink it
-    assert "lo = min(dmin - MARGIN, q01[d]) if dmin < q01[d] else q01[d]" in s
+    assert "if dmin < q01[d] - EXCEED_TOL else q01[d]" in s

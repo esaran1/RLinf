@@ -49,7 +49,7 @@ def main():
     out.append(f"| policy | reward | sweep | grasp | lift | plate | press | dispense | return | mean max press (mm) |")
     out.append("|---|---|---|---|---|---|---|---|---|---|")
     table = {}
-    for label, pat in (("BC (working)", f"{D}/bc_working_v3_*n25.json"), (TAG, f"{D}/{TAG}_s?_v3_n25.json"),
+    for label, pat in (("BC (working)", f"{D}/bc_rep?_v3_n25.json"), (TAG, f"{D}/{TAG}_s?_v3_n25.json"),
                        ("BC (working)", f"{D}/bc_working_v5_s?_n25.json"), (TAG, f"{D}/{TAG}_s?_v5_n25.json")):
         for fp in sorted(glob.glob(pat)):
             s = summ(fp); rv = "v5" if "_v5_" in fp else "v3"

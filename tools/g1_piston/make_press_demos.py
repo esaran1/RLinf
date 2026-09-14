@@ -480,7 +480,7 @@ try:
                     move = ik_left_keep_up if flip else ik_left
                     side = st.get("side", np.array([-0.04, 0.0]))
                     for leg in ("up2", "side", "over"):
-                        for t in range(400):
+                        for t in range(150):                    # caps: a demonstration must not dither
                             goal = rod_top() + np.array([0.0, 0.0, inj_clear])
                             cur = push_pt()
                             if leg == "up2":
@@ -491,7 +491,7 @@ try:
                                 err = np.array([goal[0] + side[0] - cur[0], goal[1] + side[1] - cur[1], 0.0])
                             else:
                                 err = np.array([goal[0] - cur[0], goal[1] - cur[1], 0.0])
-                            if np.linalg.norm(err) < 0.008:
+                            if np.linalg.norm(err) < (0.012 if leg != "over" else 0.008):
                                 break
                             e = float(np.linalg.norm(err)); speed = inj_speed * min(1.0, (t + 1) / 20.0)
                             step = err / max(e, 1e-9) * min(speed, e)
@@ -503,7 +503,7 @@ try:
                 elif kind == "attempt":
                     if st.get("pressed_ok"):
                         return
-                    sides = [np.array([-0.04, 0.0]), np.array([0.0, 0.04]), np.array([0.0, -0.04]), np.array([0.04, 0.0])]
+                    sides = [np.array([0.0, -0.04]), np.array([0.0, 0.04]), np.array([-0.04, 0.0]), np.array([0.04, 0.0])]
                     st["side"] = sides[n % len(sides)]
                     if n > 0:
                         for t in range(50):                          # back off 5 cm before re-approaching
@@ -519,7 +519,7 @@ try:
                     # left arm descends, servoing the tube bottom over the rod top, until the
                     # plunger reaches the target depth (closed loop) or the descent cap
                     z0 = float(robot.data.body_pos_w[0, L_EE, 2]); trace = []
-                    for t in range(300):
+                    for t in range(200):
                         # back of the hand over the rod top; descend while aligned within 2 cm
                         pp = back_of_hand() if flip else pusher_pd()
                         err_xy = (rod_top() - pp)[:2]; e = float(np.linalg.norm(err_xy))

@@ -1,7 +1,7 @@
 {
  "id": "g1_piston_press_primitive",
- "recorded": "2026-09-13 23:25 (generators running; yields to be appended)",
- "status": "DESIGNED AND MEASURED. Five press mechanisms were tried in simulation; the supported bimanual dispense is the one that works.",
+ "recorded": "2026-09-13 23:25; ADOPTED PRIMITIVE revised 2026-09-14 01:50",
+ "status": "ADOPTED: single-arm PALM PRESS with the tip on the plate and the pipette uprighted by rotating the hand about the tip. 3/3 certified on its first run (21.5-22.8 mm, dispense sustained 110-132 steps, 30-34 chunks). The bimanual variants were abandoned (below).",
  "mechanisms_tried": [
   {
    "name": "thumb yaw sweep in the air",
@@ -22,6 +22,10 @@
   {
    "name": "SUPPORTED bimanual dispense: tip rested on the plate, pipette uprighted by rotating the hand about the tip, tip re-centred, left fist brought up/over/down onto the rod top, closed loop on the plunger",
    "result": "press reaches 20-29 mm on every attempt where the fist meets the rod; certified dispense (v5: 20 mm sustained 15 steps, finger-held, over the plate) on roughly half of the inject attempts; transport replays reach the plate on ~35 % of episode-conditions"
+  },
+  {
+   "name": "bimanual variants (2026-09-14 00:00-01:45): tube in the fist vertical/horizontal, palm-up back of hand, side approaches, up to 3 attempts",
+   "result": "the tube slides out of the fist under any load or motion along its axis in every orientation; palm-up hits the wrist yaw limit across the body; the palm-down fist/tube stalls 1.2-2 cm from the rod top (the tube comes in through the right hand) against a 1.5-2 cm tube-on-rod tolerance; 1 certified in ~10 attempts. Root causes fixed along the way and kept: point-transferred Jacobian for a pusher away from the wrist origin, hard-limit clamping (a soft-limit margin stalled the servo under gravity sag), prop restore of the plate only."
   }
  ],
  "why_supported": "the force path is fist -> rod -> spring -> barrel -> plate; the right grip carries no press load, so grip friction (the failure of the in-air inject) is irrelevant. The plate is a 12 x 8 x 4 cm kinematic block: a rigid, immovable support.",
@@ -30,8 +34,9 @@
  "primitive": "tools/g1_piston/make_press_demos.py VARIANTS='[{\"name\":\"dispense\",\"dispense\":true}]': centre tip over the plate -> descend to contact (plate top + 5 mm push) -> upright (twist about the tip, < 3 deg) -> re-centre -> left fist up to rod top + 5 cm, over, down (limit-clamped damped-least-squares IK, ramped, 1.5 mm/step) -> inject (0.6 mm/step, pusher servoed over the rod top, right hand keeps the tip over the plate centre) until plunger >= 21.5 mm -> hold 0.6 s -> release 5 cm -> hold. Episodes kept only if v5 dispense certifies.",
  "data": {
   "generators": [
-   "demo_buffer_v5_dispense_canon",
-   "demo_buffer_v5_dispense_t0123"
+   "demo_buffer_v5_palm_canon",
+   "demo_buffer_v5_palm_t01",
+   "demo_buffer_v5_palm_t23"
   ],
   "buffer": "demo_buffer_v5_press (build_press_bc_buffer.py: certified synthetic + originals truncated at the plate chunk)"
  },
@@ -41,5 +46,34 @@
   "probe_press_handframe.py",
   "probe_press_curl.py",
   "probe_bimanual_inject.py"
- ]
+ ],
+ "adopted_primitive": {
+  "variant": "VARIANTS='[{\"name\":\"palm\",\"potpress\":true,\"pp_upright\":true,\"pp_thumb\":false,\"pp_max_m\":0.12}]'",
+  "phases": "centre tip over the plate (+2 cm x) -> descend to contact + 5 mm -> upright by a twist about the tip (< 3 deg, ~160 steps) -> re-centre -> descend: the hand slides down the barrel, the lateral servo keeps the pipette vertical, until the plunger reaches 21.5 mm (closed loop; 2-6 cm of descent) -> hold 0.6 s -> raise 5 cm -> hold",
+  "why_it_works_now": "with the pipette vertical the rod top sits under the palm heel as the hand slides down; earlier palm presses crept and plateaued because the pipette hung 15-30 deg off vertical and uprighting by translation slid the tip off the plate",
+  "arms": "right arm only (dims 7-13, inside the SFT normaliser range); the widened statistics for dims 0-6 are unnecessary for this primitive but harmless",
+  "first_run": [
+   {
+    "episode": 0,
+    "cond": 0,
+    "press_m": 0.02273,
+    "dispense_steps": 132,
+    "chunks": 32
+   },
+   {
+    "episode": 0,
+    "cond": 1,
+    "press_m": 0.02279,
+    "dispense_steps": 129,
+    "chunks": 30
+   },
+   {
+    "episode": 4,
+    "cond": 0,
+    "press_m": 0.02175,
+    "dispense_steps": 110,
+    "chunks": 34
+   }
+  ]
+ }
 }

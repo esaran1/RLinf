@@ -149,14 +149,22 @@ try:
         w_, x_, y_, z_ = [float(v) for v in q]
         return np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
 
-    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05, rot_weight=1.0):
+    def ik_arm(last, ee_idx, joint_ids, sl, lim, dx, lam=1e-3, hold_rot=True, margin=0.05, rot_weight=1.0, point=None):
         """One damped-least-squares step for an arm; commanded targets clamped to the soft
         joint limits (minus a margin) so a blocked motion cannot wind the arm up.
-        ``dx`` is a 3-vector (translation; rotation held or free) or a 6-vector twist."""
+        ``dx`` is a 3-vector (translation; rotation held or free) or a 6-vector twist.
+        ``point``: world position whose translation the linear rows describe (Jacobian
+        transferred from the link origin: v_p = v_ee + w x r). Servoing a pusher 15-20 cm
+        from the wrist origin with the wrist Jacobian never converged: the free rotation
+        the solver picks moves the pusher unpredictably."""
         dx = np.asarray(dx, dtype=np.float64)
         J = robot.root_physx_view.get_jacobians()[0]
         bi = ee_idx - 1 if J.shape[0] == len(bn) - 1 else ee_idx
-        J = J[bi].cpu().numpy()[:, joint_ids]
+        J = J[bi].cpu().numpy()[:, joint_ids].copy()
+        if point is not None:
+            r = np.asarray(point, dtype=np.float64) - robot.data.body_pos_w[0, ee_idx].cpu().numpy()
+            rx = np.array([[0, -r[2], r[1]], [r[2], 0, -r[0]], [-r[1], r[0], 0]])
+            J[:3] = J[:3] - rx @ J[3:]
         if dx.shape[0] == 6:
             t = dx
         elif hold_rot:
@@ -173,12 +181,9 @@ try:
     def ik_step(last, dx, lam=1e-3):
         return ik_arm(last, ee_idx, arm_j, slice(7, 14), R_LIM, dx, lam)
 
-    def ik_left(last, dx, lam=1e-3):
-        # orientation HELD: a free wrist rotates the fist during the approach and dumps
-        # the tube out of the grip channel (measured: tube-to-wrist 0.16 -> 0.30 m)
-        # translation only (rotation free): with the rotation held, even softly, the arm
-        # could not close the last 1.3 cm of translation under the joint-limit clamp
-        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=False)
+    def ik_left(last, dx, lam=1e-3, point=None):
+        # translation of ``point`` (rotation free)
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, dx, lam, hold_rot=False, point=point)
 
     def ik_left_twist(last, v, w, lam=1e-3):
         return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([v, w]), lam)
@@ -238,8 +243,8 @@ try:
         return {"q": [round(float(v), 3) for v in q],
                 "at_limit": [bool(q[i] <= L_LIM[i, 0] + 0.06 or q[i] >= L_LIM[i, 1] - 0.06) for i in range(7)]}
 
-    def ik_left_keep_up(last, dx, lam=1e-3):
-        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([np.asarray(dx, dtype=np.float64), palm_up_twist()]), lam, rot_weight=0.5)
+    def ik_left_keep_up(last, dx, lam=1e-3, point=None):
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([np.asarray(dx, dtype=np.float64), palm_up_twist()]), lam, rot_weight=0.5, point=point)
 
     def pusher():
         """Lowest point of the left fist (tube bottom if the tube is still in the fist,
@@ -445,7 +450,7 @@ try:
                             break
                         speed = inj_speed * min(1.0, (t + 1) / 20.0)
                         step = err / max(np.linalg.norm(err), 1e-9) * min(speed, float(np.linalg.norm(err)))
-                        last = ik_left(last, step); st["last"] = last
+                        last = ik_left(last, step, point=pusher()); st["last"] = last
                         yield kind, last
                     rec["approach_up_steps"] = t; rec["approach_up_err_m"] = round(float(np.linalg.norm(err)), 4)
                     # FLIP: palm up. The tube, held only by friction, slides out of the fist
@@ -475,7 +480,7 @@ try:
                                 break
                             e = float(np.linalg.norm(err)); speed = inj_speed * min(1.0, (t + 1) / 20.0)
                             step = err / max(e, 1e-9) * min(speed, e)
-                            last = move(last, step); st["last"] = last
+                            last = move(last, step, point=cur); st["last"] = last
                             yield kind, last
                         rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
                         rec[f"left_arm_after_{leg}"] = left_arm_state()
@@ -491,7 +496,7 @@ try:
                         err_xy = (rod_top() - pp)[:2]; e = float(np.linalg.norm(err_xy))
                         lat = err_xy / max(e, 1e-9) * min(0.0015, e)
                         dz = -(0.0006 if dispense else 0.0008) if e < (0.020 if flip else 0.015) else 0.0
-                        last = (ik_left_keep_up if flip else ik_left)(last, np.array([lat[0], lat[1], dz]))
+                        last = (ik_left_keep_up if flip else ik_left)(last, np.array([lat[0], lat[1], dz]), point=pp)
                         st["last"] = last
                         yield kind, last
                         pressed = float(obj.data.joint_pos[0, pj])

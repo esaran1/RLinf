@@ -264,6 +264,7 @@ try:
             inj_present = np.array(var.get("inj_present", [-0.15, 0.32, 1.05]), dtype=np.float64)  # barrel centre target
             inj_target = float(var.get("inj_target", 0.0215))    # plunger depth to reach
             inj_clear = float(var.get("inj_clear", 0.03))        # pusher height above the rod top before descending
+            lean_deg = float(var.get("lean_deg", 30.0))          # lean of the supported pipette toward the left shoulder
             inj_squeeze = float(var.get("inj_squeeze", 1.3))     # right-finger command during the inject (demo grip 1.3;
                                                                  # 1.7 measured to eject the barrel from the palm)
             dispense = bool(var.get("dispense", False))          # tip on the plate + left fist presses the rod: no friction
@@ -347,9 +348,10 @@ try:
                         q = obj.data.body_quat_w[0, 1].cpu().numpy(); w_, x_, y_, z_ = [float(v) for v in q]
                         axis = np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
                         tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * axis
-                        # 4 cm toward the left arm (still inside the 6 cm plate gate): the
-                        # plate centre is at the left arm's reach limit for the flipped fist
-                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() + np.array([-0.04, 0.0]) - tip[:2]
+                        # tip 2 cm to the +x side of the plate centre: leaning 30 deg toward -x
+                        # displaces the barrel centre 4.75 cm toward -x, so it lands ~3 cm from
+                        # the plate centre, inside the 6 cm dispense gate
+                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() + np.array([0.02, 0.0]) - tip[:2]
                         if np.linalg.norm(err) < 0.008:
                             break
                         step = err / max(np.linalg.norm(err), 1e-9) * min(0.002, float(np.linalg.norm(err)))
@@ -482,14 +484,18 @@ try:
                     rec["inject_steps"] = t; rec["inject_descent_m"] = round(z0 - float(robot.data.body_pos_w[0, L_EE, 2]), 4)
                     rec["inject_press_reached"] = round(pressed, 4); rec["inject_trace [t, press, xy_err, palm_up, tube_fist_dist]"] = trace
                 elif kind == "upright":
-                    # tip on the plate: ROTATE the hand about the tip until the barrel is
-                    # vertical (a pure translation slides the tip off the plate)
+                    # tip on the plate: ROTATE the hand about the tip until the barrel leans
+                    # ``lean_deg`` toward the left shoulder (-x). Upright, the rod top sits at
+                    # the plate centre, which is at the flipped left fist's reach limit (it
+                    # stalled 12-15 cm short); leaning 30 deg brings the rod top ~10 cm closer
+                    # and 3 cm lower while the barrel centre stays inside the plate gate.
+                    goal_ax = np.array([-np.sin(np.radians(lean_deg)), 0.0, np.cos(np.radians(lean_deg))])
                     for t in range(250):
                         ax = _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())
-                        tilt = float(np.degrees(np.arccos(np.clip(ax[2], -1, 1))))
+                        tilt = float(np.degrees(np.arccos(np.clip(ax @ goal_ax, -1, 1))))
                         if tilt < 3.0:
                             break
-                        w = np.cross(ax, np.array([0.0, 0.0, 1.0]))          # rotation bringing ax to vertical
+                        w = np.cross(ax, goal_ax)                              # rotation bringing ax to the goal
                         nw = np.linalg.norm(w)
                         w = w / max(nw, 1e-9) * min(0.004, nw)                # rad per step
                         tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * ax
@@ -498,6 +504,7 @@ try:
                         last = ik_step(last, np.concatenate([v, w])); st["last"] = last
                         yield kind, last
                     rec["upright_steps"] = t; rec["upright_tilt_deg"] = round(tilt, 1)
+                    rec["barrel_axis_after_lean"] = [round(float(v), 3) for v in _axis_z(obj.data.body_quat_w[0, 1].cpu().numpy())]
                 elif kind == "release":
                     for t in range(int(round(0.05 / 0.001))):
                         last = ik_left(last, np.array([0.0, 0.0, 0.001])); st["last"] = last

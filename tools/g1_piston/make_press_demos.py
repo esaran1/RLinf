@@ -155,6 +155,14 @@ try:
             extra_chunks = int(var.get("extra_chunks", 0))      # demo chunks to keep after the plate stage
             to_end = bool(var.get("to_end", False))              # keep the whole demonstration
             settle_chunks = int(var.get("settle_chunks", 0))     # hold-still chunks before the raise
+            seat = bool(var.get("seat", False))                  # seat the pipette on the pot before pressing
+            seat_push_m = float(var.get("seat_push_m", 0.02))    # extra descent after contact
+            seat_raise_m = float(var.get("seat_raise_m", 0.09))  # raise after seating (replaces raise_m)
+            potpress = bool(var.get("potpress", False))          # palm press with the tip on the plate
+            pp_target = float(var.get("pp_target", 0.023))       # stop pushing at this plunger depth
+            pp_max_m = float(var.get("pp_max_m", 0.12))          # max hand descent after contact
+            pp_rate = float(var.get("pp_rate", 0.0008))          # descent per control step (m)
+            pp_raise_m = float(var.get("pp_raise_m", 0.05))      # raise after the press
             vname = var.get("name", "base")
             t0 = time.time()
             env.reset(seed=0)
@@ -167,7 +175,10 @@ try:
             stages = {}
             rec = {"episode": ep, "cond": cond_name, "cond_hash": cond.hash() if cond else None,
                    "variant": vname, "variant_cfg": {"raise_m": raise_m, "yaw_cmd": yaw_cmd, "ramp_steps": ramp_steps, "wrist": wrist,
-                                                     "extra_chunks": extra_chunks, "to_end": to_end, "settle_chunks": settle_chunks}}
+                                                     "extra_chunks": extra_chunks, "to_end": to_end, "settle_chunks": settle_chunks,
+                                                     "seat": seat, "seat_push_m": seat_push_m, "seat_raise_m": seat_raise_m,
+                                                     "potpress": potpress, "pp_target": pp_target, "pp_max_m": pp_max_m,
+                                                     "pp_rate": pp_rate, "pp_raise_m": pp_raise_m}}
             # ---- 1. human transport, truncated at the plate stage ----------------------
             plate_chunk = None
             for c in range(n_demo_chunks):
@@ -191,36 +202,100 @@ try:
             # ---- 2. scripted press primitive ------------------------------------------
             st = {"last": A[c * H + H - 1].copy()}
             press_log = []
-            def run_primitive_chunk(kind, c_index):
+
+            def phase_steps(kind, n=None):
+                """Yield (kind, action) step by step for one primitive phase."""
                 last = st["last"]
-                imgs.append(grab()); states.append(csb.build(stages=stages, chunk=c_index))
-                chunk_acts = []; tot = 0.0
-                y0 = float(last[25]); w0 = {d: float(last[d]) for d in wrist}
-                for t in range(H):
-                    if kind == "raise":
-                        last = ik_step(last, np.array([0.0, 0.0, raise_m / H]))
-                    elif kind == "press":
+                if kind == "hold":
+                    for t in range(n):
+                        yield kind, last
+                elif kind == "raise":
+                    for t in range(n):
+                        last = ik_step(last, np.array([0.0, 0.0, raise_m / H])); st["last"] = last
+                        yield kind, last
+                elif kind == "seat":
+                    # descend until the barrel stops while the hand keeps going, then push
+                    bz_hist = []; contact_ee = None
+                    for t in range(300):
+                        last = ik_step(last, np.array([0.0, 0.0, -0.0008])); st["last"] = last
+                        yield kind, last
+                        bz_hist.append(float(obj.data.body_pos_w[0, 1, 2]))
+                        ee_z = float(robot.data.body_pos_w[0, ee_idx, 2])
+                        if contact_ee is None and t > 5 and abs(bz_hist[-1] - bz_hist[-4]) < 2e-4:
+                            contact_ee = ee_z; rec["seat_contact_step"] = t
+                            rec["seat_barrel_bottom_z"] = round(bz_hist[-1] - 0.095, 4)
+                        if contact_ee is not None and contact_ee - ee_z > seat_push_m:
+                            break
+                    for t in range(int(round(seat_raise_m / 0.001))):
+                        last = ik_step(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
+                        yield kind, last
+                elif kind == "potpress":
+                    # descend until the barrel stops (tip on the plate), keep descending so the
+                    # hand slides down the barrel until the palm drives the rod in; stop at the
+                    # target depth (closed loop on the measured plunger) or at the descent cap
+                    bz_hist = []; contact_ee = None
+                    for t in range(600):
+                        last = ik_step(last, np.array([0.0, 0.0, -pp_rate])); st["last"] = last
+                        yield kind, last
+                        bz_hist.append(float(obj.data.body_pos_w[0, 1, 2]))
+                        ee_z = float(robot.data.body_pos_w[0, ee_idx, 2])
+                        pressed = float(obj.data.joint_pos[0, pj])
+                        if contact_ee is None and t > 5 and abs(bz_hist[-1] - bz_hist[-4]) < 2e-4:
+                            contact_ee = ee_z; rec["pp_contact_step"] = t
+                            rec["pp_barrel_bottom_z"] = round(bz_hist[-1] - 0.095, 4)
+                        if contact_ee is not None and (pressed >= pp_target or contact_ee - ee_z > pp_max_m):
+                            rec["pp_descent_after_contact"] = round(contact_ee - ee_z, 4); rec["pp_press_reached"] = round(pressed, 4)
+                            break
+                elif kind == "raise_after":
+                    for t in range(int(round(pp_raise_m / 0.001))):
+                        last = ik_step(last, np.array([0.0, 0.0, 0.001])); st["last"] = last
+                        yield kind, last
+                elif kind == "press":
+                    y0 = float(last[25]); w0 = {d: float(last[d]) for d in wrist}
+                    for t in range(n):
                         frac = min(1.0, (t + 1) / ramp_steps)
                         last = last.copy(); last[25] = y0 + (yaw_cmd - y0) * frac
                         for d, off in wrist.items():
                             last[d] = w0[d] + off * frac
-                    chunk_acts.append(last.copy())
-                    st["last"] = last
-                    r, info = step_phys(last); tot += r; merge(stages, info)
-                    press_log.append({"kind": kind, "press": info["press_m"], "lift": info["lift"],
-                                      "finger_hold": info["finger_hold"], "sustain": info["press_sustain_steps"],
-                                      "d_pot_xy": info["d_pot_xy"]})
-                acts.append(np.asarray(chunk_acts, dtype=np.float32)); rews.append(np.float32(tot))
+                        st["last"] = last
+                        yield kind, last
+
+            def run_primitive(phases):
+                """Execute phases, recording fixed 30-step chunks; the last chunk is padded with holds."""
+                stream = (x for ph in phases for x in phase_steps(*ph))
+                chunk_acts = []; tot = 0.0; c_index = len(acts)
+                def flush():
+                    nonlocal chunk_acts, tot, c_index
+                    acts.append(np.asarray(chunk_acts, dtype=np.float32)); rews.append(np.float32(tot))
+                    chunk_acts = []; tot = 0.0; c_index += 1
+                done = False
+                while not done:
+                    imgs.append(grab()); states.append(csb.build(stages=stages, chunk=c_index))
+                    for t in range(H):
+                        try:
+                            kind, a = next(stream)
+                        except StopIteration:
+                            kind, a = "hold", st["last"]; done = True
+                        chunk_acts.append(np.array(a, dtype=np.float32).copy())
+                        r, info = step_phys(a); tot += r; merge(stages, info)
+                        press_log.append({"kind": kind, "press": info["press_m"], "lift": info["lift"],
+                                          "finger_hold": info["finger_hold"], "sustain": info["press_sustain_steps"],
+                                          "dsustain": info.get("dispense_sustain_steps", 0), "d_pot_xy": info["d_pot_xy"]})
+                    flush()
+
             c_next = len(acts)
-            for _k in range(settle_chunks):
-                run_primitive_chunk("hold", c_next); c_next += 1
-            run_primitive_chunk("raise", c_next)
-            run_primitive_chunk("press", c_next + 1)
-            run_primitive_chunk("hold", c_next + 2)
+            phases = [("hold", H)] * settle_chunks
+            if potpress:
+                phases += [("potpress", None), ("hold", H), ("raise_after", None), ("hold", H)]
+            else:
+                phases += [("seat", None)] if seat else [("raise", H)]
+                phases += [("press", H), ("hold", H)]
+            run_primitive(phases)
             # trailing observation so (s, a, r, s') pairs exist for every chunk
             imgs.append(grab()); states.append(csb.build(stages=stages, chunk=len(acts)))
             acts.append(acts[-1]); rews.append(np.float32(0.0))
-            pl = [x for x in press_log if x["kind"] != "raise"]
+            pl = [x for x in press_log if x["kind"] in ("press", "hold", "potpress", "raise_after")] or press_log
+            pre = [x for x in press_log if x["kind"] in ("raise", "seat")]
             rec.update({
                 "stages": {k: bool(v) for k, v in stages.items()},
                 "return_v5": round(float(sum(rews)), 3),
@@ -231,8 +306,11 @@ try:
                 "lift_min_during_press": round(min(x["lift"] for x in pl), 4),
                 "finger_hold_frac_during_press": round(float(np.mean([x["finger_hold"] for x in pl])), 3),
                 "max_sustain_steps": int(max(x["sustain"] for x in pl)),
+                "max_dispense_steps": int(max(x.get("dsustain", 0) for x in pl)),
+                "press_max_at_plate_m": round(max(x["press"] for x in pl if x["kind"] in ("potpress", "hold")), 5) if any(x["kind"] == "potpress" for x in pl) else None,
                 "d_pot_xy_end": round(pl[-1]["d_pot_xy"], 4),
-                "lift_after_raise": round(press_log[settle_chunks * H + H - 1]["lift"], 4),
+                "lift_after_raise": round(pre[-1]["lift"], 4) if pre else None,
+                "finger_hold_after_raise": bool(pre[-1]["finger_hold"]) if pre else None,
                 "wall_s": round(time.time() - t0, 1),
             })
             ok = bool(stages.get("dispense"))

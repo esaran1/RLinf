@@ -120,8 +120,25 @@ def test_table_press_pays_nothing():
     total = 0.0
     for _ in range(40):
         _thumb_press_pose(sc, 0.035); r, info = rf.step(); total += r
-    assert info["stages"]["press"] is False and info["lift"] < V5.LIFT_H
+    assert info["stages"]["press"] is False and info["stages"]["dispense"] is False
+    assert info["lift"] < V5.LIFT_H
     assert total < 0.5                                  # no dense press term either
+
+
+def test_tip_on_plate_press_after_transport_is_a_dispense_without_the_lift_gate():
+    """The robust mechanism: pipette carried to the plate, tip rested on it (lift ~0.01),
+    hand pushed down until the palm meets the rod top. Dispense fires; 'press' (lifted) does not."""
+    sc = FakeScene(); rf = V5.PistonTaskRewardV5(sc, dt=0.02)
+    _transport(sc, rf)
+    for k in range(1, 21):                               # lower onto the plate, slowly
+        sc.place((0.30, -0.10), 1.01 - 0.11 * k / 20); rf.step()
+    total = 0.0
+    for _ in range(V5.PRESS_SUSTAIN_STEPS + 1):
+        sc.grip(); sc.press = 0.024; sc.rod = sc.barrel + np.array([0, 0, 0.03 - 0.024]); r, info = rf.step(); total += r
+    assert info["lift"] < V5.LIFT_H
+    assert info["stages"]["dispense"] is True and info["stages"]["press"] is False
+    assert total > V5.STAGE_BONUS["dispense"]
+    assert info["max_press_plate_m"] == pytest.approx(0.024)
 
 
 def test_press_away_from_plate_is_not_dispense():

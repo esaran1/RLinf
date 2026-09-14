@@ -40,8 +40,13 @@ at least ``PRESS_SUSTAIN_STEPS`` = 15 consecutive control steps (0.3 s), while t
 hold the barrel (near the axis, on the object) and the pipette is LIFTED (> LIFT_H). The
 thumb is deliberately not part of the hold predicate: in a press it sits on the rod top,
 above the barrel, where v3's thumb-on-barrel grasp test fails by construction. The lift gate
-keeps the table press out (as v4 did). ``dispense`` is a sustained press while over the
-plate after the plate stage: the task's functional completion, pipetting onto the plate.
+keeps the table press out (as v4 did). ``dispense`` is a sustained finger-held press while
+over the plate AFTER the plate stage (which itself requires the lift stage): the task's
+functional completion, pipetting onto the plate. Dispense has NO lift gate of its own: the
+robust press mechanism in this hand (measured, probe_press_curl / press_geometry) is to rest
+the pipette tip on the plate and push down so the hand slides along the barrel until the rod
+top meets the palm; the tip on the plate is 3-4 cm below LIFT_H. The transport requirement
+(plate after lift) is what excludes the no-transport table press.
 v3's tube-insertion stage is retained unchanged for reporting but is geometrically
 infeasible (barrel centre within 6 cm above the tube centre would put the tube inside the
 barrel's solid hull); no policy or demonstration has ever fired it.
@@ -254,6 +259,8 @@ class PistonTaskRewardV5:
         self._max_press = 0.0
         self._max_press_aligned = 0.0
         self._press_steps = 0          # v5: consecutive steps above PRESS_DEPTH while held
+        self._dispense_steps = 0       # v5: consecutive steps above PRESS_DEPTH over the plate
+        self._max_press_plate = 0.0    # v5: deepest finger-held press over the plate
         self._max_press_held = 0.0     # v5: deepest press while finger-held and lifted
 
     def _read(self):
@@ -355,7 +362,8 @@ class PistonTaskRewardV5:
         # and requires the pipette LIFTED, which keeps the table press out.
         finger_hold = (finger_r < GRASP_RADIUS) and (finger_dz < BARREL_HALF_H)
         held_press_ok = bool(finger_hold and lift > LIFT_H)
-        if held_press_ok:
+        pays_press = held_press_ok or bool(finger_hold and self._stages["plate"] and d_pot_xy < PLATE_NEAR)
+        if pays_press:
             if self._best_press is None:
                 self._best_press = press
             if press > self._best_press:
@@ -370,6 +378,15 @@ class PistonTaskRewardV5:
         else:
             self._press_steps = 0
         press_sustained = self._press_steps >= PRESS_SUSTAIN_STEPS
+        # dispense: finger-held, over the plate after transport, any height (see docstring)
+        over_plate_after_transport = bool(self._stages["plate"] and d_pot_xy < PLATE_NEAR)
+        if finger_hold and over_plate_after_transport and press > PRESS_DEPTH:
+            self._dispense_steps += 1
+        else:
+            self._dispense_steps = 0
+        dispense_sustained = self._dispense_steps >= PRESS_SUSTAIN_STEPS
+        if finger_hold and over_plate_after_transport:
+            self._max_press_plate = max(self._max_press_plate, press)
 
         # --- reviewer point 4: bounded jerk penalty while held --------------------
         jerk_pen = 0.0
@@ -408,7 +425,7 @@ class PistonTaskRewardV5:
         # being held at the moment it is depressed.
         # v5: sustained, lifted, finger-held press; dispense = that press over the plate.
         fire("press", press_sustained)
-        fire("dispense", press_sustained and self._stages["plate"] and d_pot_xy < PLATE_NEAR)
+        fire("dispense", dispense_sustained)
         fire("plate", self._stages["lift"] and d_pot_xy < PLATE_NEAR)
 
         # Success: dispensed, then placed over the plate, at rest, supported, released.
@@ -449,6 +466,8 @@ class PistonTaskRewardV5:
             "max_press_aligned_m": self._max_press_aligned,
             "max_press_held_m": self._max_press_held,
             "press_sustain_steps": self._press_steps,
+            "dispense_sustain_steps": self._dispense_steps,
+            "max_press_plate_m": self._max_press_plate,
             "finger_hold": bool(finger_hold),
             "held_press_ok": held_press_ok,
             "aligned_over_tube": bool(aligned_over_tube),

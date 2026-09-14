@@ -1,6 +1,6 @@
 {
  "id": "g1_piston_run12_result",
- "recorded": "2026-09-14 18:25 (3 of 9 certification sweeps in)",
+ "recorded": "2026-09-14 19:05 (5 of 9 certification sweeps in)",
  "configuration": "critic-free GRPO (run 9's configuration: SIGMA 0.10 all dims, R_MAX 0.15, 8 groups x 6, PPO 3 epochs, KL_BETA 0.1, KL_STOP 0.02) from the PRESSING policy bc_press, TRAIN_REWARD=v5, EP_CHUNKS=40 (40-chunk episodes in collection, in-trainer eval and certification), SEED 5, wall budget 3 h",
  "training": {
   "totals": {
@@ -145,6 +145,16 @@
    "full_success_rate": 0.0,
    "mean_return": 13.315,
    "mean_max_press_m": 0.01743
+  },
+  "rl12_iter2_s2_v5": {
+   "grasp_rate": 0.96,
+   "lift_rate": 0.48,
+   "plate_rate": 0.48,
+   "press_rate": 0.2,
+   "dispense_rate": 0.28,
+   "full_success_rate": 0.16,
+   "mean_return": 21.163,
+   "mean_max_press_m": 0.02086
   }
  },
  "reference_bc_press_h40": {
@@ -164,5 +174,5 @@
   }
  },
  "defect_found_and_fixed": "chain_rl12.sh's score step passed the reward flag as a bare word ($3=1), which bash runs as a command; all nine sweeps 'finished' in one second with no output. Fixed with env $3=1; rescoring queued (score_rl12.sh).",
- "provisional_verdict": "NO IMPROVEMENT over the pressing policy: dispense 0.04 / 0.12 / 0.12 (iterations 1-3, v5 sweep 1) against bc_press 0.16 / 0.08 on the same suite, with lift 0.64-0.76 against 0.88-0.96. Same certified trajectory as runs 9/9b/9c: the group signal under contact noise moves the residual without improving the deterministic policy."
+ "provisional_verdict": "MIXED. Iteration 2 pooled over two v5 sweeps: dispense 0.20 (0.12, 0.28), full success 0.12 (0.08, 0.16), lift 0.58 (0.68, 0.48) against the pressing policy's dispense 0.12 (0.16, 0.08), success 0.06, lift 0.92. Run 12 iteration 2 presses more often and transports less often; the sweep-to-sweep spread on dispense (0.12 vs 0.28) is as large as the difference, so two more paired 40-chunk sweeps of each are queued (scripts/extra_h40.sh) before any claim. Iterations 1 and 3 are below the pressing policy."
 }

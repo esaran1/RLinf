@@ -220,6 +220,15 @@ try:
         """Pusher point: the back-of-hand surface, ~2 cm behind the base frame."""
         return robot.data.body_pos_w[0, L_BASE].cpu().numpy() - 0.02 * palm_dir()
 
+    def palm_up_twist(gain=0.006):
+        """Angular velocity that keeps the palm facing up (a translation-only step lets the
+        wrist drift and undid the flip within 100 steps)."""
+        v = palm_dir(); w = np.cross(v, np.array([0.0, 0.0, 1.0])); nw = np.linalg.norm(w)
+        return w / max(nw, 1e-9) * min(gain, nw)
+
+    def ik_left_keep_up(last, dx, lam=1e-3):
+        return ik_arm(last, L_EE, L_J, slice(0, 7), L_LIM, np.concatenate([np.asarray(dx, dtype=np.float64), palm_up_twist()]), lam, rot_weight=0.5)
+
     def pusher():
         """Lowest point of the left fist (tube bottom if the tube is still in the fist,
         else the lowest hand link): whatever will touch the rod top first."""
@@ -338,7 +347,9 @@ try:
                         q = obj.data.body_quat_w[0, 1].cpu().numpy(); w_, x_, y_, z_ = [float(v) for v in q]
                         axis = np.array([2 * (x_ * z_ + y_ * w_), 2 * (y_ * z_ - x_ * w_), 1 - 2 * (x_ * x_ + y_ * y_)])
                         tip = obj.data.body_pos_w[0, 1].cpu().numpy() - 0.095 * axis
-                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() - tip[:2]
+                        # 4 cm toward the left arm (still inside the 6 cm plate gate): the
+                        # plate centre is at the left arm's reach limit for the flipped fist
+                        err = sc["pot"].data.root_pos_w[0, :2].cpu().numpy() + np.array([-0.04, 0.0]) - tip[:2]
                         if np.linalg.norm(err) < 0.008:
                             break
                         step = err / max(np.linalg.norm(err), 1e-9) * min(0.002, float(np.linalg.norm(err)))
@@ -446,7 +457,7 @@ try:
                                 break
                             e = float(np.linalg.norm(err)); speed = inj_speed * min(1.0, (t + 1) / 20.0)
                             step = err / max(e, 1e-9) * min(speed, e)
-                            last = ik_left(last, step); st["last"] = last
+                            last = ik_left_keep_up(last, step); st["last"] = last
                             yield kind, last
                         rec[f"approach_{leg}_steps"] = t; rec[f"approach_{leg}_err_m"] = round(float(np.linalg.norm(err)), 4)
                     rec["palm_up_before_inject"] = round(float(palm_dir()[2]), 3)
@@ -460,7 +471,7 @@ try:
                         err_xy = (rod_top() - back_of_hand())[:2]; e = float(np.linalg.norm(err_xy))
                         lat = err_xy / max(e, 1e-9) * min(0.0015, e)
                         dz = -(0.0006 if dispense else 0.0008) if e < 0.020 else 0.0
-                        last = ik_left(last, np.array([lat[0], lat[1], dz]))
+                        last = ik_left_keep_up(last, np.array([lat[0], lat[1], dz]))
                         st["last"] = last
                         yield kind, last
                         pressed = float(obj.data.joint_pos[0, pj])

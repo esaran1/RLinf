@@ -1,6 +1,6 @@
 {
  "id": "g1_piston_run12_result",
- "recorded": "2026-09-14 20:25 (all six v5 sweeps in)",
+ "recorded": "2026-09-14 22:35 (all nine certification sweeps in; paired extras running)",
  "configuration": "critic-free GRPO (run 9's configuration: SIGMA 0.10 all dims, R_MAX 0.15, 8 groups x 6, PPO 3 epochs, KL_BETA 0.1, KL_STOP 0.02) from the PRESSING policy bc_press, TRAIN_REWARD=v5, EP_CHUNKS=40 (40-chunk episodes in collection, in-trainer eval and certification), SEED 5, wall budget 3 h",
  "training": {
   "totals": {
@@ -125,7 +125,7 @@
    "mean_return": 15.697,
    "mean_max_press_m": 0.01784
   },
-  "pending": "v3 s1 for every iteration (transport scorer of record); then two extra paired v5 sweeps of iteration 2 and of bc_press (extra_h40.sh)",
+  "pending": "two extra paired v5 sweeps (s3, s4) of iteration 2 and of bc_press, then the pooled paired comparison (extra_h40.sh)",
   "rl12_iter1_s1_v5": {
    "grasp_rate": 1.0,
    "lift_rate": 0.64,
@@ -175,6 +175,27 @@
    "full_success_rate": 0.0,
    "mean_return": 13.059,
    "mean_max_press_m": 0.01976
+  },
+  "rl12_iter1_s1_v3": {
+   "grasp_rate": 0.96,
+   "lift_rate": 0.68,
+   "plate_rate": 0.64,
+   "press_rate": 0.0,
+   "mean_return": 10.024
+  },
+  "rl12_iter2_s1_v3": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.76,
+   "plate_rate": 0.76,
+   "press_rate": 0.08,
+   "mean_return": 11.953
+  },
+  "rl12_iter3_s1_v3": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.76,
+   "plate_rate": 0.76,
+   "press_rate": 0.04,
+   "mean_return": 11.458
   }
  },
  "reference_bc_press_h40": {
@@ -216,5 +237,6 @@
    "success": 0.06,
    "lift": 0.92
   }
- }
+ },
+ "status": "CERTIFIED at 40 chunks. Iteration 2: v5 dispense 0.12/0.28, full success 0.08/0.16, lift 0.68/0.48; v3 lift 0.76, return 11.95. Iterations 1 and 3 do not beat the pressing policy on any measure. Verdict on iteration 2 vs the pressing policy awaits the paired extras."
 }

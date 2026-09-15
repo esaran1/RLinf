@@ -124,18 +124,19 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
-## Run 12: GRPO under v5 from the pressing policy (2026-09-14, 17:45; scoring in progress)
+## Run 12: GRPO under v5 from the pressing policy (2026-09-14, 22:35; certified)
 
 Three iterations, 40-chunk episodes, run 9's configuration, SEED 5. Exploration rollouts
 dispensed 14.6 % in iteration 1, then 2.1 % and 0 % as the residual drifted (KL-to-base 0.009
--> 0.013 -> 0.046). Certified at 40 chunks so far (v5, sweep 1): iteration 2 dispense 0.12,
-full success 0.08, lift 0.68, return 15.70; iteration 1 dispense 0.04, lift 0.64, return 11.48.
-Neither improves on the pressing policy it started from (dispense 0.16/0.08, lift 0.88/0.96),
-consistent with the certified trajectory of every GRPO run in this project: the group signal
-under contact noise moves the residual without improving the deterministic policy. The
-remaining sweeps and the table land in `FINAL_REPORT.md` via `report_rl12.sh`. Found and
-fixed on the way: `chain_rl12.sh` passed the reward flag as a bare word (`$3=1`), which bash
-runs as a command; use `env $3=1`.
+-> 0.013 -> 0.046). Certified at 40 chunks (fresh processes, frozen 25-condition suite):
+iteration 2 dispenses 0.12/0.28 and completes the task 0.08/0.16 (v5, two sweeps) with lift
+0.68/0.48 (v3 lift 0.76, return 11.95); iterations 1 and 3 dispense 0.04/0.16 and 0.12/0.12
+with no full success. Against the pressing policy it started from (dispense 0.16/0.08, full
+success 0.04/0.08, lift 0.88/0.96), iteration 2 presses more often and transports less often,
+and its sweep-to-sweep spread on dispense equals the difference, so two more paired 40-chunk
+sweeps of each are being scored (`extra_h40.sh`) and the pooled comparison lands in
+`FINAL_REPORT.md`. Found and fixed on the way: `chain_rl12.sh` passed the reward flag as a
+bare word (`$3=1`), which bash runs as a command; use `env $3=1`.
 
 ## The press, delivered (2026-09-14, 10:50)
 

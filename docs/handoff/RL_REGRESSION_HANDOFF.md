@@ -124,6 +124,14 @@ reproduces BC's deployed error exactly (0.403000°). `scratchpad/chain_rl7.sh` s
 after run 6 finishes; `run_rl7.sh` holds the exact command. Every scorer applies the
 residual when the checkpoint carries one.
 
+## In flight (2026-09-15, 01:45): press data scaled to eight more conditions
+
+`demo_buffer_v5_palm_t47` and `_t811` generate palm-press episodes on training conditions
+4-11; `run_press2_pipeline.sh` then builds `demo_buffer_v5_press2` from all five generators,
+trains `bc_press2`, certifies it at 40 chunks (v5 x4 paired with `bc_press` s1-s4, v3 x2) and
+appends the paired table to `FINAL_REPORT.md`. Expected: roughly double the press data (40 ->
+~80 episodes); the question is whether BC's dispense rate scales with it.
+
 ## Run 12: GRPO under v5 from the pressing policy (2026-09-14, 22:35; certified)
 
 Three iterations, 40-chunk episodes, run 9's configuration, SEED 5. Exploration rollouts

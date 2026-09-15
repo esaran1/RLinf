@@ -1,6 +1,6 @@
 {
  "id": "g1_piston_run12_result",
- "recorded": "2026-09-14 19:05 (5 of 9 certification sweeps in)",
+ "recorded": "2026-09-14 20:25 (all six v5 sweeps in)",
  "configuration": "critic-free GRPO (run 9's configuration: SIGMA 0.10 all dims, R_MAX 0.15, 8 groups x 6, PPO 3 epochs, KL_BETA 0.1, KL_STOP 0.02) from the PRESSING policy bc_press, TRAIN_REWARD=v5, EP_CHUNKS=40 (40-chunk episodes in collection, in-trainer eval and certification), SEED 5, wall budget 3 h",
  "training": {
   "totals": {
@@ -125,7 +125,7 @@
    "mean_return": 15.697,
    "mean_max_press_m": 0.01784
   },
-  "pending": "all iterations v5 s2; all iterations v3 s1 (in progress)",
+  "pending": "v3 s1 for every iteration (transport scorer of record); then two extra paired v5 sweeps of iteration 2 and of bc_press (extra_h40.sh)",
   "rl12_iter1_s1_v5": {
    "grasp_rate": 1.0,
    "lift_rate": 0.64,
@@ -155,6 +155,26 @@
    "full_success_rate": 0.16,
    "mean_return": 21.163,
    "mean_max_press_m": 0.02086
+  },
+  "rl12_iter1_s2_v5": {
+   "grasp_rate": 0.92,
+   "lift_rate": 0.8,
+   "plate_rate": 0.8,
+   "press_rate": 0.04,
+   "dispense_rate": 0.16,
+   "full_success_rate": 0.0,
+   "mean_return": 15.38,
+   "mean_max_press_m": 0.01669
+  },
+  "rl12_iter3_s2_v5": {
+   "grasp_rate": 1.0,
+   "lift_rate": 0.56,
+   "plate_rate": 0.52,
+   "press_rate": 0.16,
+   "dispense_rate": 0.12,
+   "full_success_rate": 0.0,
+   "mean_return": 13.059,
+   "mean_max_press_m": 0.01976
   }
  },
  "reference_bc_press_h40": {
@@ -174,5 +194,27 @@
   }
  },
  "defect_found_and_fixed": "chain_rl12.sh's score step passed the reward flag as a bare word ($3=1), which bash runs as a command; all nine sweeps 'finished' in one second with no output. Fixed with env $3=1; rescoring queued (score_rl12.sh).",
- "provisional_verdict": "MIXED. Iteration 2 pooled over two v5 sweeps: dispense 0.20 (0.12, 0.28), full success 0.12 (0.08, 0.16), lift 0.58 (0.68, 0.48) against the pressing policy's dispense 0.12 (0.16, 0.08), success 0.06, lift 0.92. Run 12 iteration 2 presses more often and transports less often; the sweep-to-sweep spread on dispense (0.12 vs 0.28) is as large as the difference, so two more paired 40-chunk sweeps of each are queued (scripts/extra_h40.sh) before any claim. Iterations 1 and 3 are below the pressing policy."
+ "provisional_verdict": "MIXED, iteration 2 is the candidate: pooled over two v5 sweeps it dispenses 0.20 and completes the task 0.12 against the pressing policy's 0.12 and 0.06, but lifts 0.58 against 0.92 (it trades transport for pressing, as v3-era runs traded transport for table presses). The dispense spread between its two sweeps (0.12, 0.28) equals the difference to the baseline; two more paired sweeps of each are queued before any claim. Iterations 1 and 3 do not beat the pressing policy.",
+ "v5_pooled_two_sweeps": {
+  "iter1": {
+   "dispense": 0.1,
+   "success": 0.0,
+   "lift": 0.72
+  },
+  "iter2": {
+   "dispense": 0.2,
+   "success": 0.12,
+   "lift": 0.58
+  },
+  "iter3": {
+   "dispense": 0.12,
+   "success": 0.0,
+   "lift": 0.66
+  },
+  "bc_press": {
+   "dispense": 0.12,
+   "success": 0.06,
+   "lift": 0.92
+  }
+ }
 }

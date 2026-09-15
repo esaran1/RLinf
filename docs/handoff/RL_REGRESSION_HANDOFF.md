@@ -133,9 +133,10 @@ iteration 2 dispenses 0.12/0.28 and completes the task 0.08/0.16 (v5, two sweeps
 0.68/0.48 (v3 lift 0.76, return 11.95); iterations 1 and 3 dispense 0.04/0.16 and 0.12/0.12
 with no full success. Against the pressing policy it started from (dispense 0.16/0.08, full
 success 0.04/0.08, lift 0.88/0.96), iteration 2 presses more often and transports less often,
-and its sweep-to-sweep spread on dispense equals the difference, so two more paired 40-chunk
-sweeps of each are being scored (`extra_h40.sh`) and the pooled comparison lands in
-`FINAL_REPORT.md`. Found and fixed on the way: `chain_rl12.sh` passed the reward flag as a
+and pooled over four paired 40-chunk sweeps (100 condition-evaluations) it dispenses 0.17
+against 0.08 (+0.09, CI +0.00 to +0.19, not established), completes the task 0.11 against 0.04,
+and lifts 0.63 against 0.87 in all four sweeps. Checkpoint `checkpoints/g1_piston_grpo_working/
+run12_iter2.pt`; the deliverable stays `bc_press`. Found and fixed on the way: `chain_rl12.sh` passed the reward flag as a
 bare word (`$3=1`), which bash runs as a command; use `env $3=1`.
 
 ## The press, delivered (2026-09-14, 10:50)

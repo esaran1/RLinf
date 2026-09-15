@@ -1,6 +1,6 @@
 {
  "id": "g1_piston_run12_result",
- "recorded": "2026-09-14 22:35 (all nine certification sweeps in; paired extras running)",
+ "recorded": "2026-09-15 01:15 (final: nine certification sweeps + four paired extras)",
  "configuration": "critic-free GRPO (run 9's configuration: SIGMA 0.10 all dims, R_MAX 0.15, 8 groups x 6, PPO 3 epochs, KL_BETA 0.1, KL_STOP 0.02) from the PRESSING policy bc_press, TRAIN_REWARD=v5, EP_CHUNKS=40 (40-chunk episodes in collection, in-trainer eval and certification), SEED 5, wall budget 3 h",
  "training": {
   "totals": {
@@ -215,7 +215,6 @@
   }
  },
  "defect_found_and_fixed": "chain_rl12.sh's score step passed the reward flag as a bare word ($3=1), which bash runs as a command; all nine sweeps 'finished' in one second with no output. Fixed with env $3=1; rescoring queued (score_rl12.sh).",
- "provisional_verdict": "MIXED, iteration 2 is the candidate: pooled over two v5 sweeps it dispenses 0.20 and completes the task 0.12 against the pressing policy's 0.12 and 0.06, but lifts 0.58 against 0.92 (it trades transport for pressing, as v3-era runs traded transport for table presses). The dispense spread between its two sweeps (0.12, 0.28) equals the difference to the baseline; two more paired sweeps of each are queued before any claim. Iterations 1 and 3 do not beat the pressing policy.",
  "v5_pooled_two_sweeps": {
   "iter1": {
    "dispense": 0.1,
@@ -238,5 +237,77 @@
    "lift": 0.92
   }
  },
- "status": "CERTIFIED at 40 chunks. Iteration 2: v5 dispense 0.12/0.28, full success 0.08/0.16, lift 0.68/0.48; v3 lift 0.76, return 11.95. Iterations 1 and 3 do not beat the pressing policy on any measure. Verdict on iteration 2 vs the pressing policy awaits the paired extras."
+ "status": "CERTIFIED at 40 chunks. Iteration 2 pooled over four paired v5 sweeps (100 condition-evaluations): dispense 0.17 vs the pressing policy's 0.08 (+0.09, paired-bootstrap 95% CI +0.00 to +0.19: NOT ESTABLISHED, the interval touches zero), full success 0.11 vs 0.04, lift 0.63 vs 0.87. Iterations 1 and 3 are below the pressing policy.",
+ "paired_h40_v5": {
+  "sweeps": {
+   "s1": {
+    "bc_press": [
+     0.16,
+     0.04,
+     0.88
+    ],
+    "rl12_iter2": [
+     0.12,
+     0.08,
+     0.68
+    ]
+   },
+   "s2": {
+    "bc_press": [
+     0.08,
+     0.08,
+     0.96
+    ],
+    "rl12_iter2": [
+     0.28,
+     0.16,
+     0.48
+    ]
+   },
+   "s3": {
+    "bc_press": [
+     0.04,
+     0.0,
+     0.84
+    ],
+    "rl12_iter2": [
+     0.12,
+     0.04,
+     0.64
+    ]
+   },
+   "s4": {
+    "bc_press": [
+     0.04,
+     0.04,
+     0.8
+    ],
+    "rl12_iter2": [
+     0.16,
+     0.16,
+     0.72
+    ]
+   }
+  },
+  "fields": "[dispense, full success, lift]",
+  "pooled_n": 100,
+  "dispense": [
+   0.17,
+   0.08
+  ],
+  "dispense_diff_ci95": [
+   0.0,
+   0.19
+  ],
+  "success": [
+   0.11,
+   0.04
+  ],
+  "lift": [
+   0.63,
+   0.87
+  ],
+  "verdict": "not established on dispense; lift loss is large and consistent (4 of 4 sweeps)"
+ },
+ "checkpoint": "checkpoints/g1_piston_grpo_working/run12_iter2.pt"
 }

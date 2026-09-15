@@ -210,3 +210,16 @@ Every iteration scored in fresh processes on the frozen 25-condition suite at EP
 | rl12_iter3 | v5 | s2 | 1.00 | 0.56 | 0.52 | 0.16 | 0.12 | 0.00 | 13.06 | 19.8 |
 
 Training (exploration rollouts, 48 per iteration, 40-chunk episodes): iteration 1: dispense 0.146, lift 0.75, return 12.99, KL-to-base 0.0089; iteration 2: dispense 0.021, lift 0.46, return 7.75, KL-to-base 0.0131; iteration 3: dispense 0.000, lift 0.25, return 4.84, KL-to-base 0.0465.
+
+## Paired 40-chunk comparison: run 12 iteration 2 vs the pressing policy (auto)
+
+| sweep | bc_press dispense | rl12 iter2 dispense | bc_press success | rl12 iter2 success | bc_press lift | rl12 iter2 lift |
+|---|---|---|---|---|---|---|
+| s1 | 0.16 | 0.12 | 0.04 | 0.08 | 0.88 | 0.68 |
+| s2 | 0.08 | 0.28 | 0.08 | 0.16 | 0.96 | 0.48 |
+| s3 | 0.04 | 0.12 | 0.00 | 0.04 | 0.84 | 0.64 |
+| s4 | 0.04 | 0.16 | 0.04 | 0.16 | 0.80 | 0.72 |
+
+**Pooled over 100 paired condition-evaluations per policy (v5, 40 chunks):** dispense rl12 iter2 0.170 vs bc_press 0.080 (difference +0.090, paired-bootstrap 95% CI +0.000 to +0.190); full success 0.110 vs 0.040; lift 0.630 vs 0.870.
+
+Verdict: **not established** on dispense (CI includes zero).

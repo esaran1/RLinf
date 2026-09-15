@@ -26,12 +26,15 @@ defects: the v3 press threshold (28 mm) lies 3 mm past what the object's geometr
 (25 mm), and the thumb was uncommandable through the frozen action normaliser. With a
 geometry-grounded press scorer (v5), a scripted palm press synthesised into the demonstration
 data, and a 40-chunk evaluation horizon (the human demonstrations are 23 chunks; the press adds
-~20), the pressing policy `bc_press` dispenses on 12 % of conditions and completes the whole
-task (dispense, place, release) on 6 % across 50 condition-evaluations, against 0 of 25 for the
-baseline, with transport intact (lift 0.92). Critic-free GRPO from that policy (run 12) is
-scored at the end of this report.
+~20), the pressing policy `bc_press` dispenses on 8 % of conditions and completes the whole
+task (dispense, place, release) on 4 % across 100 condition-evaluations, against 0 of 25 for
+the baseline, with transport intact (lift 0.87). Critic-free GRPO under v5 from that policy
+(run 12, iteration 2) raises dispense to 17 % and full success to 11 % on the same 100 paired
+evaluations while lowering lift to 0.63; the dispense gain (+0.09, CI +0.00 to +0.19) sits at
+the edge of what this benchmark's evaluation noise can establish. The deliverable checkpoint
+is `bc_press` (transport intact, presses); `run12_iter2` is the higher-pressing alternative.
 
-* checkpoints: `checkpoints/g1_piston_bc_press/bc_ckpt_latest.pt` (pressing policy), `checkpoints/g1_piston_grpo_working/run9_best.pt`, `run11_iter2.pt`
+* checkpoints: `checkpoints/g1_piston_bc_press/bc_ckpt_latest.pt` (pressing policy), `checkpoints/g1_piston_grpo_working/run12_iter2.pt` (GRPO from it), `run9_best.pt`, `run11_iter2.pt`
 * videos: `verified_results/videos_bc_press_h40/` (pressing policy, 40 chunks), `verified_results/videos_rl_grpo/run9_best/`, `run11_iter2/` (12 clips each; run 11
   iteration 2 renders at 12/12 grasp, 11/12 lift), and BC's `verified_results/videos_bc_working/`
 * recipe: `docs/g1_piston_rl_pipeline.md`
